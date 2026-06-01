@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --hex-fill: #f8fafc;
+  --hex-stroke: #cbd5e1;
+  --hex-text: #1e293b;
+  --hex-number-default: #1e293b;
+  --hex-number-hot: #dc2626;
+  --hex-desert-fill: #d4a574;
+  --score-low: #3b82f6;
+  --score-mid: #fbbf24;
+  --score-high: #ef4444;
+  --color-blocked: #94a3b8;
+  --color-occupied: #6366f1;
+  --color-top-vertex: #f59e0b;
+}
+
+.dark {
+  --hex-fill: #1e293b;
+  --hex-stroke: #475569;
+  --hex-text: #f1f5f9;
+  --hex-number-default: #e2e8f0;
+  --hex-desert-fill: #92400e;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}

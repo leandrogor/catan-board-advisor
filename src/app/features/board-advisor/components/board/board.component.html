@@ -1,0 +1,158 @@
+<div class="relative w-full flex items-center justify-center">
+  <!-- Simulating overlay -->
+  @if (store.isSimulating()) {
+    <div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg z-10">
+      <div
+        class="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-full px-5 py-3 shadow-lg"
+      >
+        <span class="animate-spin text-xl">⚙️</span>
+        <span class="font-medium text-slate-900 dark:text-slate-100">{{
+          i18n.t().simulating
+        }}</span>
+      </div>
+    </div>
+  }
+
+  <svg
+    class="board-wrapper w-full h-auto"
+    [attr.viewBox]="viewBox()"
+    [style]="rotationStyle()"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label="Catan board"
+  >
+    <!-- Hex polygons -->
+    @for (hex of store.hexes(); track hex.id) {
+      <g>
+        <polygon
+          class="hex-polygon"
+          [attr.points]="getPolygonPoints(hex)"
+          [attr.fill]="hex.isDesert ? 'var(--hex-desert-fill, #d4a574)' : 'var(--hex-fill)'"
+          stroke="var(--hex-stroke)"
+          stroke-width="1.5"
+        />
+
+        <!-- Dice number or desert indicator -->
+        @if (hex.isDesert) {
+          <text
+            [attr.x]="hex.center.x"
+            [attr.y]="hex.center.y + 2"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            [attr.font-size]="getFontSize() * 1.2"
+            class="hex-number"
+          >
+            🏜️
+          </text>
+        } @else {
+          <g class="hex-tooltip-trigger" role="button" tabindex="0">
+            <text
+              [attr.x]="hex.center.x"
+              [attr.y]="hex.center.y + 2"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              [attr.font-size]="getFontSize()"
+              [attr.fill]="
+                isHotNumber(hex.diceNumber) ? 'var(--hex-number-hot)' : 'var(--hex-number-default)'
+              "
+              [attr.font-weight]="isHotNumber(hex.diceNumber) ? 'bold' : 'normal'"
+              class="hex-number"
+            >
+              {{ hex.diceNumber }}
+              <title>{{ i18n.t().hexLetter }}: {{ hex.letter }}</title>
+            </text>
+          </g>
+        }
+      </g>
+    }
+
+    <!-- Vertex indicators -->
+    @for (vertex of displayVertices(); track vertex.id) {
+      <g>
+        <!-- Top vertex amber ring -->
+        @if (isTopVertex(vertex) && !vertex.isOccupied && !vertex.isBlocked) {
+          <circle
+            class="top-vertex-ring"
+            [attr.cx]="vertex.position.x"
+            [attr.cy]="vertex.position.y"
+            [attr.r]="getVertexRadius(vertex) + 4"
+            fill="none"
+            stroke="var(--color-top-vertex)"
+            stroke-width="3"
+          />
+        }
+
+        <!-- Main vertex circle -->
+        <circle
+          [class]="'vertex-circle' + (vertex.isBlocked ? ' vertex-blocked' : '')"
+          [attr.cx]="vertex.position.x"
+          [attr.cy]="vertex.position.y"
+          [attr.r]="getVertexRadius(vertex)"
+          [attr.fill]="getVertexFill(vertex)"
+          [attr.opacity]="getVertexOpacity(vertex)"
+          [attr.aria-label]="getVertexAriaLabel(vertex)"
+          role="button"
+          tabindex="0"
+          (click)="onVertexClick(vertex)"
+          (keydown.enter)="onVertexClick(vertex)"
+          (keydown.space)="onVertexClick(vertex)"
+        />
+
+        <!-- Selected ring -->
+        @if (isSelected(vertex)) {
+          <circle
+            [attr.cx]="vertex.position.x"
+            [attr.cy]="vertex.position.y"
+            [attr.r]="getVertexRadius(vertex) + 3"
+            fill="none"
+            stroke="white"
+            stroke-width="2"
+          />
+        }
+
+        <!-- Top vertex star -->
+        @if (isTopVertex(vertex) && !vertex.isOccupied && !vertex.isBlocked) {
+          <text
+            [attr.x]="vertex.position.x"
+            [attr.y]="vertex.position.y - getVertexRadius(vertex) - 8"
+            text-anchor="middle"
+            font-size="14"
+            class="pointer-events-none"
+          >
+            ★
+          </text>
+        }
+
+        <!-- Occupied house icon -->
+        @if (vertex.isOccupied) {
+          <text
+            [attr.x]="vertex.position.x"
+            [attr.y]="vertex.position.y + 4"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="12"
+            class="pointer-events-none"
+          >
+            🏠
+          </text>
+        }
+
+        <!-- Rank number for top 5 -->
+        @if (vertex.rank && vertex.rank <= 5 && !vertex.isOccupied && !vertex.isBlocked) {
+          <text
+            [attr.x]="vertex.position.x"
+            [attr.y]="vertex.position.y + 3"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="8"
+            font-weight="bold"
+            fill="white"
+            class="pointer-events-none"
+          >
+            {{ vertex.rank }}
+          </text>
+        }
+      </g>
+    }
+  </svg>
+</div>
