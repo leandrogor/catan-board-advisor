@@ -6,7 +6,6 @@ import { BoardStateStore } from '../features/board-advisor/services/board-state.
 
 @Component({
   selector: 'app-shell',
-  standalone: true,
   imports: [RouterOutlet],
   template: `
     <!-- Header -->

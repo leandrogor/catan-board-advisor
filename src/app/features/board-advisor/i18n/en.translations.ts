@@ -10,7 +10,7 @@ export interface Translations {
   redo: string;
   rank: string;
   score: string;
-  resourcesPerRoll: string;
+  avgResourcesPerRoll: string;
   adjacentNumbers: string;
   adjacentLetters: string;
   bestPosition: string;
@@ -24,6 +24,9 @@ export interface Translations {
   rotateBoard: string;
   settlementsPlaced: (count: number) => string;
   hexLetter: string;
+  hexNumber: string;
+  hexRolled: string;
+  hexProbability: string;
   scoreFormat: string;
   decimal: string;
   percentage: string;
@@ -33,6 +36,12 @@ export interface Translations {
   colLabel: string;
   desert: string;
   noDataYet: string;
+  startSimulation: string;
+  resetToSetup: string;
+  setupTitle: string;
+  setupHint: string;
+  dragToMove: string;
+  setupToggleHint: string;
 }
 
 export const EN: Translations = {
@@ -47,7 +56,7 @@ export const EN: Translations = {
   redo: 'Redo',
   rank: 'Rank',
   score: 'Score',
-  resourcesPerRoll: 'resources/roll',
+  avgResourcesPerRoll: 'Avg resources/roll',
   adjacentNumbers: 'Adjacent numbers',
   adjacentLetters: 'Adjacent letters',
   bestPosition: 'Best Position',
@@ -62,6 +71,9 @@ export const EN: Translations = {
   settlementsPlaced: (count: number): string =>
     `${count} settlement${count === 1 ? '' : 's'} placed`,
   hexLetter: 'Letter',
+  hexNumber: 'Number',
+  hexRolled: 'Avg. times rolled per game',
+  hexProbability: 'Probability',
   scoreFormat: 'Score format',
   decimal: 'Decimal',
   percentage: 'Percentage',
@@ -71,4 +83,10 @@ export const EN: Translations = {
   colLabel: 'Col',
   desert: 'Desert',
   noDataYet: 'No data yet',
+  startSimulation: '▶ Start Simulation',
+  resetToSetup: '↺ Reset Board',
+  setupTitle: 'Board Setup',
+  setupHint: 'Drag the desert tiles 🏜️ to reposition them, then start the simulation.',
+  dragToMove: 'Drag to move',
+  setupToggleHint: '💡 Tap any hex to toggle all between letters and numbers.',
 };
