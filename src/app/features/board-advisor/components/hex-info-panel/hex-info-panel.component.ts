@@ -1,0 +1,120 @@
+import { Component, inject, computed } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { BoardStateStore } from '../../services/board-state.store';
+import { TranslationService } from '../../../../core/services/translation.service';
+
+/** Ways to roll each dice value, for theoretical probability display. */
+const DICE_WAYS: Readonly<Record<number, number>> = {
+  2: 1,
+  3: 2,
+  4: 3,
+  5: 4,
+  6: 5,
+  8: 5,
+  9: 4,
+  10: 3,
+  11: 2,
+  12: 1,
+};
+
+@Component({
+  selector: 'app-hex-info-panel',
+  imports: [DecimalPipe],
+  template: `
+    @if (selectedHex(); as hex) {
+      <div
+        class="fixed bottom-0 left-0 right-0 z-20 transition-transform duration-300 ease-out"
+        [class.translate-y-0]="hex"
+      >
+        <div
+          class="mx-auto max-w-lg bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl
+                 border border-slate-200 dark:border-slate-700 p-5"
+        >
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">{{ hex.isDesert ? '🏜️' : '🎲' }}</span>
+              <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                @if (hex.isDesert) {
+                  {{ i18n.t().desert }}
+                } @else {
+                  {{ i18n.t().hexLetter }}: {{ displayLetter() }}
+                }
+              </span>
+            </div>
+            <button
+              class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none p-1"
+              (click)="store.selectHex(null)"
+              [attr.aria-label]="i18n.t().close"
+            >
+              ×
+            </button>
+          </div>
+
+          @if (!hex.isDesert) {
+            <div class="text-sm text-slate-600 dark:text-slate-400 space-y-2">
+              <!-- Dice number -->
+              <div class="flex items-center justify-between">
+                <span class="font-medium">{{ i18n.t().hexNumber }}:</span>
+                <span
+                  class="text-base font-bold"
+                  [class.text-red-600]="isHotNumber(hex.diceNumber)"
+                  [class.dark:text-red-400]="isHotNumber(hex.diceNumber)"
+                >
+                  {{ hex.diceNumber ?? '—' }}
+                </span>
+              </div>
+
+              <!-- Theoretical probability -->
+              <div class="flex items-center justify-between">
+                <span class="font-medium">{{ i18n.t().hexProbability }}:</span>
+                <span>{{ theoreticalProbability() }}</span>
+              </div>
+
+              <!-- Times rolled (Phase 2 only) -->
+              @if (store.appPhase() === 'results' && store.simulationResult(); as result) {
+                <div class="flex items-center justify-between">
+                  <span class="font-medium">{{ i18n.t().hexRolled }}:</span>
+                  <span>{{
+                    (result.rollCountMap.get(hex.diceNumber ?? 0) ?? 0) / result.totalMiniGames
+                      | number: '1.1-2'
+                  }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  `,
+})
+export class HexInfoPanelComponent {
+  protected readonly store = inject(BoardStateStore);
+  protected readonly i18n = inject(TranslationService);
+
+  protected readonly selectedHex = computed(() => {
+    const id = this.store.selectedHexId();
+    if (!id) return null;
+    return this.store.hexes().find(h => h.id === id) ?? null;
+  });
+
+  /** Spiral letter for this hex (Phase 1/2). */
+  protected readonly displayLetter = computed(() => {
+    const hex = this.selectedHex();
+    if (!hex) return '';
+    const posKey = `${hex.row}-${hex.col}`;
+    return this.store.spiralLetterAssignment().get(posKey) ?? hex.letter;
+  });
+
+  protected readonly theoreticalProbability = computed(() => {
+    const dice = this.selectedHex()?.diceNumber;
+    if (dice == null) return '—';
+    const ways = DICE_WAYS[dice] ?? 0;
+    const pct = ((ways / 36) * 100).toFixed(1);
+    return `${ways}/36 ≈ ${pct}%`;
+  });
+
+  protected isHotNumber(n: number | null): boolean {
+    return n === 6 || n === 8;
+  }
+}

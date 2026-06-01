@@ -4,7 +4,6 @@ import { interpolateHeatmapColor } from '../../../../shared/utils/hex-math.utils
 
 @Component({
   selector: 'app-vertex-indicator',
-  standalone: true,
   template: `<!-- Vertex indicator is rendered inline in board SVG for performance -->`,
 })
 export class VertexIndicatorComponent {

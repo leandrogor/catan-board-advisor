@@ -5,15 +5,14 @@ import { HexDefinition } from '../../models/hex.model';
 
 @Component({
   selector: 'app-vertex-detail-panel',
-  standalone: true,
   template: `
     @if (selectedVertex(); as vertex) {
       <div
-        class="fixed bottom-0 left-0 right-0 z-20 transform transition-transform duration-300 ease-out"
+        class="fixed bottom-0 left-0 right-0 z-20 transform transition-transform duration-300 ease-out lg:relative lg:bottom-auto lg:inset-auto lg:z-auto"
         [class.translate-y-0]="vertex"
       >
         <div
-          class="mx-auto max-w-lg bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-5"
+          class="mx-auto max-w-lg lg:max-w-none bg-white dark:bg-slate-800 rounded-t-2xl lg:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-5"
         >
           <!-- Header -->
           <div class="flex items-center justify-between mb-3">
@@ -130,7 +129,11 @@ export class VertexDetailPanelComponent {
   protected readonly adjacentLetters = computed(
     () =>
       this.adjacentHexes()
-        .map(h => h.letter)
+        .map(h => {
+          // Use spiral assignment letter for Phase 2 display
+          const posKey = `${h.row}-${h.col}`;
+          return this.store.spiralLetterAssignment().get(posKey) ?? h.letter;
+        })
         .join(' · ') || '—',
   );
 
@@ -139,8 +142,8 @@ export class VertexDetailPanelComponent {
     if (!vertex) return '—';
     const fmt = this.store.scoreFormat();
     if (fmt === 'percentage') {
-      return `${(vertex.rawScore * 100).toFixed(0)}% ${this.i18n.t().resourcesPerRoll}`;
+      return `${(vertex.rawScore * 100).toFixed(1)}% ${this.i18n.t().avgResourcesPerRoll}`;
     }
-    return `${vertex.rawScore.toFixed(2)} ${this.i18n.t().resourcesPerRoll}`;
+    return `${vertex.rawScore.toFixed(3)} ${this.i18n.t().avgResourcesPerRoll}`;
   });
 }

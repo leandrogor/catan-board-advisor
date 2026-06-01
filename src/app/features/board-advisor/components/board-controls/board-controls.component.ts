@@ -4,7 +4,6 @@ import { TranslationService } from '../../../../core/services/translation.servic
 
 @Component({
   selector: 'app-board-controls',
-  standalone: true,
   template: `
     <div
       class="flex items-center justify-center gap-3 px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700"
@@ -43,9 +42,11 @@ import { TranslationService } from '../../../../core/services/translation.servic
         ⟳ {{ i18n.t().rotateBoard }}
       </button>
 
-      <span class="text-sm text-slate-500 dark:text-slate-400 ml-2">
-        {{ settlementText() }}
-      </span>
+      @if (store.appPhase() !== 'setup') {
+        <span class="text-sm text-slate-500 dark:text-slate-400 ml-2">
+          {{ settlementText() }}
+        </span>
+      }
     </div>
   `,
 })
@@ -53,8 +54,20 @@ export class BoardControlsComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
 
-  protected readonly canUndo = computed(() => this.store.undoStack().length > 0);
-  protected readonly canRedo = computed(() => this.store.redoStack().length > 0);
+  protected readonly canUndo = computed(() => {
+    if (this.store.appPhase() === 'setup') {
+      return this.store.desertUndoStack().length > 0;
+    }
+    return this.store.undoStack().length > 0;
+  });
+
+  protected readonly canRedo = computed(() => {
+    if (this.store.appPhase() === 'setup') {
+      return this.store.desertRedoStack().length > 0;
+    }
+    return this.store.redoStack().length > 0;
+  });
+
   protected readonly settlementText = computed(() =>
     this.i18n.t().settlementsPlaced(this.store.settledVertexIds().length),
   );
