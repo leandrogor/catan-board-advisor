@@ -5,14 +5,10 @@ import { SimulationResult } from '../models/simulation-result.model';
 
 @Injectable({ providedIn: 'root' })
 export class SimulationService {
-  private static readonly TOTAL_ROLLS = 1000;
+  static readonly TOTAL_MINI_GAMES = 1000;
+  static readonly ROLLS_PER_GAME = 150;
 
   run(hexes: HexDefinition[], vertices: Vertex[]): SimulationResult {
-    const resourceMap = new Map<string, number>();
-    for (const v of vertices) {
-      resourceMap.set(v.id, 0);
-    }
-
     // Build a lookup: diceNumber -> list of hex IDs with that number
     const numberToHexIds = new Map<number, string[]>();
     for (const hex of hexes) {
@@ -32,33 +28,63 @@ export class SimulationService {
       vertexAdjacentHexSet.set(v.id, new Set(v.adjacentHexIds));
     }
 
-    for (let i = 0; i < SimulationService.TOTAL_ROLLS; i++) {
-      const roll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
-      if (roll === 7) continue; // Robber
+    // miniGameScores[vertexId] = array of (resources / ROLLS_PER_GAME) for each mini-game
+    const miniGameScores = new Map<string, number[]>();
+    for (const v of vertices) {
+      miniGameScores.set(v.id, []);
+    }
 
-      const producingHexIds = numberToHexIds.get(roll);
-      if (!producingHexIds) continue;
+    // Track total times each dice number was rolled across all mini-games
+    const rollCountMap = new Map<number, number>();
 
+    for (let game = 0; game < SimulationService.TOTAL_MINI_GAMES; game++) {
+      // Per-game resource accumulator
+      const gameResources = new Map<string, number>();
       for (const v of vertices) {
-        const adjSet = vertexAdjacentHexSet.get(v.id)!;
-        let resources = 0;
-        for (const hexId of producingHexIds) {
-          if (adjSet.has(hexId)) {
-            resources++;
+        gameResources.set(v.id, 0);
+      }
+
+      for (let roll = 0; roll < SimulationService.ROLLS_PER_GAME; roll++) {
+        const diceRoll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
+        if (diceRoll === 7) continue; // Robber — no resources produced
+
+        // Tally roll count for this dice value
+        rollCountMap.set(diceRoll, (rollCountMap.get(diceRoll) ?? 0) + 1);
+
+        const producingHexIds = numberToHexIds.get(diceRoll);
+        if (!producingHexIds) continue;
+
+        for (const v of vertices) {
+          const adjSet = vertexAdjacentHexSet.get(v.id)!;
+          let resources = 0;
+          for (const hexId of producingHexIds) {
+            if (adjSet.has(hexId)) {
+              resources++;
+            }
+          }
+          if (resources > 0) {
+            gameResources.set(v.id, gameResources.get(v.id)! + resources);
           }
         }
-        if (resources > 0) {
-          resourceMap.set(v.id, resourceMap.get(v.id)! + resources);
-        }
+      }
+
+      // Record per-game score as resources-per-roll for this mini-game
+      for (const v of vertices) {
+        miniGameScores.get(v.id)!.push(gameResources.get(v.id)! / SimulationService.ROLLS_PER_GAME);
       }
     }
 
-    // Compute scores
+    // Compute final scores: average of all mini-game scores
     let maxRaw = 0;
+    const resourceMap = new Map<string, number>();
+
     for (const v of vertices) {
-      v.totalResources = resourceMap.get(v.id)!;
-      v.rawScore = v.totalResources / SimulationService.TOTAL_ROLLS;
-      if (v.rawScore > maxRaw) maxRaw = v.rawScore;
+      const scores = miniGameScores.get(v.id)!;
+      const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+      v.totalResources = avg * SimulationService.ROLLS_PER_GAME; // representative resources over one game
+      v.rawScore = avg;
+      resourceMap.set(v.id, avg);
+      if (avg > maxRaw) maxRaw = avg;
     }
 
     for (const v of vertices) {
@@ -96,7 +122,8 @@ export class SimulationService {
     }
 
     return {
-      totalRolls: SimulationService.TOTAL_ROLLS,
+      totalMiniGames: SimulationService.TOTAL_MINI_GAMES,
+      rollCountMap,
       resourceMap,
       maxRawScore: maxRaw,
       rankedVertexIds: eligible.map(v => v.id),
