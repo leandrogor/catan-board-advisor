@@ -1,5 +1,6 @@
 import { HexDefinition } from '../../features/board-advisor/models/hex.model';
 import { Vertex } from '../../features/board-advisor/models/vertex.model';
+import { DesertPositions } from '../../features/board-advisor/data/ext-catan-board-layout.data';
 
 const WIDEST_ROW = 6;
 const ROW_SIZES = [3, 4, 5, 6, 5, 4, 3];
@@ -159,4 +160,115 @@ function interpolateColor(
   const g = Math.round(from[1] + (to[1] - from[1]) * t);
   const b = Math.round(from[2] + (to[2] - from[2]) * t);
   return `rgb(${r},${g},${b})`;
+}
+
+// ─── Spiral letter assignment ────────────────────────────────────────────────
+//
+// The physical Catan 5-6 extension board places letter tokens A→Zc in
+// counterclockwise spiral order starting from the top-right corner.
+// The canonical layout already encodes this order. We derive the spiral as a
+// static ordered list of all 30 {row, col} positions — identical to reading
+// EXT_CATAN_DEFAULT_LAYOUT in the order [C,B,A, P,Q,R,D, O,Za,Zb,S,E, N,Y,L1,Zc,T,F,
+// M,X,L2,U,G, L,W,V,H, K,J,I] but re-expressed as (row,col) pairs.
+//
+// To maintain accuracy against the physical board, we hard-code the spiral as
+// the (row, col) sequence read directly from the canonical layout data.
+
+/** All 30 board positions in counterclockwise spiral order (outer ring first). */
+export const SPIRAL_ORDER: readonly { row: number; col: number }[] = [
+  // Outer ring, top-right corner → counterclockwise
+  { row: 0, col: 2 }, // A
+  { row: 0, col: 1 }, // B
+  { row: 0, col: 0 }, // C
+  { row: 1, col: 0 }, // D
+  { row: 2, col: 0 }, // E
+  { row: 3, col: 0 }, // F
+  { row: 4, col: 0 }, // G
+  { row: 5, col: 0 }, // H
+  { row: 6, col: 0 }, // I
+  { row: 6, col: 1 }, // J
+  { row: 6, col: 2 }, // K
+  { row: 5, col: 3 }, // L
+  { row: 4, col: 4 }, // M
+  { row: 3, col: 5 }, // N
+  { row: 2, col: 4 }, // O
+  { row: 1, col: 3 }, // P
+  // Second ring
+  { row: 1, col: 2 }, // Q
+  { row: 1, col: 1 }, // R
+  { row: 2, col: 1 }, // S
+  { row: 3, col: 1 }, // T
+  { row: 4, col: 1 }, // U
+  { row: 5, col: 1 }, // V
+  { row: 5, col: 2 }, // W
+  { row: 4, col: 3 }, // X
+  { row: 3, col: 4 }, // Y
+  { row: 2, col: 3 }, // Za
+  { row: 2, col: 2 }, // Zb
+  { row: 3, col: 2 }, // Zc
+  // Desert positions (inner "core")
+  { row: 4, col: 2 }, // L2 default
+  { row: 3, col: 3 }, // L1 default
+];
+
+/** The ordered letter tokens A→Zc (28 non-desert letters in spiral sequence). */
+const SPIRAL_LETTERS = [
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'W',
+  'X',
+  'Y',
+  'Za',
+  'Zb',
+  'Zc',
+] as const;
+
+/**
+ * Given desert positions, assigns letters A→Zc to the 28 non-desert positions
+ * in spiral order, skipping whichever positions are currently deserts.
+ *
+ * @returns Map from `"${row}-${col}"` key → assigned letter string
+ */
+export function assignSpiralLetters(desertPositions: DesertPositions): Map<string, string> {
+  const desertSet = new Set([
+    `${desertPositions.L1.row}-${desertPositions.L1.col}`,
+    `${desertPositions.L2.row}-${desertPositions.L2.col}`,
+  ]);
+
+  const result = new Map<string, string>();
+  let letterIdx = 0;
+
+  for (const pos of SPIRAL_ORDER) {
+    const key = `${pos.row}-${pos.col}`;
+    if (desertSet.has(key)) {
+      // Desert positions get a special marker
+      continue;
+    }
+    if (letterIdx < SPIRAL_LETTERS.length) {
+      result.set(key, SPIRAL_LETTERS[letterIdx]);
+      letterIdx++;
+    }
+  }
+
+  return result;
 }
