@@ -24,14 +24,12 @@
 
   <svg
     class="board-wrapper w-full h-auto"
+    [class.setup-phase]="store.appPhase() === 'setup'"
     [attr.viewBox]="viewBox()"
     [style]="rotationStyle()"
     xmlns="http://www.w3.org/2000/svg"
     role="img"
     aria-label="Catan board"
-    (pointerup)="onPointerUp($event)"
-    (pointermove)="onPointerMove($event)"
-    (pointercancel)="onPointerCancel($event)"
   >
     <!-- Hex polygons -->
     @for (hex of store.hexes(); track hex.id) {

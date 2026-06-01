@@ -34,6 +34,9 @@ const DICE_WAYS: Readonly<Record<number, number>> = {
         overflow: visible;
         /* On desktop constrain height so it fits without scrolling */
       }
+      .board-wrapper.setup-phase {
+        touch-action: none;
+      }
       @media (min-width: 1024px) {
         :host {
           max-height: 100%;
@@ -52,6 +55,7 @@ const DICE_WAYS: Readonly<Record<number, number>> = {
       }
       .hex-polygon.desert-draggable {
         cursor: grab;
+        touch-action: none;
       }
       .hex-polygon.desert-draggable:active {
         cursor: grabbing;
@@ -99,6 +103,7 @@ const DICE_WAYS: Readonly<Record<number, number>> = {
       .ghost-desert {
         pointer-events: none;
         opacity: 0.75;
+        touch-action: none;
       }
     `,
   ],
@@ -239,7 +244,7 @@ export class BoardComponent {
     }
   }
 
-  @HostListener('pointermove', ['$event'])
+  @HostListener('document:pointermove', ['$event'])
   onPointerMove(event: PointerEvent): void {
     if (this.draggingDesert() === null || event.pointerId !== this.dragPointerId) return;
     event.preventDefault();
@@ -256,7 +261,7 @@ export class BoardComponent {
     this.dropTargetHexId.set(targetHex?.id ?? null);
   }
 
-  @HostListener('pointerup', ['$event'])
+  @HostListener('document:pointerup', ['$event'])
   onPointerUp(event: PointerEvent): void {
     if (this.draggingDesert() === null || event.pointerId !== this.dragPointerId) return;
     event.preventDefault();
@@ -277,7 +282,7 @@ export class BoardComponent {
     this.dragPointerId = null;
   }
 
-  @HostListener('pointercancel', ['$event'])
+  @HostListener('document:pointercancel', ['$event'])
   onPointerCancel(event: PointerEvent): void {
     if (event.pointerId !== this.dragPointerId) return;
     this.draggingDesert.set(null);
