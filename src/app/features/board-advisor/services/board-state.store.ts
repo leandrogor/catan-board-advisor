@@ -2,6 +2,7 @@ import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { HexDefinition } from '../models/hex.model';
 import { Vertex } from '../models/vertex.model';
 import { SimulationResult } from '../models/simulation-result.model';
+import { RoadOption, ActionSnapshot } from '../models/road-option.model';
 import { DEFAULT_DESERT_POSITIONS, DesertPositions } from '../data/ext-catan-board-layout.data';
 import { BoardLayoutService } from './board-layout.service';
 import { SimulationService } from './simulation.service';
@@ -30,8 +31,9 @@ export class BoardStateStore {
   // ── Board state ─────────────────────────────────────────────────────────────
   readonly desertPositions = signal<DesertPositions>({ ...DEFAULT_DESERT_POSITIONS });
   readonly settledVertexIds = signal<string[]>([]);
-  readonly undoStack = signal<string[][]>([]);
-  readonly redoStack = signal<string[][]>([]);
+  readonly placedRoads = signal<{ from: string; to: string }[]>([]);
+  readonly undoStack = signal<ActionSnapshot[]>([]);
+  readonly redoStack = signal<ActionSnapshot[]>([]);
   readonly desertUndoStack = signal<DesertPositions[]>([]);
   readonly desertRedoStack = signal<DesertPositions[]>([]);
   readonly selectedVertexId = signal<string | null>(null);
@@ -39,6 +41,11 @@ export class BoardStateStore {
   readonly boardRotationDeg = signal<0 | 90 | 180 | 270>(0);
   readonly isSimulating = signal<boolean>(false);
   readonly hexSize = signal<number>(computeHexSize(window.innerWidth));
+
+  // ── Road selection state ───────────────────────────────────────────────────
+  readonly isSelectingRoad = signal<boolean>(false);
+  readonly pendingSettlementVertexId = signal<string | null>(null);
+  readonly currentRoadOptions = signal<RoadOption[]>([]);
 
   /**
    * Global toggle for Phase 1: show dice numbers instead of spiral letters.
@@ -169,6 +176,10 @@ export class BoardStateStore {
   resetToSetup(): void {
     this._simulationResult.set(null);
     this.settledVertexIds.set([]);
+    this.placedRoads.set([]);
+    this.isSelectingRoad.set(false);
+    this.pendingSettlementVertexId.set(null);
+    this.currentRoadOptions.set([]);
     this.undoStack.set([]);
     this.redoStack.set([]);
     this.desertUndoStack.set([]);
@@ -180,16 +191,29 @@ export class BoardStateStore {
   }
 
   placeSettlement(vertexId: string): void {
-    this.undoStack.update(s => [...s, this.settledVertexIds()]);
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.settledVertexIds(),
+        roads: this.placedRoads(),
+      },
+    ]);
     this.redoStack.set([]);
     this.settledVertexIds.update(ids => [...ids, vertexId]);
     this.selectedVertexId.set(null);
   }
 
   removeSettlement(vertexId: string): void {
-    this.undoStack.update(s => [...s, this.settledVertexIds()]);
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.settledVertexIds(),
+        roads: this.placedRoads(),
+      },
+    ]);
     this.redoStack.set([]);
     this.settledVertexIds.update(ids => ids.filter(id => id !== vertexId));
+    this.placedRoads.update(roads => roads.filter(r => r.from !== vertexId && r.to !== vertexId));
   }
 
   undo(): void {
@@ -202,8 +226,16 @@ export class BoardStateStore {
     } else {
       const stack = this.undoStack();
       if (!stack.length) return;
-      this.redoStack.update(r => [...r, this.settledVertexIds()]);
-      this.settledVertexIds.set(stack.at(-1) ?? []);
+      this.redoStack.update(r => [
+        ...r,
+        {
+          settled: this.settledVertexIds(),
+          roads: this.placedRoads(),
+        },
+      ]);
+      const last = stack.at(-1)!;
+      this.settledVertexIds.set(last.settled);
+      this.placedRoads.set(last.roads);
       this.undoStack.update(s => s.slice(0, -1));
     }
   }
@@ -218,8 +250,16 @@ export class BoardStateStore {
     } else {
       const stack = this.redoStack();
       if (!stack.length) return;
-      this.undoStack.update(u => [...u, this.settledVertexIds()]);
-      this.settledVertexIds.set(stack.at(-1) ?? []);
+      this.undoStack.update(u => [
+        ...u,
+        {
+          settled: this.settledVertexIds(),
+          roads: this.placedRoads(),
+        },
+      ]);
+      const last = stack.at(-1)!;
+      this.settledVertexIds.set(last.settled);
+      this.placedRoads.set(last.roads);
       this.redoStack.update(r => r.slice(0, -1));
     }
   }
@@ -252,10 +292,152 @@ export class BoardStateStore {
     }
 
     this.settledVertexIds.set([]);
+    this.placedRoads.set([]);
     this.undoStack.set([]);
     this.redoStack.set([]);
     this.showNumbersInSetup.set(false);
     this.selectedHexId.set(null);
+  }
+
+  startSelectingRoad(vertexId: string): void {
+    this.isSelectingRoad.set(true);
+    this.pendingSettlementVertexId.set(vertexId);
+    const options = this.computeRoadOptionsForVertex(vertexId);
+    this.currentRoadOptions.set(options);
+  }
+
+  cancelRoadSelection(): void {
+    this.isSelectingRoad.set(false);
+    this.pendingSettlementVertexId.set(null);
+    this.currentRoadOptions.set([]);
+  }
+
+  confirmRoadSelection(toVertexId: string): void {
+    const fromId = this.pendingSettlementVertexId();
+    if (!fromId) return;
+
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.settledVertexIds(),
+        roads: this.placedRoads(),
+      },
+    ]);
+    this.redoStack.set([]);
+
+    this.settledVertexIds.update(ids => [...ids, fromId]);
+    this.placedRoads.update(roads => [...roads, { from: fromId, to: toVertexId }]);
+
+    this.isSelectingRoad.set(false);
+    this.pendingSettlementVertexId.set(null);
+    this.currentRoadOptions.set([]);
+  }
+
+  computeRoadOptionsForVertex(vertexId: string): RoadOption[] {
+    const vertices = this.scoredVertices();
+    const v = vertices.find(x => x.id === vertexId);
+    if (!v) return [];
+
+    const options: RoadOption[] = [];
+    for (const adjId of v.adjacentVertexIds) {
+      const a = vertices.find(x => x.id === adjId);
+      if (!a) continue;
+
+      const directScore = a.rawScore;
+
+      // From A, collect all B in A.adjacentVertexIds where B.id !== V.id and B is not occupied
+      const bVertices = a.adjacentVertexIds
+        .filter(bId => bId !== vertexId)
+        .map(bId => vertices.find(x => x.id === bId))
+        .filter((b): b is Vertex => b !== undefined && !b.isOccupied);
+
+      interface ProjectionPath {
+        targetId: string;
+        score: number;
+        cost: 1 | 2;
+        path: string[];
+      }
+
+      const paths: ProjectionPath[] = [];
+
+      for (const b of bVertices) {
+        if (b.isBlocked) {
+          // B is blocked, look at adjacent C (excluding A, V, not occupied, not blocked)
+          const cVertices = b.adjacentVertexIds
+            .filter(cId => cId !== adjId && cId !== vertexId)
+            .map(cId => vertices.find(x => x.id === cId))
+            .filter((c): c is Vertex => c !== undefined && !c.isOccupied && !c.isBlocked);
+
+          for (const c of cVertices) {
+            paths.push({
+              targetId: c.id,
+              score: c.rawScore,
+              cost: 2,
+              path: [b.id, c.id],
+            });
+          }
+        } else {
+          paths.push({
+            targetId: b.id,
+            score: b.rawScore,
+            cost: 1,
+            path: [b.id],
+          });
+        }
+      }
+
+      // Find the best path:
+      // Preference: cost=1 (no extra road) > cost=2 (extra road)
+      // Then by score descending
+      let bestPath: ProjectionPath | null = null;
+      const cost1Paths = paths.filter(p => p.cost === 1);
+      if (cost1Paths.length > 0) {
+        bestPath = cost1Paths.reduce(
+          (prev, curr) => (curr.score > prev.score ? curr : prev),
+          cost1Paths[0],
+        );
+      } else {
+        const cost2Paths = paths.filter(p => p.cost === 2);
+        if (cost2Paths.length > 0) {
+          bestPath = cost2Paths.reduce(
+            (prev, curr) => (curr.score > prev.score ? curr : prev),
+            cost2Paths[0],
+          );
+        }
+      }
+
+      const bestProjectedVertexId = bestPath ? bestPath.targetId : null;
+      const bestProjectedScore = bestPath ? bestPath.score : 0;
+      const requiresExtraRoad = bestPath ? bestPath.cost === 2 : false;
+      const projectionPath = bestPath ? bestPath.path : [];
+
+      options.push({
+        rank: 0,
+        toVertexId: adjId,
+        toVertexScore: directScore,
+        bestProjectedVertexId,
+        bestProjectedScore,
+        pathScore: bestProjectedScore,
+        requiresExtraRoad,
+        projectionPath,
+      });
+    }
+
+    // Sort options:
+    // 1. requiresExtraRoad (false first, true last)
+    // 2. pathScore descending
+    options.sort((a, b) => {
+      if (a.requiresExtraRoad !== b.requiresExtraRoad) {
+        return a.requiresExtraRoad ? 1 : -1;
+      }
+      return b.pathScore - a.pathScore;
+    });
+
+    options.forEach((opt, idx) => {
+      opt.rank = idx + 1;
+    });
+
+    return options;
   }
 
   /**

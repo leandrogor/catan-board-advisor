@@ -42,6 +42,14 @@ export interface Translations {
   setupHint: string;
   dragToMove: string;
   setupToggleHint: string;
+  roadOptions: string;
+  rank1Best: string;
+  rank2: string;
+  rank3: string;
+  direct: string;
+  projected: string;
+  cancel: string;
+  selectRoadDirection: string;
 }
 
 export const EN: Translations = {
@@ -89,4 +97,12 @@ export const EN: Translations = {
   setupHint: 'Drag the desert tiles 🏜️ to reposition them, then start the simulation.',
   dragToMove: 'Drag to move',
   setupToggleHint: '💡 Tap any hex to toggle all between letters and numbers.',
+  roadOptions: 'Road Options',
+  rank1Best: 'Rank 1 (Best)',
+  rank2: 'Rank 2',
+  rank3: 'Rank 3',
+  direct: 'Direct',
+  projected: 'Projected',
+  cancel: 'Cancel',
+  selectRoadDirection: 'Select Road Direction',
 };

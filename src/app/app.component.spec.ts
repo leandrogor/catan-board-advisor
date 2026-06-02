@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { SwUpdate } from '@angular/service-worker';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
+      providers: [{ provide: SwUpdate, useValue: { isEnabled: false } }],
     }).compileComponents();
   });
 

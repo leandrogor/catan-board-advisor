@@ -284,8 +284,9 @@ To map lettered tokens in a counterclockwise spiral from top-right to bottom-lef
 |--------|------|---------|-----------|
 | `desertPositions` | `DesertPositions` | `{L1: {3,3}, L2: {4,2}}` | No |
 | `settledVertexIds` | `string[]` | `[]` | No |
-| `undoStack` | `string[][]` | `[]` | No (Phase 2 settlement undo) |
-| `redoStack` | `string[][]` | `[]` | No (Phase 2 settlement redo) |
+| `placedRoads` | `{ from: string; to: string }[]` | `[]` | No |
+| `undoStack` | `ActionSnapshot[]` | `[]` | No (Phase 2 transaction undo) |
+| `redoStack` | `ActionSnapshot[]` | `[]` | No (Phase 2 transaction redo) |
 | `desertUndoStack` | `DesertPositions[]` | `[]` | No (Phase 1 desert undo) |
 | `desertRedoStack` | `DesertPositions[]` | `[]` | No (Phase 1 desert redo) |
 | `selectedVertexId` | `string \| null` | `null` | No |
@@ -297,6 +298,9 @@ To map lettered tokens in a counterclockwise spiral from top-right to bottom-lef
 | `showNumbersInSetup`| `boolean` | `false` | No |
 | `scoreFormat` | `'decimal'\|'percentage'` | `'decimal'` | localStorage `catan-score-fmt` |
 | `showZeroScores` | `boolean` | `true` | localStorage `catan-show-zeros` |
+| `isSelectingRoad` | `boolean` | `false` | No |
+| `pendingSettlementVertexId` | `string \| null` | `null` | No |
+| `currentRoadOptions` | `RoadOption[]` | `[]` | No |
 | `_simulationResult` | `SimulationResult \| null` | `null` | No (private) |
 
 **Computed signals (derived):**
@@ -337,8 +341,23 @@ The store manages **phase-aware** undo/redo stacks:
   - Actions push a copy of `DesertPositions` to the undo stack.
   - Clicking Undo pops from `desertUndoStack`, updates `desertPositions`, and pushes the previous state to `desertRedoStack`.
 - **Phase 2 (Results)**:
-  - Working with settlements: `undoStack` and `redoStack` storing arrays of `string[]` representing settled vertex IDs.
-  - Placing/removing a settlement pushes the current `settledVertexIds` to `undoStack` and clears `redoStack`.
+  - Working with settlements and roads: `undoStack` and `redoStack` storing arrays of `ActionSnapshot` representing settled vertex IDs and placed roads.
+  - Placing/removing a settlement (which is grouped with a road selection) pushes the current state of both to `undoStack` and clears `redoStack` to revert them transactionally.
+
+### Road Planning and Selection Flow
+
+1. **Scoring Algorithm**:
+   - For a selected vertex $V$ and each adjacent vertex $A$:
+     - Check adjacent vertices $B$ of $A$ (excluding $V$ and occupied vertices).
+     - If $B$ is unblocked, it is a valid target at `cost = 1`.
+     - If $B$ is blocked, look at its adjacent vertices $C$ (excluding $A$, $V$, occupied, and blocked). If found, they are targets at `cost = 2` (requiring `+1 Road`).
+     - Options are ranked first by `cost` (lower is better) and then by projected target score descending.
+     - `pathScore` is strictly equal to the projected target's score.
+2. **Selection Flow & ViewBox Zoom**:
+   - Clicking **Place Settlement** starts road selection (`isSelectingRoad = true`).
+   - The board dynamically shifts the SVG `viewBox` centered on $V$. On mobile, it offsets the vertical center upwards to prevent the bottom sheet modal from blocking the interactive road elements.
+   - Interactive road options are rendered with rounded-cap lines and midpoint rank badges, alongside dashed projection paths leading to the target settlement location.
+   - Confirming a road direction records the settlement at $V$ and the road in `placedRoads` as a unified transaction.
 
 ---
 

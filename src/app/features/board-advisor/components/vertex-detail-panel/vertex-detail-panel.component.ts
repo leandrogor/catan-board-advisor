@@ -17,36 +17,46 @@ import { HexDefinition } from '../../models/hex.model';
           <!-- Header -->
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
-              @if (vertex.rank) {
+              @if (store.isSelectingRoad()) {
                 <span
-                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold"
-                  [class]="
-                    vertex.rank === 1
-                      ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                  "
+                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300"
                 >
-                  #{{ vertex.rank }}
+                  📍 {{ i18n.t().selectRoadDirection }}
+                </span>
+              } @else {
+                @if (vertex.rank) {
+                  <span
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold"
+                    [class]="
+                      vertex.rank === 1
+                        ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                    "
+                  >
+                    #{{ vertex.rank }}
+                  </span>
+                }
+                <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {{
+                    vertex.rank === 1
+                      ? i18n.t().bestPosition
+                      : vertex.isOccupied
+                        ? i18n.t().occupied
+                        : vertex.isBlocked
+                          ? i18n.t().blocked
+                          : '#' + vertex.rank
+                  }}
                 </span>
               }
-              <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {{
-                  vertex.rank === 1
-                    ? i18n.t().bestPosition
-                    : vertex.isOccupied
-                      ? i18n.t().occupied
-                      : vertex.isBlocked
-                        ? i18n.t().blocked
-                        : '#' + vertex.rank
-                }}
-              </span>
             </div>
             <button
-              class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none p-1"
-              (click)="store.selectVertex(null)"
+              class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none p-1 cursor-pointer"
+              (click)="
+                store.isSelectingRoad() ? store.cancelRoadSelection() : store.selectVertex(null)
+              "
               [attr.aria-label]="i18n.t().close"
             >
-              ×
+              X
             </button>
           </div>
 
@@ -66,6 +76,59 @@ import { HexDefinition } from '../../models/hex.model';
             </div>
           </div>
 
+          <!-- Road Options Section -->
+          @if (store.appPhase() === 'results' && roadOptions().length > 0) {
+            <div class="mt-4 border-t border-slate-100 dark:border-slate-700 pt-3">
+              <h4
+                class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2"
+              >
+                {{ i18n.t().roadOptions }}
+              </h4>
+              <div class="space-y-1.5">
+                @for (opt of roadOptions(); track opt.toVertexId) {
+                  <div
+                    class="flex items-center justify-between text-xs p-2 rounded-lg border transition-all"
+                    [class]="
+                      opt.rank === 1
+                        ? 'bg-amber-55/60 dark:bg-amber-950/20 border-amber-250 dark:border-amber-900/50 text-slate-800 dark:text-slate-200 font-medium'
+                        : 'bg-slate-50/50 dark:bg-slate-900/30 border-slate-100 dark:border-slate-800/80 text-slate-600 dark:text-slate-400'
+                    "
+                  >
+                    <div class="flex items-center gap-1.5">
+                      @if (opt.rank === 1) {
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      }
+                      <span>
+                        {{
+                          opt.rank === 1
+                            ? i18n.t().rank1Best
+                            : opt.rank === 2
+                              ? i18n.t().rank2
+                              : i18n.t().rank3
+                        }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      @if (opt.requiresExtraRoad) {
+                        <span
+                          class="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-1.5 py-0.5 rounded-sm font-semibold"
+                        >
+                          +1 Road
+                        </span>
+                      }
+                      <span>
+                        {{ i18n.t().score }}:
+                        <span class="font-semibold">{{
+                          opt.bestProjectedScore > 0 ? formatValue(opt.bestProjectedScore) : '—'
+                        }}</span>
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
           @if (vertex.isBlocked) {
             <p class="mt-3 text-sm text-amber-600 dark:text-amber-400 italic">
               {{ i18n.t().blockedDescription }}
@@ -74,7 +137,15 @@ import { HexDefinition } from '../../models/hex.model';
 
           <!-- Action button -->
           <div class="mt-4">
-            @if (vertex.isOccupied) {
+            @if (store.isSelectingRoad()) {
+              <button
+                class="w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors
+                       bg-red-500 hover:bg-red-600 text-white active:scale-95 cursor-pointer"
+                (click)="store.cancelRoadSelection()"
+              >
+                {{ i18n.t().cancel }}
+              </button>
+            } @else if (vertex.isOccupied) {
               <button
                 class="w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors
                        bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300
@@ -88,7 +159,7 @@ import { HexDefinition } from '../../models/hex.model';
                 class="w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors
                        bg-indigo-600 dark:bg-indigo-500 text-white
                        hover:bg-indigo-700 dark:hover:bg-indigo-600"
-                (click)="store.placeSettlement(vertex.id)"
+                (click)="store.startSelectingRoad(vertex.id)"
               >
                 {{ i18n.t().placeSettlement }}
               </button>
@@ -107,6 +178,12 @@ export class VertexDetailPanelComponent {
     const id = this.store.selectedVertexId();
     if (!id) return null;
     return this.store.rankedVertices().find(v => v.id === id) ?? null;
+  });
+
+  protected readonly roadOptions = computed(() => {
+    const vertex = this.selectedVertex();
+    if (!vertex) return [];
+    return this.store.computeRoadOptionsForVertex(vertex.id);
   });
 
   protected readonly adjacentHexes = computed<HexDefinition[]>(() => {
@@ -130,7 +207,6 @@ export class VertexDetailPanelComponent {
     () =>
       this.adjacentHexes()
         .map(h => {
-          // Use spiral assignment letter for Phase 2 display
           const posKey = `${h.row}-${h.col}`;
           return this.store.spiralLetterAssignment().get(posKey) ?? h.letter;
         })
@@ -146,4 +222,12 @@ export class VertexDetailPanelComponent {
     }
     return `${vertex.rawScore.toFixed(3)} ${this.i18n.t().avgResourcesPerRoll}`;
   });
+
+  protected formatValue(score: number): string {
+    const fmt = this.store.scoreFormat();
+    if (fmt === 'percentage') {
+      return `${(score * 100).toFixed(1)}%`;
+    }
+    return score.toFixed(3);
+  }
 }

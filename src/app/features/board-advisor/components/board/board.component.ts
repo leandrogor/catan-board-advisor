@@ -4,6 +4,7 @@ import { TranslationService } from '../../../../core/services/translation.servic
 import { hexPolygonPoints, interpolateHeatmapColor } from '../../../../shared/utils/hex-math.utils';
 import { Vertex } from '../../models/vertex.model';
 import { HexDefinition } from '../../models/hex.model';
+import { RoadOption } from '../../models/road-option.model';
 
 /** Ways to roll each dice value (out of 36 total combinations). */
 const DICE_WAYS: Readonly<Record<number, number>> = {
@@ -115,6 +116,28 @@ export class BoardComponent {
 
   protected readonly viewBox = computed(() => {
     const vb = this.store.viewBox();
+    if (this.store.isSelectingRoad()) {
+      const pendingId = this.store.pendingSettlementVertexId();
+      if (pendingId) {
+        const map = this.vertexMap();
+        const pt = map.get(pendingId);
+        if (pt) {
+          const R = this.R();
+          const isMobile = window.innerWidth < 1024;
+
+          // Compute zoom dimensions
+          // We want the zoom to be tight enough to see options clearly but wide enough to show projections
+          const height = R * 5;
+          const width = height * (vb.width / vb.height);
+
+          const x = pt.x - width / 2;
+          // On mobile, shift the center vertex up to avoid bottom sheet occlusion
+          const y = isMobile ? pt.y - height * 0.28 : pt.y - height / 2;
+
+          return `${x} ${y} ${width} ${height}`;
+        }
+      }
+    }
     return `${vb.x} ${vb.y} ${vb.width} ${vb.height}`;
   });
 
@@ -129,6 +152,79 @@ export class BoardComponent {
     const showZeros = this.store.showZeroScores();
     if (showZeros) return vertices;
     return vertices.filter(v => v.normalizedScore > 0 || v.isOccupied);
+  });
+
+  protected readonly vertexMap = computed(() => {
+    const map = new Map<string, { x: number; y: number }>();
+    for (const v of this.store.allVertices()) {
+      map.set(v.id, v.position);
+    }
+    return map;
+  });
+
+  protected readonly placedRoadCoords = computed(() => {
+    const map = this.vertexMap();
+    const roads = this.store.placedRoads();
+    return roads
+      .map(r => {
+        const p1 = map.get(r.from);
+        const p2 = map.get(r.to);
+        return { p1, p2 };
+      })
+      .filter(
+        (r): r is { p1: { x: number; y: number }; p2: { x: number; y: number } } =>
+          r.p1 !== undefined && r.p2 !== undefined,
+      );
+  });
+
+  protected readonly activeSelectionOptions = computed(() => {
+    if (!this.store.isSelectingRoad()) return [];
+    const pendingId = this.store.pendingSettlementVertexId();
+    if (!pendingId) return [];
+
+    const map = this.vertexMap();
+    const p1 = map.get(pendingId);
+    if (!p1) return [];
+
+    return this.store
+      .currentRoadOptions()
+      .map(opt => {
+        const p2 = map.get(opt.toVertexId);
+        const pProj = opt.bestProjectedVertexId ? map.get(opt.bestProjectedVertexId) : null;
+
+        const projectionLines: { x1: number; y1: number; x2: number; y2: number }[] = [];
+        if (p2) {
+          let lastPt = p2;
+          for (const stepId of opt.projectionPath) {
+            const pt = map.get(stepId);
+            if (pt) {
+              projectionLines.push({ x1: lastPt.x, y1: lastPt.y, x2: pt.x, y2: pt.y });
+              lastPt = pt;
+            }
+          }
+        }
+
+        return {
+          opt,
+          p1,
+          p2,
+          pProj,
+          projectionLines,
+          midpoint: p2 ? { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 } : null,
+        };
+      })
+      .filter(
+        (
+          o,
+        ): o is {
+          opt: RoadOption;
+          p1: { x: number; y: number };
+          p2: { x: number; y: number };
+          pProj: { x: number; y: number } | null;
+          projectionLines: { x1: number; y1: number; x2: number; y2: number }[];
+          midpoint: { x: number; y: number } | null;
+        } => o.p2 !== undefined,
+      );
   });
 
   // ── Drag state (Phase 1 desert drag) ─────────────────────────────────────

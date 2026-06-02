@@ -45,4 +45,12 @@ export const ES: Translations = {
   setupHint: 'Arrastra los desiertos 🏜️ para reposicionarlos y luego inicia la simulación.',
   dragToMove: 'Arrastrar para mover',
   setupToggleHint: '💡 Haz clic en cualquier hexágono para cambiar todos entre letras y números.',
+  roadOptions: 'Opciones de Carretera',
+  rank1Best: 'Posición 1 (Mejor)',
+  rank2: 'Posición 2',
+  rank3: 'Posición 3',
+  direct: 'Directo',
+  projected: 'Proyectado',
+  cancel: 'Cancelar',
+  selectRoadDirection: 'Seleccionar dirección de la carretera',
 };
