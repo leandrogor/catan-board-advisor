@@ -1,0 +1,12 @@
+# Ignore build outputs and cache directories
+dist/
+.angular/
+tmp/
+out/
+
+# Ignore package manager lockfiles and workspace configs
+pnpm-lock.yaml
+pnpm-workspace.yaml
+package-lock.json
+yarn.lock
+node_modules/
