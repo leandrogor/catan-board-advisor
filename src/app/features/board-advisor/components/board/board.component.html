@@ -191,8 +191,10 @@
             <text
               [attr.x]="vertex.position.x"
               [attr.y]="vertex.position.y - getVertexRadius(vertex) - 8"
+              [attr.transform]="getTextCounterRotation(vertex.position.x, vertex.position.y)"
               text-anchor="middle"
               font-size="14"
+              fill="var(--color-top-vertex)"
               class="pointer-events-none"
             >
               ★
@@ -218,6 +220,7 @@
             <text
               [attr.x]="vertex.position.x"
               [attr.y]="vertex.position.y + 3"
+              [attr.transform]="getTextCounterRotation(vertex.position.x, vertex.position.y)"
               text-anchor="middle"
               dominant-baseline="middle"
               font-size="8"
