@@ -10,7 +10,7 @@ import { BoardStateStore } from '../features/board-advisor/services/board-state.
   template: `
     <!-- Header -->
     <header
-      class="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700"
+      class="sticky top-0 z-30 flex items-center justify-between px-4 pb-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 pt-[calc(0.75rem+env(safe-area-inset-top,0))]"
     >
       <button
         class="text-sm font-medium px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
@@ -121,10 +121,20 @@ import { BoardStateStore } from '../features/board-advisor/services/board-state.
     }
 
     <!-- Main content -->
-    <main class="min-h-[calc(100dvh-120px)]">
+    <main class="flex-1 flex flex-col min-h-0">
       <router-outlet />
     </main>
   `,
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        min-height: 100dvh;
+        min-height: 100svh;
+      }
+    `,
+  ],
 })
 export class ShellComponent {
   protected readonly i18n = inject(TranslationService);

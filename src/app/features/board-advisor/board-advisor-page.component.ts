@@ -227,12 +227,13 @@ import { TranslationService } from '../../core/services/translation.service';
       :host {
         display: flex;
         flex-direction: column;
-        min-height: calc(100dvh - 69px);
+        flex: 1;
+        min-height: 0;
       }
       @media (min-width: 1024px) {
         :host {
-          height: calc(100dvh - 69px);
-          max-height: calc(100dvh - 69px);
+          height: 100%;
+          max-height: 100%;
         }
       }
     `,
