@@ -415,9 +415,28 @@ export class BoardComponent {
     this.ghostSvgX.set(svgPt.x);
     this.ghostSvgY.set(svgPt.y);
 
-    // Find the hex closest to the pointer (hit-test by center distance)
-    const targetHex = this.findHexAtSvgPoint(svgPt.x, svgPt.y);
-    this.dropTargetHexId.set(targetHex?.id ?? null);
+    const elements = document.elementsFromPoint(event.clientX, event.clientY);
+    const hexEl = elements.find(el => (el as HTMLElement).dataset?.['hexId']);
+    const targetHexId = hexEl ? (hexEl as HTMLElement).dataset['hexId'] : null;
+
+    if (targetHexId) {
+      const dragging = this.draggingDesert();
+      const desertPos = this.store.desertPositions();
+      const otherDesert = dragging === 'L1' ? 'L2' : 'L1';
+      const otherPos = desertPos[otherDesert];
+      const otherKey = `hex-${otherPos.row}-${otherPos.col}`;
+
+      const myPos = desertPos[dragging ?? 'L1'];
+      const myKey = `hex-${myPos.row}-${myPos.col}`;
+
+      if (targetHexId === otherKey || targetHexId === myKey) {
+        this.dropTargetHexId.set(null);
+      } else {
+        this.dropTargetHexId.set(targetHexId);
+      }
+    } else {
+      this.dropTargetHexId.set(null);
+    }
   }
 
   @HostListener('document:pointerup', ['$event'])
@@ -425,15 +444,24 @@ export class BoardComponent {
     if (this.draggingDesert() === null || event.pointerId !== this.dragPointerId) return;
     event.preventDefault();
 
-    const desert = this.draggingDesert();
-    const targetId = this.dropTargetHexId();
+    const elements = document.elementsFromPoint(event.clientX, event.clientY);
+    const hexEl = elements.find(el => (el as HTMLElement).dataset?.['hexId']);
+    const targetHexId = hexEl ? (hexEl as HTMLElement).dataset['hexId'] : null;
 
-    if (desert && targetId) {
-      // Parse row/col from hex id: "hex-{row}-{col}"
-      const parts = targetId.split('-');
-      const row = Number.parseInt(parts[1], 10);
-      const col = Number.parseInt(parts[2], 10);
-      this.store.updateDesertPosition(desert, { row, col });
+    const desert = this.draggingDesert();
+    if (desert && targetHexId) {
+      const desertPos = this.store.desertPositions();
+      const otherDesert = desert === 'L1' ? 'L2' : 'L1';
+      const otherPos = desertPos[otherDesert];
+      const otherKey = `hex-${otherPos.row}-${otherPos.col}`;
+
+      if (targetHexId !== otherKey) {
+        // Parse row/col from hex id: "hex-{row}-{col}"
+        const parts = targetHexId.split('-');
+        const row = Number.parseInt(parts[1], 10);
+        const col = Number.parseInt(parts[2], 10);
+        this.store.updateDesertPosition(desert, { row, col });
+      }
     }
 
     this.draggingDesert.set(null);
@@ -472,42 +500,5 @@ export class BoardComponent {
       x: inv.a * clientX + inv.c * clientY + inv.e,
       y: inv.b * clientX + inv.d * clientY + inv.f,
     };
-  }
-
-  /**
-   * Find the hex whose center is closest to (svgX, svgY), within R*1.15 distance.
-   * Excludes the hex currently being dragged.
-   */
-  private findHexAtSvgPoint(svgX: number, svgY: number): HexDefinition | null {
-    const R = this.R();
-    const threshold = R * 1.15;
-    const dragging = this.draggingDesert();
-    const desertPos = this.store.desertPositions();
-
-    // The other desert's position (cannot be a drop target)
-    const otherDesert = dragging === 'L1' ? 'L2' : 'L1';
-    const otherPos = desertPos[otherDesert];
-    const otherKey = `${otherPos.row}-${otherPos.col}`;
-
-    let best: HexDefinition | null = null;
-    let bestDist = Infinity;
-
-    for (const hex of this.store.hexes()) {
-      // Cannot drop on the other desert
-      if (`${hex.row}-${hex.col}` === otherKey) continue;
-      // Cannot drop on the same hex we started from
-      const myPos = desertPos[dragging ?? 'L1'];
-      if (hex.row === myPos.row && hex.col === myPos.col) continue;
-
-      const dx = hex.center.x - svgX;
-      const dy = hex.center.y - svgY;
-      const dist = Math.hypot(dx, dy);
-      if (dist < threshold && dist < bestDist) {
-        bestDist = dist;
-        best = hex;
-      }
-    }
-
-    return best;
   }
 }

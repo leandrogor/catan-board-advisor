@@ -35,6 +35,7 @@
     @for (hex of store.hexes(); track hex.id) {
       <g>
         <polygon
+          [attr.data-hex-id]="hex.id"
           [class]="
             'hex-polygon' +
             (hex.isDesert && store.appPhase() === 'setup' ? ' desert-draggable' : '') +
