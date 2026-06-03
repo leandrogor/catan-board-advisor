@@ -370,6 +370,7 @@ export class BoardStateStore {
     this.pendingSettlementVertexId.set(null);
     this.currentRoadOptions.set([]);
     this.selectedVertexId.set(null);
+    this.panelVisible.set(true);
   }
 
   computeRoadOptionsForVertex(vertexId: string): RoadOption[] {
