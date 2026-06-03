@@ -48,7 +48,7 @@ import { BoardStateStore } from '../features/board-advisor/services/board-state.
       <div class="fixed inset-0 z-40" (click)="settingsOpen.set(false)">
         <div class="absolute inset-0 bg-black/30"></div>
         <div
-          class="absolute right-0 top-0 h-full w-72 bg-white dark:bg-slate-800 shadow-xl p-5 transform transition-transform"
+          class="absolute right-0 top-0 h-full w-72 bg-white dark:bg-slate-800 shadow-xl px-5 pb-5 transform transition-transform pt-[calc(1.25rem+env(safe-area-inset-top,0))]"
           (click)="$event.stopPropagation()"
         >
           <div class="flex items-center justify-between mb-6">
