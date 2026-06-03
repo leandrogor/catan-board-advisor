@@ -34,6 +34,7 @@ export const ES: Translations = {
   decimal: 'Decimal',
   percentage: 'Porcentaje',
   showZeroScores: 'Mostrar vértices sin puntuación',
+  autoZoom: 'Zoom automático al seleccionar',
   close: 'Cerrar',
   rowLabel: 'Fila',
   colLabel: 'Col',

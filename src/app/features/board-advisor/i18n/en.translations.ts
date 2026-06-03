@@ -31,6 +31,7 @@ export interface Translations {
   decimal: string;
   percentage: string;
   showZeroScores: string;
+  autoZoom: string;
   close: string;
   rowLabel: string;
   colLabel: string;
@@ -89,6 +90,7 @@ export const EN: Translations = {
   decimal: 'Decimal',
   percentage: 'Percentage',
   showZeroScores: 'Show zero-score vertices',
+  autoZoom: 'Auto-zoom on selection',
   close: 'Close',
   rowLabel: 'Row',
   colLabel: 'Col',

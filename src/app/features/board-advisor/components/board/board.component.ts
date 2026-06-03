@@ -115,7 +115,7 @@ export class BoardComponent {
 
   protected readonly viewBox = computed(() => {
     const vb = this.store.viewBox();
-    if (this.store.isSelectingRoad()) {
+    if (this.store.isSelectingRoad() && this.store.enableAutoZoom()) {
       const pendingId = this.store.pendingSettlementVertexId();
       if (pendingId) {
         const map = this.vertexMap();

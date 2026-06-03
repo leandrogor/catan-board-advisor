@@ -115,6 +115,27 @@ import { BoardStateStore } from '../features/board-advisor/services/board-state.
                 ></span>
               </button>
             </div>
+
+            <!-- Auto-zoom on selection -->
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-medium text-slate-700 dark:text-slate-300">{{
+                i18n.t().autoZoom
+              }}</label>
+              <button
+                class="relative w-11 h-6 rounded-full transition-colors"
+                [class]="
+                  store.enableAutoZoom() ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'
+                "
+                (click)="store.toggleAutoZoom()"
+                role="switch"
+                [attr.aria-checked]="store.enableAutoZoom()"
+              >
+                <span
+                  class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                  [class.translate-x-5]="store.enableAutoZoom()"
+                ></span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

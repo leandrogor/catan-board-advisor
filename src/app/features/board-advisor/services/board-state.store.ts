@@ -23,6 +23,7 @@ export class BoardStateStore {
     (localStorage.getItem('catan-score-fmt') as 'decimal' | 'percentage') ?? 'decimal',
   );
   readonly showZeroScores = signal<boolean>(localStorage.getItem('catan-show-zeros') !== 'false');
+  readonly enableAutoZoom = signal<boolean>(localStorage.getItem('catan-auto-zoom') !== 'false');
 
   // ── Phase ───────────────────────────────────────────────────────────────────
   /** Current app phase: 'setup' shows letters+drag UI; 'results' shows heatmap. */
@@ -181,6 +182,9 @@ export class BoardStateStore {
     });
     effect(() => {
       localStorage.setItem('catan-show-zeros', String(this.showZeroScores()));
+    });
+    effect(() => {
+      localStorage.setItem('catan-auto-zoom', String(this.enableAutoZoom()));
     });
   }
 
@@ -512,5 +516,9 @@ export class BoardStateStore {
 
   toggleShowZeroScores(): void {
     this.showZeroScores.update(v => !v);
+  }
+
+  toggleAutoZoom(): void {
+    this.enableAutoZoom.update(v => !v);
   }
 }
