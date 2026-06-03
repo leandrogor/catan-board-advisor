@@ -42,7 +42,7 @@ import { TranslationService } from '../../../../core/services/translation.servic
         [attr.aria-label]="i18n.t().rotateBoard"
       >
         ⟳ <span class="hidden min-[420px]:inline">{{ i18n.t().rotateBoard }}</span>
-        <span class="min-[420px]:hidden">Rotar</span>
+        <span class="min-[420px]:hidden"></span>
       </button>
 
       @if (store.appPhase() !== 'setup') {
