@@ -39,19 +39,26 @@ export function hexVertices(cx: number, cy: number, R: number): { x: number; y: 
 }
 
 export function deduplicateVertices(hexes: HexDefinition[], R: number): Vertex[] {
-  const vertexMap = new Map<string, Vertex>();
+  const vertices: Vertex[] = [];
+  const TOLERANCE_SQ = 1; // 1.0 squared, matching coordinates within 1 pixel
 
   for (const hex of hexes) {
     const verts = hexVertices(hex.center.x, hex.center.y, R);
     for (const v of verts) {
-      const key = `${Math.round(v.x * 10)}-${Math.round(v.y * 10)}`;
-      const existing = vertexMap.get(key);
+      // Find an existing vertex close to v
+      const existing = vertices.find(other => {
+        const dx = other.position.x - v.x;
+        const dy = other.position.y - v.y;
+        return dx * dx + dy * dy < TOLERANCE_SQ;
+      });
+
       if (existing) {
         if (!existing.adjacentHexIds.includes(hex.id)) {
           existing.adjacentHexIds.push(hex.id);
         }
       } else {
-        vertexMap.set(key, {
+        const key = `${Math.round(v.x * 10)}-${Math.round(v.y * 10)}`;
+        vertices.push({
           id: `v-${key}`,
           position: { x: v.x, y: v.y },
           adjacentHexIds: [hex.id],
@@ -67,24 +74,23 @@ export function deduplicateVertices(hexes: HexDefinition[], R: number): Vertex[]
     }
   }
 
-  return Array.from(vertexMap.values());
+  return vertices;
 }
 
 export function buildVertexAdjacency(vertices: Vertex[], hexes: HexDefinition[], R: number): void {
-  // Create a lookup from vertex position key to vertex
-  const vertexByKey = new Map<string, Vertex>();
-  for (const v of vertices) {
-    const key = `${Math.round(v.position.x * 10)}-${Math.round(v.position.y * 10)}`;
-    vertexByKey.set(key, v);
-  }
+  const TOLERANCE_SQ = 1;
 
   // For each hex, connect consecutive vertices
   for (const hex of hexes) {
     const verts = hexVertices(hex.center.x, hex.center.y, R);
     const vertexIds: string[] = [];
     for (const v of verts) {
-      const key = `${Math.round(v.x * 10)}-${Math.round(v.y * 10)}`;
-      const found = vertexByKey.get(key);
+      // Find the vertex in our list close to v
+      const found = vertices.find(other => {
+        const dx = other.position.x - v.x;
+        const dy = other.position.y - v.y;
+        return dx * dx + dy * dy < TOLERANCE_SQ;
+      });
       if (found) {
         vertexIds.push(found.id);
       }
