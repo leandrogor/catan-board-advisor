@@ -51,6 +51,8 @@ export interface Translations {
   cancel: string;
   selectRoadDirection: string;
   updateAvailable: string;
+  showPanel: string;
+  hidePanel: string;
 }
 
 export const EN: Translations = {
@@ -107,4 +109,6 @@ export const EN: Translations = {
   cancel: 'Cancel',
   selectRoadDirection: 'Select Road Direction',
   updateAvailable: 'A new version of the app is available. Do you want to update now?',
+  showPanel: 'Show Panel',
+  hidePanel: 'Hide Panel',
 };

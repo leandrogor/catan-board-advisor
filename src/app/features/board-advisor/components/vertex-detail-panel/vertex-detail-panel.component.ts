@@ -8,8 +8,9 @@ import { HexDefinition } from '../../models/hex.model';
   template: `
     @if (selectedVertex(); as vertex) {
       <div
-        class="fixed bottom-0 left-0 right-0 z-20 transform transition-transform duration-300 ease-out lg:relative lg:bottom-auto lg:inset-auto lg:z-auto"
-        [class.translate-y-0]="vertex"
+        class="fixed bottom-0 left-0 right-0 z-20 transform transition-transform duration-300 ease-out lg:relative lg:bottom-auto lg:inset-auto lg:z-auto lg:translate-y-0"
+        [class.translate-y-0]="store.panelVisible()"
+        [class.translate-y-full]="!store.panelVisible()"
       >
         <div
           class="mx-auto max-w-lg lg:max-w-none bg-white dark:bg-slate-800 rounded-t-2xl lg:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-5"
@@ -49,15 +50,24 @@ import { HexDefinition } from '../../models/hex.model';
                 </span>
               }
             </div>
-            <button
-              class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none p-1 cursor-pointer"
-              (click)="
-                store.isSelectingRoad() ? store.cancelRoadSelection() : store.selectVertex(null)
-              "
-              [attr.aria-label]="i18n.t().close"
-            >
-              X
-            </button>
+            <div class="flex items-center gap-2">
+              <button
+                class="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none p-1 cursor-pointer"
+                (click)="store.panelVisible.set(false)"
+                [attr.aria-label]="i18n.t().hidePanel"
+              >
+                🙈
+              </button>
+              <button
+                class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none p-1 cursor-pointer"
+                (click)="
+                  store.isSelectingRoad() ? store.cancelRoadSelection() : store.selectVertex(null)
+                "
+                [attr.aria-label]="i18n.t().close"
+              >
+                X
+              </button>
+            </div>
           </div>
 
           <!-- Score -->

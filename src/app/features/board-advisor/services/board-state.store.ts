@@ -52,6 +52,8 @@ export class BoardStateStore {
    */
   readonly showNumbersInSetup = signal<boolean>(false);
 
+  readonly panelVisible = signal<boolean>(true);
+
   // ── Simulation result (private writable, public readonly) ───────────────────
   private readonly _simulationResult = signal<SimulationResult | null>(null);
   readonly simulationResult = this._simulationResult.asReadonly();
@@ -339,6 +341,7 @@ export class BoardStateStore {
     this.pendingSettlementVertexId.set(vertexId);
     const options = this.computeRoadOptionsForVertex(vertexId);
     this.currentRoadOptions.set(options);
+    this.panelVisible.set(false);
   }
 
   cancelRoadSelection(): void {

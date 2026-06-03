@@ -54,4 +54,6 @@ export const ES: Translations = {
   cancel: 'Cancelar',
   selectRoadDirection: 'Seleccionar dirección de la carretera',
   updateAvailable: 'Una nueva versión de la aplicación está disponible. ¿Deseas actualizar ahora?',
+  showPanel: 'Mostrar Panel',
+  hidePanel: 'Ocultar Panel',
 };

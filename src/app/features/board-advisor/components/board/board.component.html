@@ -390,16 +390,26 @@
         </g>
       }
     }
+  </svg>
 
-    <!-- Ghost overlay during desert drag -->
-    @if (draggingDesert() !== null) {
-      <g class="ghost-desert" [attr.transform]="ghostTransform()">
+  <!-- Ghost overlay during desert drag (positioned relative to viewport, outside SVG) -->
+  @if (draggingDesert() !== null) {
+    <div [style]="ghostStyle()" class="z-50 pointer-events-none">
+      <svg
+        [attr.width]="ghostWidth()"
+        [attr.height]="ghostHeight()"
+        [attr.viewBox]="'-' + R() + ' -' + R() + ' ' + R() * 2 + ' ' + R() * 2"
+        style="overflow: visible; display: block"
+      >
         <circle
+          cx="0"
+          cy="0"
           [attr.r]="R() * 0.8"
           fill="var(--hex-desert-fill, #d4a574)"
           stroke="var(--color-top-vertex, #f59e0b)"
           stroke-width="2"
           stroke-dasharray="5 3"
+          opacity="0.75"
         />
         <text
           x="0"
@@ -407,10 +417,11 @@
           text-anchor="middle"
           dominant-baseline="middle"
           [attr.font-size]="R() * 0.5"
+          [attr.transform]="'rotate(' + -store.boardRotationDeg() + ', 0, 4)'"
         >
           🏜️
         </text>
-      </g>
-    }
-  </svg>
+      </svg>
+    </div>
+  }
 </div>

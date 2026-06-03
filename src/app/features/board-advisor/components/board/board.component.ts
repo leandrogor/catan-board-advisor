@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, ElementRef, HostListener } from '@angular/core';
+import { Component, inject, computed, signal, HostListener } from '@angular/core';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { hexPolygonPoints, interpolateHeatmapColor } from '../../../../shared/utils/hex-math.utils';
@@ -112,7 +112,6 @@ const DICE_WAYS: Readonly<Record<number, number>> = {
 export class BoardComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
-  private readonly el = inject(ElementRef);
 
   protected readonly viewBox = computed(() => {
     const vb = this.store.viewBox();
@@ -243,9 +242,24 @@ export class BoardComponent {
 
   // ── Drag state (Phase 1 desert drag) ─────────────────────────────────────
   protected readonly draggingDesert = signal<'L1' | 'L2' | null>(null);
-  protected readonly ghostSvgX = signal<number>(0);
-  protected readonly ghostSvgY = signal<number>(0);
+  protected readonly ghostWidth = signal<number>(0);
+  protected readonly ghostHeight = signal<number>(0);
+  protected readonly ghostClientX = signal<number>(0);
+  protected readonly ghostClientY = signal<number>(0);
   protected readonly dropTargetHexId = signal<string | null>(null);
+
+  protected readonly ghostHalfWidth = computed(() => this.ghostWidth() / 2);
+  protected readonly ghostHalfHeight = computed(() => this.ghostHeight() / 2);
+
+  protected readonly ghostStyle = computed(() => ({
+    position: 'fixed',
+    left: `${this.ghostClientX() - this.ghostHalfWidth()}px`,
+    top: `${this.ghostClientY() - this.ghostHalfHeight()}px`,
+    pointerEvents: 'none',
+    transform: `rotate(${this.store.boardRotationDeg()}deg)`,
+    transformOrigin: 'center center',
+    zIndex: '50',
+  }));
 
   private dragPointerId: number | null = null;
 
@@ -394,13 +408,16 @@ export class BoardComponent {
     this.draggingDesert.set(desert);
     this.dragPointerId = event.pointerId;
 
-    const svg = this.getSvgElement();
-    if (svg) {
-      (event.target as Element).setPointerCapture(event.pointerId);
-      const svgPt = this.clientToSvg(svg, event.clientX, event.clientY);
-      this.ghostSvgX.set(svgPt.x);
-      this.ghostSvgY.set(svgPt.y);
+    const targetEl = event.currentTarget as SVGElement | null;
+    if (targetEl) {
+      targetEl.setPointerCapture(event.pointerId);
+      const rect = targetEl.getBoundingClientRect();
+      this.ghostWidth.set(rect.width);
+      this.ghostHeight.set(rect.height);
     }
+
+    this.ghostClientX.set(event.clientX);
+    this.ghostClientY.set(event.clientY);
   }
 
   @HostListener('document:pointermove', ['$event'])
@@ -408,12 +425,8 @@ export class BoardComponent {
     if (this.draggingDesert() === null || event.pointerId !== this.dragPointerId) return;
     event.preventDefault();
 
-    const svg = this.getSvgElement();
-    if (!svg) return;
-
-    const svgPt = this.clientToSvg(svg, event.clientX, event.clientY);
-    this.ghostSvgX.set(svgPt.x);
-    this.ghostSvgY.set(svgPt.y);
+    this.ghostClientX.set(event.clientX);
+    this.ghostClientY.set(event.clientY);
 
     const elements = document.elementsFromPoint(event.clientX, event.clientY);
     const hexEl = elements.find(el => (el as HTMLElement).dataset?.['hexId']);
@@ -475,30 +488,5 @@ export class BoardComponent {
     this.draggingDesert.set(null);
     this.dropTargetHexId.set(null);
     this.dragPointerId = null;
-  }
-
-  /** Ghost transform for the dragged desert preview. */
-  protected ghostTransform = computed(() => {
-    return `translate(${this.ghostSvgX()}, ${this.ghostSvgY()})`;
-  });
-
-  // ── Private helpers ───────────────────────────────────────────────────────
-
-  private getSvgElement(): SVGSVGElement | null {
-    return this.el.nativeElement.querySelector('svg') as SVGSVGElement | null;
-  }
-
-  private clientToSvg(
-    svg: SVGSVGElement,
-    clientX: number,
-    clientY: number,
-  ): { x: number; y: number } {
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return { x: 0, y: 0 };
-    const inv = ctm.inverse();
-    return {
-      x: inv.a * clientX + inv.c * clientY + inv.e,
-      y: inv.b * clientX + inv.d * clientY + inv.f,
-    };
   }
 }

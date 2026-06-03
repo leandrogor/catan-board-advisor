@@ -53,36 +53,6 @@ import { TranslationService } from '../../core/services/translation.service';
               <p class="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
                 {{ i18n.t().setupHint }}
               </p>
-
-              <!-- Desert position indicators -->
-              <div class="grid grid-cols-2 gap-2 pt-1">
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl
-                         bg-white/60 dark:bg-slate-800/60 border border-amber-200 dark:border-amber-700"
-                >
-                  <span class="text-xl">🏜️</span>
-                  <span class="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                    {{ i18n.t().desert1Label }}
-                  </span>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">
-                    {{ i18n.t().rowLabel }} {{ store.desertPositions().L1.row }},
-                    {{ i18n.t().colLabel }} {{ store.desertPositions().L1.col }}
-                  </span>
-                </div>
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl
-                         bg-white/60 dark:bg-slate-800/60 border border-amber-200 dark:border-amber-700"
-                >
-                  <span class="text-xl">🏜️</span>
-                  <span class="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                    {{ i18n.t().desert2Label }}
-                  </span>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">
-                    {{ i18n.t().rowLabel }} {{ store.desertPositions().L2.row }},
-                    {{ i18n.t().colLabel }} {{ store.desertPositions().L2.col }}
-                  </span>
-                </div>
-              </div>
             </div>
 
             <!-- Tap hint -->
@@ -149,17 +119,39 @@ import { TranslationService } from '../../core/services/translation.service';
         } @else {
           <!-- ── Phase 2: Results panel ─────────────────────────── -->
           <div class="flex flex-col gap-3 p-5">
-            <!-- Reset button -->
-            <button
-              class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-sm font-medium
-                     transition-all duration-200
-                     bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300
-                     hover:bg-slate-200 dark:hover:bg-slate-700
-                     border border-slate-200 dark:border-slate-600"
-              (click)="store.resetToSetup()"
-            >
-              {{ i18n.t().resetToSetup }}
-            </button>
+            <!-- Reset button or Eye button (mobile-only when panel is hidden) -->
+            @if (!store.panelVisible() && store.selectedVertexId()) {
+              <div class="flex justify-end w-full lg:hidden">
+                <button
+                  class="flex items-center justify-center w-10 h-10 rounded-full bg-white/85 dark:bg-slate-800/85 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 shadow-xl backdrop-blur-xs transition-all duration-200 active:scale-95 cursor-pointer text-lg"
+                  (click)="store.panelVisible.set(true)"
+                  [attr.aria-label]="i18n.t().showPanel"
+                >
+                  👁️
+                </button>
+              </div>
+              <button
+                class="hidden lg:flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-sm font-medium
+                       transition-all duration-200
+                       bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300
+                       hover:bg-slate-200 dark:hover:bg-slate-700
+                       border border-slate-200 dark:border-slate-600"
+                (click)="store.resetToSetup()"
+              >
+                {{ i18n.t().resetToSetup }}
+              </button>
+            } @else {
+              <button
+                class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-sm font-medium
+                       transition-all duration-200
+                       bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300
+                       hover:bg-slate-200 dark:hover:bg-slate-700
+                       border border-slate-200 dark:border-slate-600"
+                (click)="store.resetToSetup()"
+              >
+                {{ i18n.t().resetToSetup }}
+              </button>
+            }
 
             <!-- Controls (undo/redo/rotate) — inline on desktop -->
             <div
