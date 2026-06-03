@@ -311,7 +311,56 @@ export class BoardComponent {
 
   protected onVertexClick(v: Vertex): void {
     if (v.isBlocked) return;
-    this.store.selectVertex(this.store.selectedVertexId() === v.id ? null : v.id);
+
+    const wasSelectingRoad = this.store.isSelectingRoad();
+    const wasSelected = this.store.selectedVertexId();
+
+    if (wasSelectingRoad || wasSelected !== null) {
+      // cancel the current state exactly as in (a)
+      this.store.isSelectingRoad.set(false);
+      this.store.pendingSettlementVertexId.set(null);
+      this.store.currentRoadOptions.set([]);
+      this.store.selectedVertexId.set(null);
+
+      // then if it's a different vertex, open it
+      if (wasSelected !== v.id) {
+        this.store.selectVertex(v.id);
+        this.scrollToVertex(v.id);
+      }
+    } else {
+      this.store.selectVertex(v.id);
+      this.scrollToVertex(v.id);
+    }
+  }
+
+  private scrollToVertex(vertexId: string): void {
+    setTimeout(() => {
+      const vertexEl = document.getElementById(vertexId);
+      if (!vertexEl) return;
+
+      const rect = vertexEl.getBoundingClientRect();
+      const absoluteX = rect.left + rect.width / 2 + window.scrollX;
+      const absoluteY = rect.top + rect.height / 2 + window.scrollY;
+
+      const isMobile = window.innerWidth < 1024;
+      let offset = 0;
+      if (isMobile) {
+        const panelEl =
+          document.querySelector('app-vertex-detail-panel') ||
+          document.querySelector('.fixed.bottom-0');
+        const panelHeight = panelEl ? (panelEl as HTMLElement).offsetHeight : 280;
+        offset = panelHeight / 2;
+      }
+
+      const targetX = absoluteX - window.innerWidth / 2;
+      const targetY = absoluteY - window.innerHeight / 2 + offset;
+
+      window.scrollTo({
+        left: targetX,
+        top: targetY,
+        behavior: 'smooth',
+      });
+    }, 100);
   }
 
   protected onHexClick(hex: HexDefinition): void {

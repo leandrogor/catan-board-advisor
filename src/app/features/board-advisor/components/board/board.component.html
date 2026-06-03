@@ -306,6 +306,7 @@
 
           <!-- Main vertex circle -->
           <circle
+            [attr.id]="vertex.id"
             [class]="'vertex-circle' + (vertex.isBlocked ? ' vertex-blocked' : '')"
             [attr.cx]="vertex.position.x"
             [attr.cy]="vertex.position.y"

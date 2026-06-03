@@ -366,6 +366,7 @@ export class BoardStateStore {
     this.isSelectingRoad.set(false);
     this.pendingSettlementVertexId.set(null);
     this.currentRoadOptions.set([]);
+    this.selectedVertexId.set(null);
   }
 
   computeRoadOptionsForVertex(vertexId: string): RoadOption[] {
