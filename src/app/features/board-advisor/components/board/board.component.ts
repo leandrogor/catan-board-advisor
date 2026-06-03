@@ -127,7 +127,7 @@ export class BoardComponent {
 
           // Compute zoom dimensions
           // We want the zoom to be tight enough to see options clearly but wide enough to show projections
-          const height = R * 5;
+          const height = R * 7;
           const width = height * (vb.width / vb.height);
 
           const x = pt.x - width / 2;

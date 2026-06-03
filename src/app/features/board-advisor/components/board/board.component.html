@@ -287,7 +287,12 @@
       @for (vertex of displayVertices(); track vertex.id) {
         <g>
           <!-- Top vertex amber ring -->
-          @if (isTopVertex(vertex) && !vertex.isOccupied && !vertex.isBlocked) {
+          @if (
+            isTopVertex(vertex) &&
+            !vertex.isOccupied &&
+            !vertex.isBlocked &&
+            !store.isSelectingRoad()
+          ) {
             <circle
               class="top-vertex-ring"
               [attr.cx]="vertex.position.x"
