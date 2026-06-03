@@ -50,6 +50,7 @@ export interface Translations {
   projected: string;
   cancel: string;
   selectRoadDirection: string;
+  updateAvailable: string;
 }
 
 export const EN: Translations = {
@@ -105,4 +106,5 @@ export const EN: Translations = {
   projected: 'Projected',
   cancel: 'Cancel',
   selectRoadDirection: 'Select Road Direction',
+  updateAvailable: 'A new version of the app is available. Do you want to update now?',
 };

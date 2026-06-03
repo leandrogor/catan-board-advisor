@@ -53,4 +53,5 @@ export const ES: Translations = {
   projected: 'Proyectado',
   cancel: 'Cancelar',
   selectRoadDirection: 'Seleccionar dirección de la carretera',
+  updateAvailable: 'Una nueva versión de la aplicación está disponible. ¿Deseas actualizar ahora?',
 };

@@ -2,6 +2,7 @@ import { ApplicationRef, inject, Injectable } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { concat, interval } from 'rxjs';
 import { filter, first } from 'rxjs/operators';
+import { TranslationService } from './translation.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +10,7 @@ import { filter, first } from 'rxjs/operators';
 export class UpdateService {
   private readonly swUpdate = inject(SwUpdate);
   private readonly appRef = inject(ApplicationRef);
+  private readonly i18n = inject(TranslationService);
 
   constructor() {
     if (this.swUpdate.isEnabled) {
@@ -16,9 +18,7 @@ export class UpdateService {
       this.swUpdate.versionUpdates
         .pipe(filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'))
         .subscribe(() => {
-          if (
-            confirm('Una nueva versión de la aplicación está disponible. ¿Deseas actualizar ahora?')
-          ) {
+          if (confirm(this.i18n.t().updateAvailable)) {
             globalThis.location.reload();
           }
         });
