@@ -129,9 +129,23 @@ export class BoardComponent {
           const height = R * 7;
           const width = height * (vb.width / vb.height);
 
-          const x = pt.x - width / 2;
+          let x = pt.x - width / 2;
           // On mobile, shift the center vertex up to avoid bottom sheet occlusion
-          const y = isMobile ? pt.y - height * 0.28 : pt.y - height / 2;
+          let y = isMobile ? pt.y - height * 0.28 : pt.y - height / 2;
+
+          // Clamp the viewport coordinates to keep the board in view and avoid showing too much sea.
+          // Allow a small safety margin of 1.2 * R so that vertices near the edges aren't glued to the absolute border.
+          const margin = R * 1.2;
+          if (width < vb.width) {
+            const minX = vb.x - margin;
+            const maxX = vb.x + vb.width - width + margin;
+            x = Math.max(minX, Math.min(x, maxX));
+          }
+          if (height < vb.height) {
+            const minY = vb.y - margin;
+            const maxY = vb.y + vb.height - height + margin;
+            y = Math.max(minY, Math.min(y, maxY));
+          }
 
           return `${x} ${y} ${width} ${height}`;
         }
