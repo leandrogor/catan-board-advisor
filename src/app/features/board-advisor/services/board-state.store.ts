@@ -109,21 +109,56 @@ export class BoardStateStore {
       v.rank = null;
     }
 
-    const eligible = vertices
-      .filter(
-        v =>
-          !v.isBlocked &&
-          !v.isOccupied &&
-          v.adjacentHexIds.some(id => {
-            const hex = hexMap.get(id);
-            return hex !== undefined && !hex.isDesert;
-          }),
-      )
-      .sort((a, b) => b.rawScore - a.rawScore);
+    const eligible = vertices.filter(
+      v =>
+        !v.isBlocked &&
+        !v.isOccupied &&
+        v.adjacentHexIds.some(id => {
+          const hex = hexMap.get(id);
+          return hex !== undefined && !hex.isDesert;
+        }),
+    );
 
-    eligible.forEach((v, i) => {
-      v.rank = i + 1;
+    // Group eligible vertices by structuralKey (adjacent non-null diceNumbers sorted ascending and joined)
+    const groupsMap = new Map<string, Vertex[]>();
+    for (const v of eligible) {
+      const diceNumbers: number[] = [];
+      for (const id of v.adjacentHexIds) {
+        const hex = hexMap.get(id);
+        if (hex && !hex.isDesert && hex.diceNumber !== null) {
+          diceNumbers.push(hex.diceNumber);
+        }
+      }
+      diceNumbers.sort((a, b) => a - b);
+      const structuralKey = diceNumbers.join('-');
+
+      if (!groupsMap.has(structuralKey)) {
+        groupsMap.set(structuralKey, []);
+      }
+      groupsMap.get(structuralKey)!.push(v);
+    }
+
+    // Sort groups by their mean rawScore descending
+    const groupList = Array.from(groupsMap.entries()).map(([key, groupVertices]) => {
+      const totalScore = groupVertices.reduce((sum, v) => sum + (v.rawScore ?? 0), 0);
+      const meanScore = totalScore / groupVertices.length;
+      return {
+        key,
+        vertices: groupVertices,
+        meanScore,
+      };
     });
+    groupList.sort((a, b) => b.meanScore - a.meanScore);
+
+    // Assign rank with 1224 rule: rank of a group = 1 + total number of vertices in all higher-ranked groups
+    let runningCount = 0;
+    for (const group of groupList) {
+      const groupRank = 1 + runningCount;
+      for (const v of group.vertices) {
+        v.rank = groupRank;
+      }
+      runningCount += group.vertices.length;
+    }
 
     return vertices;
   });

@@ -147,11 +147,25 @@ export class BoardComponent {
 
   protected readonly R = computed(() => this.store.hexSize());
 
+  protected readonly thresholdRank = computed(() => {
+    const vertices = this.store.rankedVertices();
+    const eligibleRanks = vertices.map(v => v.rank).filter((r): r is number => r !== null);
+    const distinctRanks = Array.from(new Set(eligibleRanks)).sort((a, b) => a - b);
+    return distinctRanks.length >= 5 ? distinctRanks[4] : (distinctRanks.at(-1) ?? Infinity);
+  });
+
   protected readonly displayVertices = computed(() => {
     const vertices = this.store.rankedVertices();
     const showZeros = this.store.showZeroScores();
     if (showZeros) return vertices;
-    return vertices.filter(v => v.normalizedScore > 0 || v.isOccupied);
+
+    const threshold = this.thresholdRank();
+    return vertices.filter(
+      v =>
+        v.isOccupied ||
+        v.id === this.store.selectedVertexId() ||
+        (v.rank !== null && v.rank <= threshold),
+    );
   });
 
   protected readonly vertexMap = computed(() => {

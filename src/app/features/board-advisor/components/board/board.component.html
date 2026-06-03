@@ -367,8 +367,10 @@
             </text>
           }
 
-          <!-- Rank number for top 5 -->
-          @if (vertex.rank && vertex.rank <= 5 && !vertex.isOccupied && !vertex.isBlocked) {
+          <!-- Rank number for top distinct ranks -->
+          @if (
+            vertex.rank && vertex.rank <= thresholdRank() && !vertex.isOccupied && !vertex.isBlocked
+          ) {
             <text
               [attr.x]="vertex.position.x"
               [attr.y]="vertex.position.y + 3"
