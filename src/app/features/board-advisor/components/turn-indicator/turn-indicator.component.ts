@@ -5,38 +5,8 @@ import { PlayerColor } from '../../models/player-color.model';
 
 @Component({
   selector: 'app-turn-indicator',
-  template: `
-    @if (store.appPhase() === 'results' && !store.isSetupComplete()) {
-      @let player = store.currentPlayerColor();
-      @if (player) {
-        <div
-          class="flex items-center justify-center gap-2.5 px-4 py-2.5
-                 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm
-                 border-t border-b border-slate-200 dark:border-slate-700
-                 shadow-sm"
-          role="status"
-          [attr.aria-label]="indicatorText()"
-        >
-          <!-- Color swatch -->
-          <span
-            class="inline-block w-5 h-5 rounded-full shadow-sm ring-2 ring-white dark:ring-slate-700 flex-shrink-0"
-            [style.background-color]="player.hex"
-          ></span>
-          <!-- Text -->
-          <span class="text-sm font-semibold text-slate-800 dark:text-slate-200 tracking-wide">
-            {{ indicatorText() }}
-          </span>
-        </div>
-      }
-    }
-  `,
-  styles: [
-    `
-      :host {
-        display: block;
-      }
-    `,
-  ],
+  templateUrl: './turn-indicator.component.html',
+  styleUrl: './turn-indicator.component.scss',
 })
 export class TurnIndicatorComponent {
   protected readonly store = inject(BoardStateStore);
