@@ -47,7 +47,10 @@ export class TurnIndicatorComponent {
     if (!player) return '';
     const turn = this.store.currentTurnIndex() + 1;
     const total = this.store.totalTurns();
-    const colorName = this.resolveColorName(player);
+    let colorName = this.resolveColorName(player);
+    if (player.id === this.store.myPlayerColorId()) {
+      colorName += ` (${this.i18n.t().isMeLabel})`;
+    }
     return this.i18n.t().turnIndicator(turn, total, colorName);
   });
 

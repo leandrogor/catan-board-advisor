@@ -60,6 +60,7 @@ export const ES: Translations = {
   // Player setup
   playerCount: 'Jugadores',
   colorOrder: 'Orden de Turno',
+  isMeLabel: 'Yo',
   colorRed: 'Rojo',
   colorBlue: 'Azul',
   colorMustard: 'Mostaza',

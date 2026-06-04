@@ -209,6 +209,52 @@ export class BoardComponent {
       );
   });
 
+  protected readonly suggestedRoadCoords = computed(() => {
+    const map = this.vertexMap();
+    const suggestions = this.store.myExpansionSuggestions();
+    const colorHexMap = new Map<string, string>(PLAYER_COLORS.map(c => [c.id, c.hex]));
+    const myColor = this.store.myPlayerColorId();
+    const colorHex = myColor
+      ? (colorHexMap.get(myColor) ?? 'var(--color-occupied, #6366f1)')
+      : 'var(--color-occupied, #6366f1)';
+
+    const roads: {
+      p1: { x: number; y: number };
+      p2: { x: number; y: number };
+      colorHex: string;
+    }[] = [];
+    for (const s of suggestions) {
+      for (const r of s.newRoads) {
+        const p1 = map.get(r.from);
+        const p2 = map.get(r.to);
+        if (p1 && p2) {
+          roads.push({ p1, p2, colorHex });
+        }
+      }
+    }
+    return roads;
+  });
+
+  protected readonly suggestedTargetCoords = computed(() => {
+    const map = this.vertexMap();
+    const suggestions = this.store.myExpansionSuggestions();
+    const colorHexMap = new Map<string, string>(PLAYER_COLORS.map(c => [c.id, c.hex]));
+    const myColor = this.store.myPlayerColorId();
+    const colorHex = myColor
+      ? (colorHexMap.get(myColor) ?? 'var(--color-occupied, #6366f1)')
+      : 'var(--color-occupied, #6366f1)';
+
+    return suggestions
+      .map(s => {
+        const pt = map.get(s.targetVertexId);
+        return { id: s.targetVertexId, pt, colorHex };
+      })
+      .filter(
+        (s): s is { id: string; pt: { x: number; y: number }; colorHex: string } =>
+          s.pt !== undefined,
+      );
+  });
+
   protected readonly activeSelectionOptions = computed(() => {
     if (!this.store.isSelectingRoad()) return [];
     const pendingId = this.store.pendingSettlementVertexId();

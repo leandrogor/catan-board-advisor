@@ -40,3 +40,13 @@ body {
 body {
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
+
+.projected-svg-element {
+  stroke: #000000;
+  opacity: 0.55;
+}
+
+.dark .projected-svg-element {
+  stroke: #ffffff;
+  opacity: 0.65;
+}

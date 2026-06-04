@@ -47,6 +47,8 @@ interface PlayerRankingRow {
             class="grid grid-cols-[3rem_1.5rem_1fr_auto] gap-x-2 items-center px-4 py-2.5
                    border-b border-indigo-100/70 dark:border-indigo-900/30 last:border-0
                    hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+            [class.bg-indigo-100/40]="store.myPlayerColorId() === row.playerColor.id"
+            [class.dark:bg-indigo-950/40]="store.myPlayerColorId() === row.playerColor.id"
           >
             <!-- Production rank -->
             <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300">
@@ -66,6 +68,13 @@ interface PlayerRankingRow {
               ></span>
               <span class="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
                 {{ colorName(row.playerColor) }}
+                @if (store.myPlayerColorId() === row.playerColor.id) {
+                  <span
+                    class="ml-1.5 inline-block text-[9px] font-extrabold uppercase bg-indigo-600 dark:bg-indigo-500 text-white px-1.5 py-0.5 rounded-sm"
+                  >
+                    {{ i18n.t().isMeLabel }}
+                  </span>
+                }
               </span>
             </div>
 

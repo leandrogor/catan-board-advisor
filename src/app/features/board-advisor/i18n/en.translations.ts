@@ -57,6 +57,7 @@ export interface Translations {
   // Player setup
   playerCount: string;
   colorOrder: string;
+  isMeLabel: string;
   colorRed: string;
   colorBlue: string;
   colorMustard: string;
@@ -132,6 +133,7 @@ export const EN: Translations = {
   // Player setup
   playerCount: 'Players',
   colorOrder: 'Turn Order',
+  isMeLabel: 'Me',
   colorRed: 'Red',
   colorBlue: 'Blue',
   colorMustard: 'Mustard',

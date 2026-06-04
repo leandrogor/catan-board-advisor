@@ -38,6 +38,7 @@ export class BoardStateStore {
   // ── Player setup ────────────────────────────────────────────────────────────
   readonly playerCount = signal<5 | 6>(5);
   readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 5));
+  readonly myPlayerColorId = signal<PlayerColor['id'] | null>(null);
 
   // ── Board state ─────────────────────────────────────────────────────────────
   readonly desertPositions = signal<DesertPositions>({ ...DEFAULT_DESERT_POSITIONS });
@@ -201,6 +202,154 @@ export class BoardStateStore {
     () => this.rankedVertices().find(v => v.rank === 1) ?? null,
   );
 
+  readonly myExpansionSuggestions = computed(() => {
+    const myColor = this.myPlayerColorId();
+    if (!myColor || this.appPhase() !== 'results') {
+      return [];
+    }
+
+    const mySettlements = this.placedSettlements().filter(s => s.playerColorId === myColor);
+    const myRoads = this.placedRoads().filter(r => r.playerColorId === myColor);
+    const vertices = this.scoredVertices();
+
+    const suggestions: {
+      settlementVertexId: string;
+      targetVertexId: string;
+      newRoads: { from: string; to: string }[];
+      score: number;
+    }[] = [];
+
+    for (const s of mySettlements) {
+      // Find the roads connected to this settlement
+      const connectedRoads = myRoads.filter(r => r.from === s.vertexId || r.to === s.vertexId);
+      const endpoints = connectedRoads.map(r => (r.from === s.vertexId ? r.to : r.from));
+
+      const sVertex = vertices.find(v => v.id === s.vertexId);
+      if (!sVertex) continue;
+
+      let bestCandidate: {
+        targetVertexId: string;
+        newRoads: { from: string; to: string }[];
+        score: number;
+      } | null = null;
+
+      // --- Priority 1: 1-road extension from endpoints (E -> T) ---
+      const p1Candidates: {
+        targetVertexId: string;
+        newRoads: { from: string; to: string }[];
+        score: number;
+      }[] = [];
+      for (const ep of endpoints) {
+        const epVertex = vertices.find(v => v.id === ep);
+        if (!epVertex) continue;
+
+        for (const adjId of epVertex.adjacentVertexIds) {
+          if (adjId === s.vertexId || endpoints.includes(adjId)) continue;
+          const vAdj = vertices.find(v => v.id === adjId);
+          if (vAdj && !vAdj.isOccupied && !vAdj.isBlocked) {
+            p1Candidates.push({
+              targetVertexId: adjId,
+              newRoads: [{ from: ep, to: adjId }],
+              score: vAdj.rawScore,
+            });
+          }
+        }
+      }
+
+      if (p1Candidates.length > 0) {
+        p1Candidates.sort((a, b) => b.score - a.score);
+        bestCandidate = p1Candidates[0];
+      }
+
+      // --- Priority 2: 2-road extension from endpoints (E -> T -> U) ---
+      if (!bestCandidate) {
+        const p2Candidates: {
+          targetVertexId: string;
+          newRoads: { from: string; to: string }[];
+          score: number;
+        }[] = [];
+        for (const ep of endpoints) {
+          const epVertex = vertices.find(v => v.id === ep);
+          if (!epVertex) continue;
+
+          for (const tId of epVertex.adjacentVertexIds) {
+            if (tId === s.vertexId || endpoints.includes(tId)) continue;
+            const vT = vertices.find(v => v.id === tId);
+            // Can build road through T only if it is not occupied by an opponent
+            if (vT && !vT.isOccupied) {
+              for (const uId of vT.adjacentVertexIds) {
+                if (uId === ep || uId === s.vertexId) continue;
+                const vU = vertices.find(v => v.id === uId);
+                if (vU && !vU.isOccupied && !vU.isBlocked) {
+                  p2Candidates.push({
+                    targetVertexId: uId,
+                    newRoads: [
+                      { from: ep, to: tId },
+                      { from: tId, to: uId },
+                    ],
+                    score: vU.rawScore,
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        if (p2Candidates.length > 0) {
+          p2Candidates.sort((a, b) => b.score - a.score);
+          bestCandidate = p2Candidates[0];
+        }
+      }
+
+      // --- Priority 3: 2-road paths from S along other connections (S -> A -> B) ---
+      if (!bestCandidate) {
+        const p3Candidates: {
+          targetVertexId: string;
+          newRoads: { from: string; to: string }[];
+          score: number;
+        }[] = [];
+        // Other connections are adjacent vertices of S that are not part of endpoints
+        const otherAdjs = sVertex.adjacentVertexIds.filter(adjId => !endpoints.includes(adjId));
+        for (const aId of otherAdjs) {
+          const vA = vertices.find(v => v.id === aId);
+          // Can build road through A only if not occupied
+          if (vA && !vA.isOccupied) {
+            for (const bId of vA.adjacentVertexIds) {
+              if (bId === s.vertexId) continue;
+              const vB = vertices.find(v => v.id === bId);
+              if (vB && !vB.isOccupied && !vB.isBlocked) {
+                p3Candidates.push({
+                  targetVertexId: bId,
+                  newRoads: [
+                    { from: s.vertexId, to: aId },
+                    { from: aId, to: bId },
+                  ],
+                  score: vB.rawScore,
+                });
+              }
+            }
+          }
+        }
+
+        if (p3Candidates.length > 0) {
+          p3Candidates.sort((a, b) => b.score - a.score);
+          bestCandidate = p3Candidates[0];
+        }
+      }
+
+      if (bestCandidate) {
+        suggestions.push({
+          settlementVertexId: s.vertexId,
+          targetVertexId: bestCandidate.targetVertexId,
+          newRoads: bestCandidate.newRoads,
+          score: bestCandidate.score,
+        });
+      }
+    }
+
+    return suggestions;
+  });
+
   readonly viewBox = computed(() => computeViewBox(this.hexes(), this.hexSize()));
 
   private readonly layoutService = inject(BoardLayoutService);
@@ -262,6 +411,7 @@ export class BoardStateStore {
     this.currentTurnIndex.set(0);
     this.playerCount.set(5);
     this.playerColors.set(PLAYER_COLORS.slice(0, 5));
+    this.myPlayerColorId.set(null);
     this.appPhase.set('setup');
   }
 
@@ -604,5 +754,16 @@ export class BoardStateStore {
     }
     updated[slot] = color;
     this.playerColors.set(updated);
+  }
+
+  /**
+   * Sets or toggles the human player color selection.
+   */
+  setMyPlayerColorId(colorId: PlayerColor['id'] | null): void {
+    if (this.myPlayerColorId() === colorId) {
+      this.myPlayerColorId.set(null);
+    } else {
+      this.myPlayerColorId.set(colorId);
+    }
   }
 }

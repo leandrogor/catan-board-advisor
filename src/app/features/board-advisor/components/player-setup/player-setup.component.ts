@@ -40,7 +40,7 @@ import { PLAYER_COLORS, PlayerColor } from '../../models/player-color.model';
         </span>
         <div class="flex items-center gap-2 flex-wrap">
           @for (color of store.playerColors(); track color.id; let idx = $index) {
-            <div class="relative">
+            <div class="relative flex flex-col items-center">
               <button
                 class="relative flex flex-col items-center gap-0.5 group"
                 [attr.id]="'player-chip-' + idx"
@@ -61,12 +61,33 @@ import { PLAYER_COLORS, PlayerColor } from '../../models/player-color.model';
                 ></div>
               </button>
 
+              <!-- Me/Yo toggle button -->
+              <button
+                (click)="store.setMyPlayerColorId(color.id)"
+                class="mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all duration-150 cursor-pointer select-none"
+                [class]="
+                  store.myPlayerColorId() === color.id
+                    ? 'bg-indigo-600 dark:bg-indigo-500 border-indigo-600 dark:border-indigo-500 text-white shadow-xs'
+                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                "
+              >
+                {{
+                  store.myPlayerColorId() === color.id
+                    ? '👤 ' + i18n.t().isMeLabel
+                    : i18n.t().isMeLabel
+                }}
+              </button>
               <!-- Inline color picker -->
               @if (openPickerSlot() === idx) {
+                @let isFirst = idx === 0;
+                @let isLast = idx === store.playerColors().length - 1;
                 <div
-                  class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20
+                  class="absolute bottom-full mb-2 z-20
                          bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700
                          p-2 flex gap-1.5 flex-wrap w-38"
+                  [class]="
+                    isFirst ? 'left-0' : isLast ? 'right-0 left-auto' : 'left-1/2 -translate-x-1/2'
+                  "
                   role="menu"
                   [attr.aria-label]="'Pick color for player ' + (idx + 1)"
                 >
