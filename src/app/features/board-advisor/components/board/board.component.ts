@@ -506,13 +506,18 @@ export class BoardComponent {
 
     if (targetHexId) {
       const dragging = this.draggingDesert();
-      const desertPos = this.store.desertPositions();
-      const otherDesert = dragging === 'L1' ? 'L2' : 'L1';
-      const otherPos = desertPos[otherDesert];
-      const otherKey = `hex-${otherPos.row}-${otherPos.col}`;
+      const ds = this.store.desertState();
 
-      const myPos = desertPos[dragging ?? 'L1'];
-      const myKey = `hex-${myPos.row}-${myPos.col}`;
+      const myPos = dragging === 'L2' && ds.variant === 'ext' ? ds.L2 : ds.L1;
+      const myKey = myPos ? `hex-${myPos.row}-${myPos.col}` : null;
+
+      // In ext mode, also block dropping on the other desert's current hex
+      let otherKey: string | null = null;
+      if (ds.variant === 'ext' && dragging) {
+        const otherDesert = dragging === 'L1' ? 'L2' : 'L1';
+        const otherPos = ds[otherDesert];
+        otherKey = `hex-${otherPos.row}-${otherPos.col}`;
+      }
 
       if (targetHexId === otherKey || targetHexId === myKey) {
         this.dropTargetHexId.set(null);
@@ -535,10 +540,15 @@ export class BoardComponent {
 
     const desert = this.draggingDesert();
     if (desert && targetHexId) {
-      const desertPos = this.store.desertPositions();
-      const otherDesert = desert === 'L1' ? 'L2' : 'L1';
-      const otherPos = desertPos[otherDesert];
-      const otherKey = `hex-${otherPos.row}-${otherPos.col}`;
+      const ds = this.store.desertState();
+
+      // In ext mode, don't allow dropping on the other desert's current position
+      let otherKey: string | null = null;
+      if (ds.variant === 'ext') {
+        const otherDesert = desert === 'L1' ? 'L2' : 'L1';
+        const otherPos = ds[otherDesert];
+        otherKey = `hex-${otherPos.row}-${otherPos.col}`;
+      }
 
       if (targetHexId !== otherKey) {
         // Parse row/col from hex id: "hex-{row}-{col}"

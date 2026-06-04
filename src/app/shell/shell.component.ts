@@ -22,7 +22,9 @@ import { BoardStateStore } from '../features/board-advisor/services/board-state.
 
       <div class="text-center">
         <h1 class="text-lg font-bold text-slate-900 dark:text-white">{{ i18n.t().appTitle }}</h1>
-        <p class="text-xs text-slate-500 dark:text-slate-400">{{ i18n.t().appSubtitle }}</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          {{ store.boardVariant() === 'base' ? i18n.t().appSubtitleBase : i18n.t().appSubtitleExt }}
+        </p>
       </div>
 
       <div class="flex items-center gap-2">
@@ -59,7 +61,7 @@ import { BoardStateStore } from '../features/board-advisor/services/board-state.
               class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl"
               (click)="settingsOpen.set(false)"
             >
-              ×
+              X
             </button>
           </div>
 

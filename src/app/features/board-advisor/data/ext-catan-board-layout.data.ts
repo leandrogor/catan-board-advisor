@@ -12,12 +12,28 @@ export const EXT_CATAN_DEFAULT_LAYOUT: HexLetter[][] = [
   ['I', 'J', 'K'], // Row 6 - 3 hexes
 ];
 
-export interface DesertPositions {
+// ─── Desert state types ──────────────────────────────────────────────────────
+
+/** Desert state for the base game (3-4 players): single desert L1. */
+export interface BaseDesertState {
+  variant: 'base';
+  L1: { row: number; col: number };
+}
+
+/** Desert state for the extension (5-6 players): two deserts L1 and L2. */
+export interface ExtDesertState {
+  variant: 'ext';
   L1: { row: number; col: number };
   L2: { row: number; col: number };
 }
 
-export const DEFAULT_DESERT_POSITIONS: DesertPositions = {
+/** Discriminated union of both desert states. */
+export type DesertState = BaseDesertState | ExtDesertState;
+
+// ─── Default positions ───────────────────────────────────────────────────────
+
+export const DEFAULT_EXT_DESERT_STATE: ExtDesertState = {
+  variant: 'ext',
   L1: { row: 3, col: 3 },
   L2: { row: 4, col: 2 },
 };

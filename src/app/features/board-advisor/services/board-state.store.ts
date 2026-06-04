@@ -9,12 +9,20 @@ import {
   PlacedRoad,
 } from '../models/road-option.model';
 import { PlayerColor, PLAYER_COLORS } from '../models/player-color.model';
-import { DEFAULT_DESERT_POSITIONS, DesertPositions } from '../data/ext-catan-board-layout.data';
+import { BoardVariant } from '../models/board-variant.model';
+import {
+  DesertState,
+  ExtDesertState,
+  DEFAULT_EXT_DESERT_STATE,
+} from '../data/ext-catan-board-layout.data';
+import { BASE_DEFAULT_DESERT_POSITION } from '../data/base-catan-board-layout.data';
 import { BoardLayoutService } from './board-layout.service';
 import { SimulationService } from './simulation.service';
 import {
   assignSpiralLetters,
+  assignBaseSpiralLetters,
   computeHexSize,
+  computeBaseHexSize,
   deduplicateVertices,
   buildVertexAdjacency,
   computeViewBox,
@@ -36,9 +44,12 @@ export class BoardStateStore {
   readonly appPhase = signal<AppPhase>('setup');
 
   // ── Player setup ────────────────────────────────────────────────────────────
-  readonly playerCount = signal<5 | 6>(5);
+  readonly playerCount = signal<3 | 4 | 5 | 6>(5);
   readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 5));
   readonly myPlayerColorId = signal<PlayerColor['id'] | null>(null);
+
+  /** Which physical board is in use: 'base' for 3-4 players, 'ext' for 5-6. */
+  readonly boardVariant = computed<BoardVariant>(() => (this.playerCount() <= 4 ? 'base' : 'ext'));
 
   readonly rollsPerGame = computed<number>(() => {
     const map: Record<number, number> = {
@@ -51,13 +62,13 @@ export class BoardStateStore {
   });
 
   // ── Board state ─────────────────────────────────────────────────────────────
-  readonly desertPositions = signal<DesertPositions>({ ...DEFAULT_DESERT_POSITIONS });
+  readonly desertState = signal<DesertState>({ ...DEFAULT_EXT_DESERT_STATE });
   readonly placedSettlements = signal<PlacedSettlement[]>([]);
   readonly placedRoads = signal<PlacedRoad[]>([]);
   readonly undoStack = signal<ActionSnapshot[]>([]);
   readonly redoStack = signal<ActionSnapshot[]>([]);
-  readonly desertUndoStack = signal<DesertPositions[]>([]);
-  readonly desertRedoStack = signal<DesertPositions[]>([]);
+  readonly desertUndoStack = signal<DesertState[]>([]);
+  readonly desertRedoStack = signal<DesertState[]>([]);
   readonly selectedVertexId = signal<string | null>(null);
   readonly selectedHexId = signal<string | null>(null);
   readonly boardRotationDeg = signal<0 | 90 | 180 | 270>(0);
@@ -98,13 +109,17 @@ export class BoardStateStore {
 
   // ── Computed: hex grid ───────────────────────────────────────────────────────
   readonly hexes = computed<HexDefinition[]>(() =>
-    this.layoutService.buildHexGrid(this.desertPositions(), this.hexSize()),
+    this.layoutService.buildHexGrid(this.desertState(), this.hexSize()),
   );
 
   /** Maps `"${row}-${col}"` → assigned spiral letter (for Phase 1 display). */
-  readonly spiralLetterAssignment = computed<ReadonlyMap<string, string>>(() =>
-    assignSpiralLetters(this.desertPositions()),
-  );
+  readonly spiralLetterAssignment = computed<ReadonlyMap<string, string>>(() => {
+    const ds = this.desertState();
+    if (ds.variant === 'base') {
+      return assignBaseSpiralLetters(ds.L1);
+    }
+    return assignSpiralLetters(ds);
+  });
 
   // ── Computed: vertices (deduplicated with adjacency) ─────────────────────────
   readonly allVertices = computed<Vertex[]>(() => {
@@ -403,7 +418,8 @@ export class BoardStateStore {
 
   /**
    * Resets everything to initial state: clears simulation, settlements, roads,
-   * turn tracking, player config, undo/redo stacks, and returns to Phase 1.
+   * turn tracking, desert positions, undo/redo stacks, and returns to Phase 1.
+   * Player count resets to 5 (ext); player color order is preserved.
    */
   resetToSetup(): void {
     this._simulationResult.set(null);
@@ -421,7 +437,9 @@ export class BoardStateStore {
     this.showNumbersInSetup.set(false);
     this.currentTurnIndex.set(0);
     this.playerCount.set(5);
-    this.playerColors.set(PLAYER_COLORS.slice(0, 5));
+    // Reset desert to ext defaults (matching playerCount=5)
+    this.desertState.set({ ...DEFAULT_EXT_DESERT_STATE });
+    // player colors are intentionally preserved
     this.myPlayerColorId.set(null);
     this.appPhase.set('setup');
   }
@@ -459,8 +477,8 @@ export class BoardStateStore {
     if (this.appPhase() === 'setup') {
       const stack = this.desertUndoStack();
       if (!stack.length) return;
-      this.desertRedoStack.update(r => [...r, { ...this.desertPositions() }]);
-      this.desertPositions.set(stack.at(-1)!);
+      this.desertRedoStack.update(r => [...r, { ...this.desertState() }]);
+      this.desertState.set(stack.at(-1)!);
       this.desertUndoStack.update(s => s.slice(0, -1));
     } else {
       const stack = this.undoStack();
@@ -485,8 +503,8 @@ export class BoardStateStore {
     if (this.appPhase() === 'setup') {
       const stack = this.desertRedoStack();
       if (!stack.length) return;
-      this.desertUndoStack.update(u => [...u, { ...this.desertPositions() }]);
-      this.desertPositions.set(stack.at(-1)!);
+      this.desertUndoStack.update(u => [...u, { ...this.desertState() }]);
+      this.desertState.set(stack.at(-1)!);
       this.desertRedoStack.update(r => r.slice(0, -1));
     } else {
       const stack = this.redoStack();
@@ -509,29 +527,41 @@ export class BoardStateStore {
 
   /**
    * Moves a desert to a target position.
-   * If the target is occupied by the other desert, the two deserts swap.
+   * For the base game (single desert), only L1 is movable; L2 is ignored.
+   * For the extension (two deserts), if the target is occupied by the other desert they swap.
    * Resets settled vertices and undo/redo when deserts change.
    */
   updateDesertPosition(desert: 'L1' | 'L2', pos: { row: number; col: number }): void {
-    const current = this.desertPositions();
-    const other = desert === 'L1' ? 'L2' : 'L1';
-    const otherPos = current[other];
+    const current = this.desertState();
 
-    const myCurrentPos = current[desert];
-    if (myCurrentPos.row === pos.row && myCurrentPos.col === pos.col) {
-      return;
-    }
+    if (current.variant === 'base') {
+      // Base game: only L1 is draggable
+      if (desert !== 'L1') return;
+      const myCurrentPos = current.L1;
+      if (myCurrentPos.row === pos.row && myCurrentPos.col === pos.col) return;
 
-    this.desertUndoStack.update(s => [...s, { ...current }]);
-    this.desertRedoStack.set([]);
-
-    // If dropping on the other desert's position, swap them
-    if (otherPos.row === pos.row && otherPos.col === pos.col) {
-      const next: DesertPositions =
-        desert === 'L1' ? { L1: pos, L2: myCurrentPos } : { L1: myCurrentPos, L2: pos };
-      this.desertPositions.set(next);
+      this.desertUndoStack.update(s => [...s, { ...current }]);
+      this.desertRedoStack.set([]);
+      this.desertState.set({ variant: 'base', L1: pos });
     } else {
-      this.desertPositions.update(d => ({ ...d, [desert]: pos }));
+      // Extension: L1 and L2 both draggable; dropping on each other swaps
+      const other = desert === 'L1' ? 'L2' : 'L1';
+      const otherPos = current[other];
+      const myCurrentPos = current[desert];
+      if (myCurrentPos.row === pos.row && myCurrentPos.col === pos.col) return;
+
+      this.desertUndoStack.update(s => [...s, { ...current }]);
+      this.desertRedoStack.set([]);
+
+      if (otherPos.row === pos.row && otherPos.col === pos.col) {
+        const next: ExtDesertState =
+          desert === 'L1'
+            ? { variant: 'ext', L1: pos, L2: myCurrentPos }
+            : { variant: 'ext', L1: myCurrentPos, L2: pos };
+        this.desertState.set(next);
+      } else {
+        this.desertState.set({ ...current, [desert]: pos } as ExtDesertState);
+      }
     }
 
     this.placedSettlements.set([]);
@@ -717,7 +747,12 @@ export class BoardStateStore {
   }
 
   updateHexSize(viewportWidth: number): void {
-    this.hexSize.set(computeHexSize(viewportWidth));
+    const variant = this.boardVariant();
+    if (variant === 'base') {
+      this.hexSize.set(computeBaseHexSize(viewportWidth));
+    } else {
+      this.hexSize.set(computeHexSize(viewportWidth));
+    }
   }
 
   toggleScoreFormat(): void {
@@ -733,20 +768,73 @@ export class BoardStateStore {
   }
 
   /**
-   * Changes the player count. Adjusts playerColors to match:
-   * - 5 → 6: appends the first unused color (default: chocolate).
-   * - 6 → 5: drops the last slot.
+   * Changes the player count.
+   * - Crossing the 4→5 boundary switches the board variant.
+   * - Desert state is migrated: L1 position is preserved; L2 is added/removed.
+   * - When reducing player slots (6→5→4→3), the last slot is dropped.
+   * - When adding slots, the first unused color is appended.
+   * - Player color order is always preserved.
    */
-  setPlayerCount(count: 5 | 6): void {
+  setPlayerCount(count: 3 | 4 | 5 | 6): void {
     if (count === this.playerCount()) return;
+
+    const prevVariant = this.boardVariant();
+    const newVariant: BoardVariant = count <= 4 ? 'base' : 'ext';
+
+    // Migrate desert state if the board variant changes
+    if (prevVariant !== newVariant) {
+      const current = this.desertState();
+      if (newVariant === 'base') {
+        // ext → base: always start from the base-board default (center).
+        // The ext L1 position coordinates refer to the ext board geometry
+        // and would land in the wrong place on the smaller base board.
+        this.desertState.set({ variant: 'base', L1: { ...BASE_DEFAULT_DESERT_POSITION } });
+      } else {
+        // base → ext: keep L1 position, restore L2 to default
+        this.desertState.set({
+          variant: 'ext',
+          L1: current.L1,
+          L2: { ...DEFAULT_EXT_DESERT_STATE.L2 },
+        });
+      }
+
+      // Clear settlements/roads when board changes (they would reference wrong positions)
+      this.placedSettlements.set([]);
+      this.placedRoads.set([]);
+      this.undoStack.set([]);
+      this.redoStack.set([]);
+      this.desertUndoStack.set([]);
+      this.desertRedoStack.set([]);
+      this.currentTurnIndex.set(0);
+
+      // Recalculate hex size for the new board
+      if (newVariant === 'base') {
+        this.hexSize.set(computeBaseHexSize(window.innerWidth));
+      } else {
+        this.hexSize.set(computeHexSize(window.innerWidth));
+      }
+    }
+
     this.playerCount.set(count);
-    if (count === 6) {
-      const current = this.playerColors();
+
+    // Adjust color slots
+    const current = this.playerColors();
+    if (count > current.length) {
+      // Add missing slots
       const usedIds = new Set(current.map(c => c.id));
-      const unused = PLAYER_COLORS.find(c => !usedIds.has(c.id));
-      this.playerColors.set([...current, unused ?? PLAYER_COLORS[5]]);
-    } else {
-      this.playerColors.update(list => list.slice(0, 5));
+      const added = [...current];
+      while (added.length < count) {
+        const unused = PLAYER_COLORS.find(c => !usedIds.has(c.id));
+        if (unused) {
+          added.push(unused);
+          usedIds.add(unused.id);
+        } else {
+          added.push(PLAYER_COLORS[added.length % PLAYER_COLORS.length]);
+        }
+      }
+      this.playerColors.set(added);
+    } else if (count < current.length) {
+      this.playerColors.update(list => list.slice(0, count));
     }
   }
 

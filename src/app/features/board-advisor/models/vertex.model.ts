@@ -11,21 +11,8 @@ export interface Vertex {
   isBlocked: boolean; // adjacent to an occupied vertex
 }
 
-// Future-ready interfaces
 export interface ReachableVertex {
   vertexId: string;
   roadDistance: 1 | 2;
   score: number;
 }
-
-export interface BoardStateSnapshot {
-  desertPositions: {
-    L1: { row: number; col: number };
-    L2: { row: number; col: number };
-  };
-  settledVertexIds: string[];
-  undoStack: string[][];
-  redoStack: string[][];
-}
-
-export type BoardVariant = 'extended' | 'base';

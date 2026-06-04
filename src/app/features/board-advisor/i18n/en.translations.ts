@@ -1,6 +1,7 @@
 export interface Translations {
   appTitle: string;
-  appSubtitle: string;
+  appSubtitleBase: string;
+  appSubtitleExt: string;
   simulating: string;
   desert1Label: string;
   desert2Label: string;
@@ -40,7 +41,8 @@ export interface Translations {
   startSimulation: string;
   resetToSetup: string;
   setupTitle: string;
-  setupHint: string;
+  setupHintBase: string;
+  setupHintExt: string;
   dragToMove: string;
   setupToggleHint: string;
   roadOptions: string;
@@ -56,6 +58,8 @@ export interface Translations {
   hidePanel: string;
   // Player setup
   playerCount: string;
+  boardGroupBase: string;
+  boardGroupExt: string;
   colorOrder: string;
   isMeLabel: string;
   colorRed: string;
@@ -75,7 +79,8 @@ export interface Translations {
 
 export const EN: Translations = {
   appTitle: 'Catan Board Advisor',
-  appSubtitle: '5-6 Player Extension',
+  appSubtitleBase: 'Base Game',
+  appSubtitleExt: '5-6 Player Extension',
   simulating: 'Simulating...',
   desert1Label: 'Desert 1',
   desert2Label: 'Desert 2',
@@ -116,7 +121,8 @@ export const EN: Translations = {
   startSimulation: '▶ Start Simulation',
   resetToSetup: '↺ Reset Board',
   setupTitle: 'Board Setup',
-  setupHint: 'Drag the desert tiles 🏜️ to reposition them, then start the simulation.',
+  setupHintBase: 'Drag the desert tile 🏜️ to reposition it, then start the simulation.',
+  setupHintExt: 'Drag the desert tiles 🏜️ to reposition them, then start the simulation.',
   dragToMove: 'Drag to move',
   setupToggleHint: '💡 Tap any hex to toggle all between letters and numbers.',
   roadOptions: 'Road Options',
@@ -132,6 +138,8 @@ export const EN: Translations = {
   hidePanel: 'Hide Panel',
   // Player setup
   playerCount: 'Players',
+  boardGroupBase: 'Base',
+  boardGroupExt: 'Extension',
   colorOrder: 'Turn Order',
   isMeLabel: 'Me',
   colorRed: 'Red',

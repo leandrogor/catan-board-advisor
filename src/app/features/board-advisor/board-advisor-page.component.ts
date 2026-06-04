@@ -60,7 +60,9 @@ import { TranslationService } from '../../core/services/translation.service';
                 </h2>
               </div>
               <p class="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-                {{ i18n.t().setupHint }}
+                {{
+                  store.boardVariant() === 'base' ? i18n.t().setupHintBase : i18n.t().setupHintExt
+                }}
               </p>
             </div>
 

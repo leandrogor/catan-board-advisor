@@ -1,28 +1,50 @@
 import { HexDefinition } from '../../features/board-advisor/models/hex.model';
 import { Vertex } from '../../features/board-advisor/models/vertex.model';
-import { DesertPositions } from '../../features/board-advisor/data/ext-catan-board-layout.data';
+import { DesertState } from '../../features/board-advisor/data/ext-catan-board-layout.data';
 
-const WIDEST_ROW = 6;
-const ROW_SIZES = [3, 4, 5, 6, 5, 4, 3];
+// ─── Extension board geometry (7 rows, widest = 6) ──────────────────────────
+
+const EXT_WIDEST_ROW = 6;
+const EXT_ROW_SIZES = [3, 4, 5, 6, 5, 4, 3];
 
 export function computeHexSize(viewportWidth: number): number {
   const maxBoardWidth = Math.min(viewportWidth * 0.95, 520);
-  // The widest row has 6 hexes. Total width = 6 * hexSpacingX + some padding
-  // hexSpacingX = R * sqrt(3)
-  // Total approx width = WIDEST_ROW * R * sqrt(3)
-  return maxBoardWidth / (WIDEST_ROW * Math.sqrt(3));
+  return maxBoardWidth / (EXT_WIDEST_ROW * Math.sqrt(3));
 }
 
 export function hexCenter(row: number, col: number, R: number): { x: number; y: number } {
   const hexSpacingX = R * Math.sqrt(3);
   const rowSpacingY = R * 1.5;
-  const rowSize = ROW_SIZES[row];
-  const startX = ((WIDEST_ROW - rowSize) * hexSpacingX) / 2;
+  const rowSize = EXT_ROW_SIZES[row];
+  const startX = ((EXT_WIDEST_ROW - rowSize) * hexSpacingX) / 2;
   return {
     x: startX + col * hexSpacingX,
     y: row * rowSpacingY,
   };
 }
+
+// ─── Base board geometry (5 rows, widest = 5) ────────────────────────────────
+
+const BASE_WIDEST_ROW = 5;
+const BASE_ROW_SIZES = [3, 4, 5, 4, 3];
+
+export function computeBaseHexSize(viewportWidth: number): number {
+  const maxBoardWidth = Math.min(viewportWidth * 0.95, 520);
+  return maxBoardWidth / (BASE_WIDEST_ROW * Math.sqrt(3));
+}
+
+export function baseHexCenter(row: number, col: number, R: number): { x: number; y: number } {
+  const hexSpacingX = R * Math.sqrt(3);
+  const rowSpacingY = R * 1.5;
+  const rowSize = BASE_ROW_SIZES[row];
+  const startX = ((BASE_WIDEST_ROW - rowSize) * hexSpacingX) / 2;
+  return {
+    x: startX + col * hexSpacingX,
+    y: row * rowSpacingY,
+  };
+}
+
+// ─── Shared hex vertex / adjacency helpers ────────────────────────────────────
 
 export function hexVertices(cx: number, cy: number, R: number): { x: number; y: number }[] {
   // Pointy-top hex vertices:
@@ -168,7 +190,7 @@ function interpolateColor(
   return `rgb(${r},${g},${b})`;
 }
 
-// ─── Spiral letter assignment ────────────────────────────────────────────────
+// ─── Extension spiral letter assignment ──────────────────────────────────────
 //
 // The physical Catan 5-6 extension board places letter tokens A→Zc in
 // counterclockwise spiral order starting from the top-right corner.
@@ -180,7 +202,7 @@ function interpolateColor(
 // To maintain accuracy against the physical board, we hard-code the spiral as
 // the (row, col) sequence read directly from the canonical layout data.
 
-/** All 30 board positions in counterclockwise spiral order (outer ring first). */
+/** All 30 extension board positions in counterclockwise spiral order (outer ring first). */
 export const SPIRAL_ORDER: readonly { row: number; col: number }[] = [
   // Outer ring, top-right corner → counterclockwise
   { row: 0, col: 2 }, // A
@@ -217,8 +239,8 @@ export const SPIRAL_ORDER: readonly { row: number; col: number }[] = [
   { row: 3, col: 3 }, // L1 default
 ];
 
-/** The ordered letter tokens A→Zc (28 non-desert letters in spiral sequence). */
-const SPIRAL_LETTERS = [
+/** The ordered letter tokens A→Zc (28 non-desert letters in ext spiral sequence). */
+const EXT_SPIRAL_LETTERS = [
   'A',
   'B',
   'C',
@@ -250,16 +272,16 @@ const SPIRAL_LETTERS = [
 ] as const;
 
 /**
- * Given desert positions, assigns letters A→Zc to the 28 non-desert positions
- * in spiral order, skipping whichever positions are currently deserts.
+ * Given extension desert positions, assigns letters A→Zc to the 28 non-desert
+ * positions in spiral order, skipping whichever positions are currently deserts.
  *
  * @returns Map from `"${row}-${col}"` key → assigned letter string
  */
-export function assignSpiralLetters(desertPositions: DesertPositions): Map<string, string> {
-  const desertSet = new Set([
-    `${desertPositions.L1.row}-${desertPositions.L1.col}`,
-    `${desertPositions.L2.row}-${desertPositions.L2.col}`,
-  ]);
+export function assignSpiralLetters(desertPositions: DesertState): Map<string, string> {
+  const desertSet = new Set([`${desertPositions.L1.row}-${desertPositions.L1.col}`]);
+  if (desertPositions.variant === 'ext') {
+    desertSet.add(`${desertPositions.L2.row}-${desertPositions.L2.col}`);
+  }
 
   const result = new Map<string, string>();
   let letterIdx = 0;
@@ -267,11 +289,104 @@ export function assignSpiralLetters(desertPositions: DesertPositions): Map<strin
   for (const pos of SPIRAL_ORDER) {
     const key = `${pos.row}-${pos.col}`;
     if (desertSet.has(key)) {
-      // Desert positions get a special marker
       continue;
     }
-    if (letterIdx < SPIRAL_LETTERS.length) {
-      result.set(key, SPIRAL_LETTERS[letterIdx]);
+    if (letterIdx < EXT_SPIRAL_LETTERS.length) {
+      result.set(key, EXT_SPIRAL_LETTERS[letterIdx]);
+      letterIdx++;
+    }
+  }
+
+  return result;
+}
+
+// ─── Base game spiral letter assignment ──────────────────────────────────────
+//
+// The base game (3-4 players) has 18 hexes in a 3-4-5-4-3 layout.
+// Letters A→R (17 non-desert letters) are placed counterclockwise from
+// the top-right corner, matching the user-confirmed layout:
+//
+//    C  B  A            Row 0: (0,2) A  (0,1) B  (0,0) C
+//   D  N  M  L          Row 1: (1,0) D  (1,1) N  (1,2) M  (1,3) L
+//  E  O  L1  R  K       Row 2: (2,0) E  (2,1) O  (2,2) L1 (2,3) R  (2,4) K
+//   F  P  Q  J          Row 3: (3,0) F  (3,1) P  (3,2) Q  (3,3) J
+//    G  H  I             Row 4: (4,0) G  (4,1) H  (4,2) I
+//
+// Reading the outer ring counterclockwise from top-right gives:
+//   A, B, C, D, E, F, G, H, I, J, K, L → 12 outer positions
+// Then the inner ring:
+//   M, N, O, P, Q, R → 6 inner positions
+// Desert (L1) defaults to center (2,2).
+
+/** All 18 base board positions in counterclockwise spiral order. */
+export const BASE_SPIRAL_ORDER: readonly { row: number; col: number }[] = [
+  // Outer ring, top-right → counterclockwise
+  { row: 0, col: 2 }, // A
+  { row: 0, col: 1 }, // B
+  { row: 0, col: 0 }, // C
+  { row: 1, col: 0 }, // D
+  { row: 2, col: 0 }, // E
+  { row: 3, col: 0 }, // F
+  { row: 4, col: 0 }, // G
+  { row: 4, col: 1 }, // H
+  { row: 4, col: 2 }, // I
+  { row: 3, col: 3 }, // J
+  { row: 2, col: 4 }, // K
+  { row: 1, col: 3 }, // L
+  // Inner ring
+  { row: 1, col: 2 }, // M
+  { row: 1, col: 1 }, // N
+  { row: 2, col: 1 }, // O
+  { row: 3, col: 1 }, // P
+  { row: 3, col: 2 }, // Q
+  { row: 2, col: 3 }, // R
+  // Desert default: center
+  { row: 2, col: 2 }, // L1 default
+];
+
+/** The ordered letter tokens A→R (17 non-desert letters in base spiral sequence). */
+const BASE_SPIRAL_LETTERS = [
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+] as const;
+
+/**
+ * Given a base-game desert position, assigns letters A→R to the 17 non-desert
+ * positions in spiral order.
+ *
+ * @returns Map from `"${row}-${col}"` key → assigned letter string
+ */
+export function assignBaseSpiralLetters(desertPos: {
+  row: number;
+  col: number;
+}): Map<string, string> {
+  const desertKey = `${desertPos.row}-${desertPos.col}`;
+  const result = new Map<string, string>();
+  let letterIdx = 0;
+
+  for (const pos of BASE_SPIRAL_ORDER) {
+    const key = `${pos.row}-${pos.col}`;
+    if (key === desertKey) {
+      continue;
+    }
+    if (letterIdx < BASE_SPIRAL_LETTERS.length) {
+      result.set(key, BASE_SPIRAL_LETTERS[letterIdx]);
       letterIdx++;
     }
   }

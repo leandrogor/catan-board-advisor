@@ -2,7 +2,8 @@ import { Translations } from './en.translations';
 
 export const ES: Translations = {
   appTitle: 'Asesor de Tablero Catan',
-  appSubtitle: 'Extensión 5-6 Jugadores',
+  appSubtitleBase: 'Juego Base',
+  appSubtitleExt: 'Extensión 5-6 Jugadores',
   simulating: 'Simulando...',
   desert1Label: 'Desierto 1',
   desert2Label: 'Desierto 2',
@@ -43,7 +44,8 @@ export const ES: Translations = {
   startSimulation: '▶ Iniciar Simulación',
   resetToSetup: '↺ Reiniciar Tablero',
   setupTitle: 'Configuración del tablero',
-  setupHint: 'Arrastra los desiertos 🏜️ para reposicionarlos y luego inicia la simulación.',
+  setupHintBase: 'Arrastra el desierto 🏜️ para reposicionarlo y luego inicia la simulación.',
+  setupHintExt: 'Arrastra los desiertos 🏜️ para reposicionarlos y luego inicia la simulación.',
   dragToMove: 'Arrastrar para mover',
   setupToggleHint: '💡 Haz clic en cualquier hexágono para cambiar todos entre letras y números.',
   roadOptions: 'Opciones de Carretera',
@@ -59,6 +61,8 @@ export const ES: Translations = {
   hidePanel: 'Ocultar Panel',
   // Player setup
   playerCount: 'Jugadores',
+  boardGroupBase: 'Base',
+  boardGroupExt: 'Extensión',
   colorOrder: 'Orden de Turno',
   isMeLabel: 'Yo',
   colorRed: 'Rojo',

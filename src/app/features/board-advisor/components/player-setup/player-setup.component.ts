@@ -9,27 +9,68 @@ import { PLAYER_COLORS, PlayerColor } from '../../models/player-color.model';
     <div
       class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/70 p-4 space-y-3"
     >
-      <!-- Player count -->
+      <!-- Player count — two groups: Base (3|4) and Extension (5|6) -->
       <div class="flex items-center justify-between gap-3">
         <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">
           {{ i18n.t().playerCount }}
         </span>
-        <div class="flex gap-1.5" role="group" [attr.aria-label]="i18n.t().playerCount">
-          @for (n of [5, 6]; track n) {
-            <button
-              class="w-10 h-10 rounded-xl text-sm font-bold transition-all duration-150"
-              [class]="
-                store.playerCount() === n
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-              "
-              [attr.id]="'player-count-' + n"
-              (click)="store.setPlayerCount(asCount(n))"
-              [attr.aria-pressed]="store.playerCount() === n"
-            >
-              {{ n }}
-            </button>
-          }
+        <div class="flex gap-3" role="group" [attr.aria-label]="i18n.t().playerCount">
+          <!-- Base group: 3 & 4 -->
+          <div class="flex flex-col items-center gap-0.5">
+            <div class="flex gap-1">
+              @for (n of [3, 4]; track n) {
+                <button
+                  class="w-10 h-10 rounded-xl text-sm font-bold transition-all duration-150"
+                  [class]="
+                    store.playerCount() === n
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                      : store.boardVariant() === 'base'
+                        ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  "
+                  [attr.id]="'player-count-' + n"
+                  (click)="store.setPlayerCount(asCount(n))"
+                  [attr.aria-pressed]="store.playerCount() === n"
+                >
+                  {{ n }}
+                </button>
+              }
+            </div>
+            <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500 tracking-wide">
+              {{ i18n.t().boardGroupBase }}
+            </span>
+          </div>
+
+          <!-- Divider -->
+          <div class="self-stretch flex items-center">
+            <div class="w-px h-6 bg-slate-200 dark:bg-slate-700 self-center"></div>
+          </div>
+
+          <!-- Extension group: 5 & 6 -->
+          <div class="flex flex-col items-center gap-0.5">
+            <div class="flex gap-1">
+              @for (n of [5, 6]; track n) {
+                <button
+                  class="w-10 h-10 rounded-xl text-sm font-bold transition-all duration-150"
+                  [class]="
+                    store.playerCount() === n
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                      : store.boardVariant() === 'ext'
+                        ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  "
+                  [attr.id]="'player-count-' + n"
+                  (click)="store.setPlayerCount(asCount(n))"
+                  [attr.aria-pressed]="store.playerCount() === n"
+                >
+                  {{ n }}
+                </button>
+              }
+            </div>
+            <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500 tracking-wide">
+              {{ i18n.t().boardGroupExt }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -158,7 +199,7 @@ export class PlayerSetupComponent {
     this.openPickerSlot.set(null);
   }
 
-  protected asCount(n: number): 5 | 6 {
-    return n as 5 | 6;
+  protected asCount(n: number): 3 | 4 | 5 | 6 {
+    return n as 3 | 4 | 5 | 6;
   }
 }
