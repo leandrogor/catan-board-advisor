@@ -56,6 +56,7 @@ export interface Translations {
   updateAvailable: string;
   showPanel: string;
   hidePanel: string;
+  resetConfirmMessage: string;
   // Player setup
   playerCount: string;
   boardGroupBase: string;
@@ -136,6 +137,8 @@ export const EN: Translations = {
   updateAvailable: 'A new version of the app is available. Do you want to update now?',
   showPanel: 'Show Panel',
   hidePanel: 'Hide Panel',
+  resetConfirmMessage:
+    'Are you sure you want to reset the board? All simulation results will be lost.',
   // Player setup
   playerCount: 'Players',
   boardGroupBase: 'Base',

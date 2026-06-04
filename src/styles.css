@@ -32,7 +32,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100dvh;
+  height: 100dvh;
+  height: 100svh;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

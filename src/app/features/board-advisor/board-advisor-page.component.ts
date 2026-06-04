@@ -147,7 +147,7 @@ import { TranslationService } from '../../core/services/translation.service';
                        bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300
                        hover:bg-slate-200 dark:hover:bg-slate-700
                        border border-slate-200 dark:border-slate-600"
-                (click)="store.resetToSetup()"
+                (click)="confirmResetToSetup()"
               >
                 {{ i18n.t().resetToSetup }}
               </button>
@@ -158,7 +158,7 @@ import { TranslationService } from '../../core/services/translation.service';
                        bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300
                        hover:bg-slate-200 dark:hover:bg-slate-700
                        border border-slate-200 dark:border-slate-600"
-                (click)="store.resetToSetup()"
+                (click)="confirmResetToSetup()"
               >
                 {{ i18n.t().resetToSetup }}
               </button>
@@ -267,4 +267,10 @@ export class BoardAdvisorPageComponent {
     const id = this.store.selectedVertexId();
     return id ? (this.store.rankedVertices().find(v => v.id === id) ?? null) : null;
   };
+
+  protected confirmResetToSetup(): void {
+    if (globalThis.confirm(this.i18n.t().resetConfirmMessage)) {
+      this.store.resetToSetup();
+    }
+  }
 }

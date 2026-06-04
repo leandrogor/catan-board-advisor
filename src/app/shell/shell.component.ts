@@ -153,8 +153,8 @@ import { BoardStateStore } from '../features/board-advisor/services/board-state.
       :host {
         display: flex;
         flex-direction: column;
-        min-height: 100dvh;
-        min-height: 100svh;
+        height: 100%;
+        overflow: hidden;
       }
     `,
   ],

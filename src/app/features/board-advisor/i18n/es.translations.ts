@@ -59,6 +59,8 @@ export const ES: Translations = {
   updateAvailable: 'Una nueva versión de la aplicación está disponible. ¿Deseas actualizar ahora?',
   showPanel: 'Mostrar Panel',
   hidePanel: 'Ocultar Panel',
+  resetConfirmMessage:
+    '¿Estás seguro de que deseas reiniciar el tablero? Se perderán todos los resultados de la simulación.',
   // Player setup
   playerCount: 'Jugadores',
   boardGroupBase: 'Base',
