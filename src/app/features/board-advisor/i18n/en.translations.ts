@@ -54,6 +54,22 @@ export interface Translations {
   updateAvailable: string;
   showPanel: string;
   hidePanel: string;
+  // Player setup
+  playerCount: string;
+  colorOrder: string;
+  colorRed: string;
+  colorBlue: string;
+  colorMustard: string;
+  colorCream: string;
+  colorGreen: string;
+  colorChocolate: string;
+  // Turn indicator
+  turnIndicator: (turn: number, total: number, colorName: string) => string;
+  // Ranking
+  rankingTitle: string;
+  rankingProdRank: string;
+  rankingTurnOrder: string;
+  rankingScore: string;
 }
 
 export const EN: Translations = {
@@ -113,4 +129,21 @@ export const EN: Translations = {
   updateAvailable: 'A new version of the app is available. Do you want to update now?',
   showPanel: 'Show Panel',
   hidePanel: 'Hide Panel',
+  // Player setup
+  playerCount: 'Players',
+  colorOrder: 'Turn Order',
+  colorRed: 'Red',
+  colorBlue: 'Blue',
+  colorMustard: 'Mustard',
+  colorCream: 'Cream',
+  colorGreen: 'Green',
+  colorChocolate: 'Chocolate',
+  // Turn indicator
+  turnIndicator: (turn: number, total: number, colorName: string): string =>
+    `Turn ${turn}/${total} — ${colorName}`,
+  // Ranking
+  rankingTitle: 'Final Rankings',
+  rankingProdRank: 'Rank',
+  rankingTurnOrder: 'Turn',
+  rankingScore: 'Score',
 };

@@ -164,7 +164,7 @@ import { HexDefinition } from '../../models/hex.model';
               >
                 {{ i18n.t().removeSettlement }}
               </button>
-            } @else if (!vertex.isBlocked) {
+            } @else if (!vertex.isBlocked && !store.isSetupComplete()) {
               <button
                 class="w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors
                        bg-indigo-600 dark:bg-indigo-500 text-white

@@ -5,6 +5,7 @@ import { hexPolygonPoints, interpolateHeatmapColor } from '../../../../shared/ut
 import { Vertex } from '../../models/vertex.model';
 import { HexDefinition } from '../../models/hex.model';
 import { RoadOption } from '../../models/road-option.model';
+import { PLAYER_COLORS } from '../../models/player-color.model';
 
 /** Ways to roll each dice value (out of 36 total combinations). */
 const DICE_WAYS: Readonly<Record<number, number>> = {
@@ -192,14 +193,18 @@ export class BoardComponent {
   protected readonly placedRoadCoords = computed(() => {
     const map = this.vertexMap();
     const roads = this.store.placedRoads();
+    const colorHexMap = new Map<string, string>(PLAYER_COLORS.map(c => [c.id, c.hex]));
     return roads
       .map(r => {
         const p1 = map.get(r.from);
         const p2 = map.get(r.to);
-        return { p1, p2 };
+        const colorHex = colorHexMap.get(r.playerColorId) ?? 'var(--color-occupied, #6366f1)';
+        return { p1, p2, colorHex };
       })
       .filter(
-        (r): r is { p1: { x: number; y: number }; p2: { x: number; y: number } } =>
+        (
+          r,
+        ): r is { p1: { x: number; y: number }; p2: { x: number; y: number }; colorHex: string } =>
           r.p1 !== undefined && r.p2 !== undefined,
       );
   });
@@ -305,7 +310,14 @@ export class BoardComponent {
   }
 
   protected getVertexFill(v: Vertex): string {
-    if (v.isOccupied) return 'var(--color-occupied)';
+    if (v.isOccupied) {
+      const settlement = this.store.placedSettlements().find(s => s.vertexId === v.id);
+      if (settlement) {
+        const colorDef = PLAYER_COLORS.find(c => c.id === settlement.playerColorId);
+        if (colorDef) return colorDef.hex;
+      }
+      return 'var(--color-occupied)';
+    }
     if (v.isBlocked) return 'var(--color-blocked)';
     return interpolateHeatmapColor(v.normalizedScore);
   }

@@ -2,7 +2,13 @@ import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { HexDefinition } from '../models/hex.model';
 import { Vertex } from '../models/vertex.model';
 import { SimulationResult } from '../models/simulation-result.model';
-import { RoadOption, ActionSnapshot } from '../models/road-option.model';
+import {
+  RoadOption,
+  ActionSnapshot,
+  PlacedSettlement,
+  PlacedRoad,
+} from '../models/road-option.model';
+import { PlayerColor, PLAYER_COLORS } from '../models/player-color.model';
 import { DEFAULT_DESERT_POSITIONS, DesertPositions } from '../data/ext-catan-board-layout.data';
 import { BoardLayoutService } from './board-layout.service';
 import { SimulationService } from './simulation.service';
@@ -29,10 +35,14 @@ export class BoardStateStore {
   /** Current app phase: 'setup' shows letters+drag UI; 'results' shows heatmap. */
   readonly appPhase = signal<AppPhase>('setup');
 
+  // ── Player setup ────────────────────────────────────────────────────────────
+  readonly playerCount = signal<5 | 6>(5);
+  readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 5));
+
   // ── Board state ─────────────────────────────────────────────────────────────
   readonly desertPositions = signal<DesertPositions>({ ...DEFAULT_DESERT_POSITIONS });
-  readonly settledVertexIds = signal<string[]>([]);
-  readonly placedRoads = signal<{ from: string; to: string }[]>([]);
+  readonly placedSettlements = signal<PlacedSettlement[]>([]);
+  readonly placedRoads = signal<PlacedRoad[]>([]);
   readonly undoStack = signal<ActionSnapshot[]>([]);
   readonly redoStack = signal<ActionSnapshot[]>([]);
   readonly desertUndoStack = signal<DesertPositions[]>([]);
@@ -54,6 +64,22 @@ export class BoardStateStore {
   readonly showNumbersInSetup = signal<boolean>(false);
 
   readonly panelVisible = signal<boolean>(true);
+
+  // ── Turn tracking ─────────────────────────────────────────────────────────
+  readonly currentTurnIndex = signal<number>(0);
+
+  readonly turnSequence = computed<PlayerColor[]>(() => {
+    const c = this.playerColors();
+    return [...c, ...c.slice().reverse()];
+  });
+
+  readonly currentPlayerColor = computed<PlayerColor | null>(
+    () => this.turnSequence()[this.currentTurnIndex()] ?? null,
+  );
+
+  readonly totalTurns = computed<number>(() => this.playerCount() * 2);
+
+  readonly isSetupComplete = computed<boolean>(() => this.currentTurnIndex() >= this.totalTurns());
 
   // ── Simulation result (private writable, public readonly) ───────────────────
   private readonly _simulationResult = signal<SimulationResult | null>(null);
@@ -77,6 +103,11 @@ export class BoardStateStore {
     buildVertexAdjacency(vertices, hexes, R);
     return vertices;
   });
+
+  // ── Computed: settled vertex IDs (derived from placedSettlements) ────────────
+  readonly settledVertexIds = computed<string[]>(() =>
+    this.placedSettlements().map(s => s.vertexId),
+  );
 
   // ── Computed: scored vertices (with settlement state applied) ────────────────
   readonly scoredVertices = computed<Vertex[]>(() => {
@@ -211,12 +242,12 @@ export class BoardStateStore {
   }
 
   /**
-   * Resets to Phase 1 (setup). Clears simulation results, settlements,
-   * undo/redo stacks, and hex display overrides. Keeps current desert positions.
+   * Resets everything to initial state: clears simulation, settlements, roads,
+   * turn tracking, player config, undo/redo stacks, and returns to Phase 1.
    */
   resetToSetup(): void {
     this._simulationResult.set(null);
-    this.settledVertexIds.set([]);
+    this.placedSettlements.set([]);
     this.placedRoads.set([]);
     this.isSelectingRoad.set(false);
     this.pendingSettlementVertexId.set(null);
@@ -228,19 +259,24 @@ export class BoardStateStore {
     this.selectedVertexId.set(null);
     this.selectedHexId.set(null);
     this.showNumbersInSetup.set(false);
+    this.currentTurnIndex.set(0);
+    this.playerCount.set(5);
+    this.playerColors.set(PLAYER_COLORS.slice(0, 5));
     this.appPhase.set('setup');
   }
 
   placeSettlement(vertexId: string): void {
+    const colorId = this.currentPlayerColor()?.id ?? 'red';
     this.undoStack.update(s => [
       ...s,
       {
-        settled: this.settledVertexIds(),
+        settled: this.placedSettlements(),
         roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
       },
     ]);
     this.redoStack.set([]);
-    this.settledVertexIds.update(ids => [...ids, vertexId]);
+    this.placedSettlements.update(list => [...list, { vertexId, playerColorId: colorId }]);
     this.selectedVertexId.set(null);
   }
 
@@ -248,12 +284,13 @@ export class BoardStateStore {
     this.undoStack.update(s => [
       ...s,
       {
-        settled: this.settledVertexIds(),
+        settled: this.placedSettlements(),
         roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
       },
     ]);
     this.redoStack.set([]);
-    this.settledVertexIds.update(ids => ids.filter(id => id !== vertexId));
+    this.placedSettlements.update(list => list.filter(s => s.vertexId !== vertexId));
     this.placedRoads.update(roads => roads.filter(r => r.from !== vertexId && r.to !== vertexId));
   }
 
@@ -270,13 +307,15 @@ export class BoardStateStore {
       this.redoStack.update(r => [
         ...r,
         {
-          settled: this.settledVertexIds(),
+          settled: this.placedSettlements(),
           roads: this.placedRoads(),
+          turnIndex: this.currentTurnIndex(),
         },
       ]);
       const last = stack.at(-1)!;
-      this.settledVertexIds.set(last.settled);
+      this.placedSettlements.set(last.settled);
       this.placedRoads.set(last.roads);
+      this.currentTurnIndex.set(last.turnIndex);
       this.undoStack.update(s => s.slice(0, -1));
     }
   }
@@ -294,13 +333,15 @@ export class BoardStateStore {
       this.undoStack.update(u => [
         ...u,
         {
-          settled: this.settledVertexIds(),
+          settled: this.placedSettlements(),
           roads: this.placedRoads(),
+          turnIndex: this.currentTurnIndex(),
         },
       ]);
       const last = stack.at(-1)!;
-      this.settledVertexIds.set(last.settled);
+      this.placedSettlements.set(last.settled);
       this.placedRoads.set(last.roads);
+      this.currentTurnIndex.set(last.turnIndex);
       this.redoStack.update(r => r.slice(0, -1));
     }
   }
@@ -332,7 +373,7 @@ export class BoardStateStore {
       this.desertPositions.update(d => ({ ...d, [desert]: pos }));
     }
 
-    this.settledVertexIds.set([]);
+    this.placedSettlements.set([]);
     this.placedRoads.set([]);
     this.undoStack.set([]);
     this.redoStack.set([]);
@@ -358,17 +399,25 @@ export class BoardStateStore {
     const fromId = this.pendingSettlementVertexId();
     if (!fromId) return;
 
+    const colorId = this.currentPlayerColor()?.id ?? 'red';
+
     this.undoStack.update(s => [
       ...s,
       {
-        settled: this.settledVertexIds(),
+        settled: this.placedSettlements(),
         roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
       },
     ]);
     this.redoStack.set([]);
 
-    this.settledVertexIds.update(ids => [...ids, fromId]);
-    this.placedRoads.update(roads => [...roads, { from: fromId, to: toVertexId }]);
+    this.placedSettlements.update(list => [...list, { vertexId: fromId, playerColorId: colorId }]);
+    this.placedRoads.update(roads => [
+      ...roads,
+      { from: fromId, to: toVertexId, playerColorId: colorId },
+    ]);
+
+    this.currentTurnIndex.update(i => i + 1);
 
     this.isSelectingRoad.set(false);
     this.pendingSettlementVertexId.set(null);
@@ -520,5 +569,40 @@ export class BoardStateStore {
 
   toggleAutoZoom(): void {
     this.enableAutoZoom.update(v => !v);
+  }
+
+  /**
+   * Changes the player count. Adjusts playerColors to match:
+   * - 5 → 6: appends the first unused color (default: chocolate).
+   * - 6 → 5: drops the last slot.
+   */
+  setPlayerCount(count: 5 | 6): void {
+    if (count === this.playerCount()) return;
+    this.playerCount.set(count);
+    if (count === 6) {
+      const current = this.playerColors();
+      const usedIds = new Set(current.map(c => c.id));
+      const unused = PLAYER_COLORS.find(c => !usedIds.has(c.id));
+      this.playerColors.set([...current, unused ?? PLAYER_COLORS[5]]);
+    } else {
+      this.playerColors.update(list => list.slice(0, 5));
+    }
+  }
+
+  /**
+   * Swaps colors between slots. If the chosen color is already in another slot,
+   * that slot receives the current slot's color (a positional swap).
+   */
+  setPlayerColorAt(slot: number, color: PlayerColor): void {
+    const current = this.playerColors();
+    if (current[slot]?.id === color.id) return; // nothing to do
+    const existingSlot = current.findIndex((c, i) => c.id === color.id && i !== slot);
+    const updated = [...current];
+    if (existingSlot !== -1) {
+      // Swap: displaced slot gets the color that was in the target slot
+      updated[existingSlot] = current[slot];
+    }
+    updated[slot] = color;
+    this.playerColors.set(updated);
   }
 }

@@ -57,4 +57,21 @@ export const ES: Translations = {
   updateAvailable: 'Una nueva versión de la aplicación está disponible. ¿Deseas actualizar ahora?',
   showPanel: 'Mostrar Panel',
   hidePanel: 'Ocultar Panel',
+  // Player setup
+  playerCount: 'Jugadores',
+  colorOrder: 'Orden de Turno',
+  colorRed: 'Rojo',
+  colorBlue: 'Azul',
+  colorMustard: 'Mostaza',
+  colorCream: 'Crema',
+  colorGreen: 'Verde',
+  colorChocolate: 'Chocolate',
+  // Turn indicator
+  turnIndicator: (turn: number, total: number, colorName: string): string =>
+    `Turno ${turn}/${total} — ${colorName}`,
+  // Ranking
+  rankingTitle: 'Clasificación Final',
+  rankingProdRank: 'Puesto',
+  rankingTurnOrder: 'Turno',
+  rankingScore: 'Puntuación',
 };

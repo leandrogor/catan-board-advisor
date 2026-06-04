@@ -151,7 +151,7 @@
           [attr.y1]="road.p1.y"
           [attr.x2]="road.p2.x"
           [attr.y2]="road.p2.y"
-          stroke="var(--color-occupied, #6366f1)"
+          [attr.stroke]="road.colorHex"
           stroke-width="6"
           stroke-linecap="round"
           style="pointer-events: none"
@@ -292,7 +292,8 @@
             isTopVertex(vertex) &&
             !vertex.isOccupied &&
             !vertex.isBlocked &&
-            !store.isSelectingRoad()
+            !store.isSelectingRoad() &&
+            !store.isSetupComplete()
           ) {
             <circle
               class="top-vertex-ring"
@@ -339,7 +340,8 @@
             isTopVertex(vertex) &&
             !vertex.isOccupied &&
             !vertex.isBlocked &&
-            !store.isSelectingRoad()
+            !store.isSelectingRoad() &&
+            !store.isSetupComplete()
           ) {
             <text
               [attr.x]="vertex.position.x"

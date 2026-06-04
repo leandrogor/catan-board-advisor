@@ -3,6 +3,9 @@ import { BoardComponent } from './components/board/board.component';
 import { BoardControlsComponent } from './components/board-controls/board-controls.component';
 import { VertexDetailPanelComponent } from './components/vertex-detail-panel/vertex-detail-panel.component';
 import { HexInfoPanelComponent } from './components/hex-info-panel/hex-info-panel.component';
+import { PlayerSetupComponent } from './components/player-setup/player-setup.component';
+import { TurnIndicatorComponent } from './components/turn-indicator/turn-indicator.component';
+import { SetupRankingComponent } from './components/setup-ranking/setup-ranking.component';
 import { BoardStateStore } from './services/board-state.store';
 import { TranslationService } from '../../core/services/translation.service';
 
@@ -13,6 +16,9 @@ import { TranslationService } from '../../core/services/translation.service';
     BoardControlsComponent,
     VertexDetailPanelComponent,
     HexInfoPanelComponent,
+    PlayerSetupComponent,
+    TurnIndicatorComponent,
+    SetupRankingComponent,
   ],
   template: `
     <!--
@@ -23,7 +29,7 @@ import { TranslationService } from '../../core/services/translation.service';
       Single-column on mobile: board → right panel stacked vertically.
     -->
     <div class="flex flex-col lg:flex-row lg:h-full lg:overflow-hidden flex-1">
-      <!-- ── Left: Board ─────────────────────────────────────── -->
+      <!-- ── Left: Board ────────────────────────────────────────── -->
       <div
         class="flex-1 lg:flex-65 flex items-center justify-center p-2 lg:p-4 lg:h-full lg:overflow-hidden"
       >
@@ -38,6 +44,9 @@ import { TranslationService } from '../../core/services/translation.service';
         @if (store.appPhase() === 'setup') {
           <!-- ── Phase 1: Setup panel ──────────────────────────── -->
           <div class="flex flex-col gap-4 p-5">
+            <!-- Player setup (above desert card) -->
+            <app-player-setup />
+
             <!-- Setup card -->
             <div
               class="rounded-2xl border border-amber-200 dark:border-amber-800
@@ -191,6 +200,12 @@ import { TranslationService } from '../../core/services/translation.service';
                 {{ settlementText() }}
               </span>
             </div>
+
+            <!-- Turn indicator — after controls, before vertex detail -->
+            <app-turn-indicator />
+
+            <!-- Setup ranking — after turn indicator, slides in when complete -->
+            <app-setup-ranking />
 
             <!-- Vertex detail panel — inline on desktop -->
             <div class="hidden lg:block">
