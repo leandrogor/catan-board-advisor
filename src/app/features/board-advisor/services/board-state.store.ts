@@ -40,6 +40,16 @@ export class BoardStateStore {
   readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 5));
   readonly myPlayerColorId = signal<PlayerColor['id'] | null>(null);
 
+  readonly rollsPerGame = computed<number>(() => {
+    const map: Record<number, number> = {
+      3: 80,
+      4: 100,
+      5: 125,
+      6: 150,
+    };
+    return map[this.playerCount()] ?? 150;
+  });
+
   // ── Board state ─────────────────────────────────────────────────────────────
   readonly desertPositions = signal<DesertPositions>({ ...DEFAULT_DESERT_POSITIONS });
   readonly placedSettlements = signal<PlacedSettlement[]>([]);
@@ -124,7 +134,7 @@ export class BoardStateStore {
 
       if (result) {
         copy.rawScore = result.resourceMap.get(v.id) ?? 0;
-        copy.totalResources = copy.rawScore * SimulationService.ROLLS_PER_GAME;
+        copy.totalResources = copy.rawScore * this.rollsPerGame();
         copy.normalizedScore = result.maxRawScore > 0 ? copy.rawScore / result.maxRawScore : 0;
       }
       return copy;
@@ -382,8 +392,9 @@ export class BoardStateStore {
     this.isSimulating.set(true);
     const hexes = this.hexes();
     const vertices = this.allVertices();
+    const rolls = this.rollsPerGame();
     setTimeout(() => {
-      const result = this.simService.run(hexes, [...vertices.map(v => ({ ...v }))]);
+      const result = this.simService.run(hexes, [...vertices.map(v => ({ ...v }))], rolls);
       this._simulationResult.set(result);
       this.isSimulating.set(false);
       this.appPhase.set('results');

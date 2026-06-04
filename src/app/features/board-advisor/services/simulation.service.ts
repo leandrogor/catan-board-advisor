@@ -8,7 +8,11 @@ export class SimulationService {
   static readonly TOTAL_MINI_GAMES = 1000;
   static readonly ROLLS_PER_GAME = 150;
 
-  run(hexes: HexDefinition[], vertices: Vertex[]): SimulationResult {
+  run(
+    hexes: HexDefinition[],
+    vertices: Vertex[],
+    rollsPerGame: number = SimulationService.ROLLS_PER_GAME,
+  ): SimulationResult {
     // Build a lookup: diceNumber -> list of hex IDs with that number
     const numberToHexIds = new Map<number, string[]>();
     for (const hex of hexes) {
@@ -28,7 +32,7 @@ export class SimulationService {
       vertexAdjacentHexSet.set(v.id, new Set(v.adjacentHexIds));
     }
 
-    // miniGameScores[vertexId] = array of (resources / ROLLS_PER_GAME) for each mini-game
+    // miniGameScores[vertexId] = array of (resources / rollsPerGame) for each mini-game
     const miniGameScores = new Map<string, number[]>();
     for (const v of vertices) {
       miniGameScores.set(v.id, []);
@@ -44,7 +48,7 @@ export class SimulationService {
         gameResources.set(v.id, 0);
       }
 
-      for (let roll = 0; roll < SimulationService.ROLLS_PER_GAME; roll++) {
+      for (let roll = 0; roll < rollsPerGame; roll++) {
         const diceRoll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
         if (diceRoll === 7) continue; // Robber — no resources produced
 
@@ -70,7 +74,7 @@ export class SimulationService {
 
       // Record per-game score as resources-per-roll for this mini-game
       for (const v of vertices) {
-        miniGameScores.get(v.id)!.push(gameResources.get(v.id)! / SimulationService.ROLLS_PER_GAME);
+        miniGameScores.get(v.id)!.push(gameResources.get(v.id)! / rollsPerGame);
       }
     }
 
@@ -81,7 +85,7 @@ export class SimulationService {
     for (const v of vertices) {
       const scores = miniGameScores.get(v.id)!;
       const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-      v.totalResources = avg * SimulationService.ROLLS_PER_GAME; // representative resources over one game
+      v.totalResources = avg * rollsPerGame; // representative resources over one game
       v.rawScore = avg;
       resourceMap.set(v.id, avg);
       if (avg > maxRaw) maxRaw = avg;
