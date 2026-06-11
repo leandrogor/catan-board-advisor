@@ -81,4 +81,22 @@ export const ES: Translations = {
   rankingProdRank: 'Puesto',
   rankingTurnOrder: 'Turno',
   rankingScore: 'Puntuación',
+  // Game mode keys
+  continueGame: 'Continuar juego',
+  scoreboardTitle: 'Marcador de Partida',
+  victoryPoints: 'Puntos de Victoria',
+  settlementsCount: 'Poblados',
+  citiesCount: 'Ciudades',
+  roadsCount: 'Caminos',
+  winnerBadge: '¡Ganador!',
+  noRoadConnection: 'Debe conectar con uno de tus caminos',
+  limitSettlements:
+    'Límite de 5 poblados alcanzado. Mejora un poblado a ciudad para construir más.',
+  limitCities: 'Límite de 4 ciudades alcanzado.',
+  limitRoads: 'Límite de 15 caminos alcanzado.',
+  upgradeToCity: 'Mejorar a Ciudad',
+  buildSettlement: 'Construir Poblado',
+  buildRoad: 'Construir Camino',
+  pointsLabel: 'pt',
+  occupiedByOpponent: (colorName: string): string => `Ocupado por ${colorName}`,
 };

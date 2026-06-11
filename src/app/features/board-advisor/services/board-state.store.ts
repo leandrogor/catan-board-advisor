@@ -28,7 +28,7 @@ import {
   computeViewBox,
 } from '../../../shared/utils/hex-math.utils';
 
-export type AppPhase = 'setup' | 'results';
+export type AppPhase = 'setup' | 'results' | 'game';
 
 @Injectable({ providedIn: 'root' })
 export class BoardStateStore {
@@ -74,6 +74,8 @@ export class BoardStateStore {
   readonly boardRotationDeg = signal<0 | 90 | 180 | 270>(0);
   readonly isSimulating = signal<boolean>(false);
   readonly hexSize = signal<number>(computeHexSize(window.innerWidth));
+  readonly gameActivePlayerId = signal<string | null>(null);
+  readonly activeBuildTool = signal<'road' | 'settlement' | 'city' | null>(null);
 
   // ── Road selection state ───────────────────────────────────────────────────
   readonly isSelectingRoad = signal<boolean>(false);
@@ -95,9 +97,16 @@ export class BoardStateStore {
     return [...c, ...c.slice().reverse()];
   });
 
-  readonly currentPlayerColor = computed<PlayerColor | null>(
-    () => this.turnSequence()[this.currentTurnIndex()] ?? null,
-  );
+  readonly currentPlayerColor = computed<PlayerColor | null>(() => {
+    if (this.appPhase() === 'game') {
+      const activeId = this.gameActivePlayerId();
+      if (activeId) {
+        return this.playerColors().find(c => c.id === activeId) ?? null;
+      }
+      return this.playerColors()[0] ?? null;
+    }
+    return this.turnSequence()[this.currentTurnIndex()] ?? null;
+  });
 
   readonly totalTurns = computed<number>(() => this.playerCount() * 2);
 
@@ -106,6 +115,127 @@ export class BoardStateStore {
   // ── Simulation result (private writable, public readonly) ───────────────────
   private readonly _simulationResult = signal<SimulationResult | null>(null);
   readonly simulationResult = this._simulationResult.asReadonly();
+
+  readonly playerScores = computed(() => {
+    const colors = this.playerColors();
+    const placements = this.placedSettlements();
+    const scored = this.scoredVertices();
+
+    // Build vertex score lookup
+    const vertexScoreMap = new Map<string, number>();
+    for (const v of scored) {
+      vertexScoreMap.set(v.id, v.rawScore);
+    }
+
+    return colors.map(color => {
+      const myPlacements = placements.filter(p => p.playerColorId === color.id);
+      const settlementsCount = myPlacements.filter(p => p.type === 'settlement' || !p.type).length;
+      const citiesCount = myPlacements.filter(p => p.type === 'city').length;
+      const roadsCount = this.placedRoads().filter(r => r.playerColorId === color.id).length;
+      const score = settlementsCount * 1 + citiesCount * 2;
+
+      // Compute average production rate for active game scoreboard
+      let totalProd = 0;
+      if (myPlacements.length > 0) {
+        totalProd = myPlacements.reduce((sum, p) => sum + (vertexScoreMap.get(p.vertexId) ?? 0), 0);
+      }
+      const avgProd = myPlacements.length > 0 ? totalProd / myPlacements.length : 0;
+
+      return {
+        color,
+        settlementsCount,
+        citiesCount,
+        roadsCount,
+        score,
+        avgProd,
+      };
+    });
+  });
+
+  readonly gameWinner = computed<PlayerColor | null>(() => {
+    if (this.appPhase() !== 'game') return null;
+    const scores = this.playerScores();
+    const winnerRow = scores.find(s => s.score >= 10);
+    return winnerRow ? winnerRow.color : null;
+  });
+
+  readonly validSettlementSpots = computed<string[]>(() => {
+    if (this.appPhase() !== 'game' || this.activeBuildTool() !== 'settlement') return [];
+    const activeId = this.currentPlayerColor()?.id;
+    if (!activeId) return [];
+
+    const counts = this.getPlayerPieceCounts(activeId);
+    if (counts.settlements >= 5) return [];
+
+    const vertices = this.scoredVertices();
+    return vertices
+      .filter(v => !v.isOccupied && !v.isBlocked && this.hasRoadConnected(v.id, activeId))
+      .map(v => v.id);
+  });
+
+  readonly validCitySpots = computed<string[]>(() => {
+    if (this.appPhase() !== 'game' || this.activeBuildTool() !== 'city') return [];
+    const activeId = this.currentPlayerColor()?.id;
+    if (!activeId) return [];
+
+    const counts = this.getPlayerPieceCounts(activeId);
+    if (counts.cities >= 4) return [];
+
+    return this.placedSettlements()
+      .filter(s => s.playerColorId === activeId && s.type !== 'city')
+      .map(s => s.vertexId);
+  });
+
+  readonly validRoadEdges = computed<
+    { from: string; to: string; p1: { x: number; y: number }; p2: { x: number; y: number } }[]
+  >(() => {
+    if (this.appPhase() !== 'game' || this.activeBuildTool() !== 'road') return [];
+    const activeId = this.currentPlayerColor()?.id;
+    if (!activeId) return [];
+
+    const counts = this.getPlayerPieceCounts(activeId);
+    if (counts.roads >= 15) return [];
+
+    const vertices = this.allVertices();
+    const vertexMap = new Map<string, Vertex>();
+    for (const v of vertices) {
+      vertexMap.set(v.id, v);
+    }
+
+    const edges: {
+      from: string;
+      to: string;
+      p1: { x: number; y: number };
+      p2: { x: number; y: number };
+    }[] = [];
+    const addedKeys = new Set<string>();
+
+    for (const v1 of vertices) {
+      const isV1ValidStart = this.isValidRoadStart(v1.id, activeId);
+
+      for (const adjId of v1.adjacentVertexIds) {
+        const key = v1.id < adjId ? `${v1.id}_${adjId}` : `${adjId}_${v1.id}`;
+        if (addedKeys.has(key)) continue;
+
+        const v2 = vertexMap.get(adjId);
+        if (!v2) continue;
+
+        const isV2ValidStart = this.isValidRoadStart(v2.id, activeId);
+
+        if (!isV1ValidStart && !isV2ValidStart) continue;
+        if (this.hasRoadOnEdge(v1.id, v2.id)) continue;
+
+        addedKeys.add(key);
+        edges.push({
+          from: v1.id,
+          to: v2.id,
+          p1: v1.position,
+          p2: v2.position,
+        });
+      }
+    }
+    return edges;
+  });
 
   // ── Computed: hex grid ───────────────────────────────────────────────────────
   readonly hexes = computed<HexDefinition[]>(() =>
@@ -226,6 +356,45 @@ export class BoardStateStore {
   readonly topVertex = computed<Vertex | null>(
     () => this.rankedVertices().find(v => v.rank === 1) ?? null,
   );
+
+  getSettlementAt(vertexId: string): PlacedSettlement | undefined {
+    return this.placedSettlements().find(s => s.vertexId === vertexId);
+  }
+
+  hasRoadConnected(vertexId: string, playerColorId: string): boolean {
+    return this.placedRoads().some(
+      r => r.playerColorId === playerColorId && (r.from === vertexId || r.to === vertexId),
+    );
+  }
+
+  isValidRoadStart(vertexId: string, playerColorId: string): boolean {
+    const settlement = this.placedSettlements().find(s => s.vertexId === vertexId);
+    if (settlement) {
+      return settlement.playerColorId === playerColorId;
+    }
+    // No settlement at vertex, check if player has a road connected and no opponent occupies it
+    const hasRoad = this.placedRoads().some(
+      r => r.playerColorId === playerColorId && (r.from === vertexId || r.to === vertexId),
+    );
+    if (!hasRoad) return false;
+
+    // Since there's no settlement at vertex, it's not occupied by an opponent
+    return true;
+  }
+
+  hasRoadOnEdge(v1: string, v2: string): boolean {
+    return this.placedRoads().some(
+      r => (r.from === v1 && r.to === v2) || (r.from === v2 && r.to === v1),
+    );
+  }
+
+  getPlayerPieceCounts(playerColorId: string) {
+    const list = this.placedSettlements().filter(s => s.playerColorId === playerColorId);
+    const settlements = list.filter(s => s.type === 'settlement' || !s.type).length;
+    const cities = list.filter(s => s.type === 'city').length;
+    const roads = this.placedRoads().filter(r => r.playerColorId === playerColorId).length;
+    return { settlements, cities, roads };
+  }
 
   readonly myExpansionSuggestions = computed(() => {
     const myColor = this.myPlayerColorId();
@@ -441,7 +610,32 @@ export class BoardStateStore {
     this.desertState.set({ ...DEFAULT_EXT_DESERT_STATE });
     // player colors are intentionally preserved
     this.myPlayerColorId.set(null);
+    this.activeBuildTool.set(null);
     this.appPhase.set('setup');
+  }
+
+  startGamePhase(): void {
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.placedSettlements(),
+        roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: null,
+        appPhase: this.appPhase(),
+      },
+    ]);
+    this.redoStack.set([]);
+    const firstColor = this.playerColors()[0]?.id ?? 'red';
+    this.gameActivePlayerId.set(firstColor);
+    this.activeBuildTool.set(null);
+    this.appPhase.set('game');
+  }
+
+  selectActivePlayerInGame(playerColorId: string): void {
+    if (this.appPhase() !== 'game') return;
+    this.gameActivePlayerId.set(playerColorId);
+    this.activeBuildTool.set(null);
   }
 
   placeSettlement(vertexId: string): void {
@@ -452,10 +646,76 @@ export class BoardStateStore {
         settled: this.placedSettlements(),
         roads: this.placedRoads(),
         turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        appPhase: this.appPhase(),
       },
     ]);
     this.redoStack.set([]);
-    this.placedSettlements.update(list => [...list, { vertexId, playerColorId: colorId }]);
+    this.placedSettlements.update(list => [
+      ...list,
+      { vertexId, playerColorId: colorId, type: 'settlement' },
+    ]);
+    this.selectedVertexId.set(null);
+  }
+
+  buildSettlement(vertexId: string): void {
+    const colorId = this.currentPlayerColor()?.id ?? 'red';
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.placedSettlements(),
+        roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        appPhase: this.appPhase(),
+      },
+    ]);
+    this.redoStack.set([]);
+    this.placedSettlements.update(list => [
+      ...list,
+      { vertexId, playerColorId: colorId, type: 'settlement' },
+    ]);
+    this.activeBuildTool.set(null);
+    this.selectedVertexId.set(null);
+  }
+
+  upgradeToCity(vertexId: string): void {
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.placedSettlements(),
+        roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        appPhase: this.appPhase(),
+      },
+    ]);
+    this.redoStack.set([]);
+    this.placedSettlements.update(list =>
+      list.map(s => (s.vertexId === vertexId ? { ...s, type: 'city' } : s)),
+    );
+    this.activeBuildTool.set(null);
+    this.selectedVertexId.set(null);
+  }
+
+  buildRoad(fromId: string, toId: string): void {
+    const colorId = this.currentPlayerColor()?.id ?? 'red';
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.placedSettlements(),
+        roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        appPhase: this.appPhase(),
+      },
+    ]);
+    this.redoStack.set([]);
+    this.placedRoads.update(roads => [
+      ...roads,
+      { from: fromId, to: toId, playerColorId: colorId },
+    ]);
+    this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
   }
 
@@ -466,11 +726,14 @@ export class BoardStateStore {
         settled: this.placedSettlements(),
         roads: this.placedRoads(),
         turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        appPhase: this.appPhase(),
       },
     ]);
     this.redoStack.set([]);
     this.placedSettlements.update(list => list.filter(s => s.vertexId !== vertexId));
     this.placedRoads.update(roads => roads.filter(r => r.from !== vertexId && r.to !== vertexId));
+    this.selectedVertexId.set(null);
   }
 
   undo(): void {
@@ -489,13 +752,22 @@ export class BoardStateStore {
           settled: this.placedSettlements(),
           roads: this.placedRoads(),
           turnIndex: this.currentTurnIndex(),
+          gameActivePlayerId: this.gameActivePlayerId(),
+          appPhase: this.appPhase(),
         },
       ]);
       const last = stack.at(-1)!;
       this.placedSettlements.set(last.settled);
       this.placedRoads.set(last.roads);
       this.currentTurnIndex.set(last.turnIndex);
+      if (last.gameActivePlayerId !== undefined) {
+        this.gameActivePlayerId.set(last.gameActivePlayerId);
+      }
+      if (last.appPhase !== undefined) {
+        this.appPhase.set(last.appPhase);
+      }
       this.undoStack.update(s => s.slice(0, -1));
+      this.selectedVertexId.set(null);
     }
   }
 
@@ -515,13 +787,22 @@ export class BoardStateStore {
           settled: this.placedSettlements(),
           roads: this.placedRoads(),
           turnIndex: this.currentTurnIndex(),
+          gameActivePlayerId: this.gameActivePlayerId(),
+          appPhase: this.appPhase(),
         },
       ]);
       const last = stack.at(-1)!;
       this.placedSettlements.set(last.settled);
       this.placedRoads.set(last.roads);
       this.currentTurnIndex.set(last.turnIndex);
+      if (last.gameActivePlayerId !== undefined) {
+        this.gameActivePlayerId.set(last.gameActivePlayerId);
+      }
+      if (last.appPhase !== undefined) {
+        this.appPhase.set(last.appPhase);
+      }
       this.redoStack.update(r => r.slice(0, -1));
+      this.selectedVertexId.set(null);
     }
   }
 
@@ -598,17 +879,30 @@ export class BoardStateStore {
         settled: this.placedSettlements(),
         roads: this.placedRoads(),
         turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        appPhase: this.appPhase(),
       },
     ]);
     this.redoStack.set([]);
 
-    this.placedSettlements.update(list => [...list, { vertexId: fromId, playerColorId: colorId }]);
-    this.placedRoads.update(roads => [
-      ...roads,
-      { from: fromId, to: toVertexId, playerColorId: colorId },
-    ]);
-
-    this.currentTurnIndex.update(i => i + 1);
+    if (this.appPhase() === 'game') {
+      // In game phase: only place the road
+      this.placedRoads.update(roads => [
+        ...roads,
+        { from: fromId, to: toVertexId, playerColorId: colorId },
+      ]);
+    } else {
+      // In setup phase: place settlement + road, and advance turn
+      this.placedSettlements.update(list => [
+        ...list,
+        { vertexId: fromId, playerColorId: colorId, type: 'settlement' },
+      ]);
+      this.placedRoads.update(roads => [
+        ...roads,
+        { from: fromId, to: toVertexId, playerColorId: colorId },
+      ]);
+      this.currentTurnIndex.update(i => i + 1);
+    }
 
     this.isSelectingRoad.set(false);
     this.pendingSettlementVertexId.set(null);
@@ -624,6 +918,7 @@ export class BoardStateStore {
 
     const options: RoadOption[] = [];
     for (const adjId of v.adjacentVertexIds) {
+      if (this.hasRoadOnEdge(vertexId, adjId)) continue;
       const a = vertices.find(x => x.id === adjId);
       if (!a) continue;
 

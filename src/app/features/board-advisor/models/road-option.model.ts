@@ -12,6 +12,7 @@ export interface RoadOption {
 export interface PlacedSettlement {
   vertexId: string;
   playerColorId: string;
+  type?: 'settlement' | 'city';
 }
 
 export interface PlacedRoad {
@@ -24,4 +25,6 @@ export interface ActionSnapshot {
   settled: PlacedSettlement[];
   roads: PlacedRoad[];
   turnIndex: number;
+  gameActivePlayerId?: string | null;
+  appPhase?: 'setup' | 'results' | 'game';
 }

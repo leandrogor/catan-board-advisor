@@ -1,0 +1,208 @@
+<div
+  class="mx-3 mb-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-linear-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/30 shadow-lg flex flex-col relative z-10"
+  style="animation: slideInUp 0.35s ease"
+>
+  <!-- Winner Banner -->
+  @if (store.gameWinner(); as winner) {
+    <div
+      class="px-4 py-3 bg-linear-to-r from-amber-500 to-orange-500 text-white font-bold text-center text-sm shadow-md animate-pulse flex items-center justify-center gap-2 rounded-t-2xl"
+    >
+      <span>🏆</span>
+      <span>{{ i18n.t().winnerBadge }} {{ colorName(winner) }}!</span>
+      <span>🎉</span>
+    </div>
+  }
+
+  <!-- Header -->
+  <div
+    class="px-4 py-3 border-b border-indigo-200 dark:border-indigo-800 bg-indigo-600/10 dark:bg-indigo-500/10 flex items-center justify-between first:rounded-t-2xl"
+  >
+    <div class="flex items-center gap-2">
+      <span class="text-lg">📊</span>
+      <h3 class="font-bold text-indigo-900 dark:text-indigo-100 text-sm">
+        {{ i18n.t().scoreboardTitle }}
+      </h3>
+    </div>
+    <span class="text-xs text-indigo-700/80 dark:text-indigo-300/80 font-medium">
+      10 {{ i18n.t().pointsLabel }} {{ i18n.t().winnerBadge.toLowerCase() }}
+    </span>
+  </div>
+
+  <!-- Table Headings -->
+  <div
+    class="grid grid-cols-[2.5rem_1fr_auto] gap-x-2 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-indigo-100 dark:border-indigo-900/50"
+  >
+    <span>#</span>
+    <span>{{ i18n.t().colorOrder }}</span>
+    <span class="text-right">{{ i18n.t().victoryPoints }}</span>
+  </div>
+
+  <!-- Player List -->
+  <div class="divide-y divide-indigo-100/70 dark:divide-indigo-900/30">
+    @for (row of scoreboardRows(); track row.color.id; let idx = $index) {
+      @let isActive =
+        store.currentPlayerColor()?.id === row.color.id &&
+        (buildPickerOpen() || store.activeBuildTool() !== null);
+      @let isWinner = store.gameWinner()?.id === row.color.id;
+
+      <div
+        class="grid grid-cols-[2.5rem_1fr_auto] gap-x-2 items-center px-4 py-3 transition-all relative w-full text-left text-slate-800 dark:text-slate-200"
+        [class.bg-indigo-600/10]="isActive"
+        [class.dark:bg-indigo-500/10]="isActive"
+        [class.border-l-4]="isActive"
+        [class.border-indigo-500]="isActive"
+        [class.hover:bg-indigo-50/50]="!isActive"
+        [class.dark:hover:bg-indigo-950/20]="!isActive"
+        [class.opacity-60]="store.gameWinner() && !isWinner"
+        [class.z-20]="isActive"
+      >
+        <!-- Rank -->
+        <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300 relative z-10">
+          #{{ idx + 1 }}
+        </span>
+
+        <!-- Info & Piece Counts -->
+        <div class="flex flex-col min-w-0 relative z-10">
+          <div class="flex items-center gap-2">
+            <span
+              class="inline-block w-3.5 h-3.5 rounded-full shadow-sm ring-1 ring-white dark:ring-slate-600 shrink-0"
+              [style.background-color]="row.color.hex"
+            ></span>
+            <span class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
+              {{ colorName(row.color) }}
+              @if (store.myPlayerColorId() === row.color.id) {
+                <span
+                  class="ml-1 text-[8px] font-extrabold uppercase bg-indigo-600 dark:bg-indigo-500 text-white px-1 py-0.5 rounded-xs"
+                >
+                  {{ i18n.t().isMeLabel }}
+                </span>
+              }
+            </span>
+          </div>
+
+          <!-- Pieces Stock & Production details -->
+          <div
+            class="flex items-center gap-2.5 mt-1 text-[11px] text-slate-500 dark:text-slate-400"
+          >
+            <span class="flex items-center gap-0.5" title="Settlements placed">
+              🏠
+              <span class="font-semibold" [class.text-amber-600]="row.settlementsCount === 5"
+                >{{ row.settlementsCount }}/5</span
+              >
+            </span>
+            <span class="flex items-center gap-0.5" title="Cities built">
+              🏰
+              <span class="font-semibold" [class.text-amber-600]="row.citiesCount === 4"
+                >{{ row.citiesCount }}/4</span
+              >
+            </span>
+            <span class="flex items-center gap-0.5" title="Roads built">
+              🛣️
+              <span class="font-semibold" [class.text-amber-600]="row.roadsCount === 15"
+                >{{ row.roadsCount }}/15</span
+              >
+            </span>
+            <span class="text-[10px] text-indigo-600 dark:text-indigo-400 ml-1">
+              ⚡ {{ formatProduction(row.avgProd) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Victory Points score badge & Active Tool popover (relative and z-10 to catch clicks) -->
+        <div class="flex items-center gap-3 shrink-0 relative z-10">
+          @if (!store.gameWinner()) {
+            <!-- Building Selector Button -->
+            <div class="relative">
+              <button
+                type="button"
+                class="w-8 h-8 rounded-full border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-slate-800 flex items-center justify-center text-sm shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all select-none z-20"
+                (click)="onBuildButtonClick(row.color.id, $event)"
+                [attr.aria-label]="'Select building option'"
+              >
+                {{ isActive ? getActiveToolEmoji() : '🔨' }}
+              </button>
+
+              @if (isActive && buildPickerOpen()) {
+                <div
+                  class="absolute right-0 bottom-full mb-2 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 flex flex-col gap-1 w-44"
+                  role="menu"
+                  [attr.aria-label]="'Select building piece'"
+                >
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left cursor-pointer w-full text-slate-800 dark:text-slate-200 bg-transparent border-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                    [disabled]="!canBuildRoad(row)"
+                    (click)="selectTool('road', $event)"
+                  >
+                    <span>🛣️</span>
+                    <span>{{ i18n.t().buildRoad }}</span>
+                    @if (row.roadsCount >= 15) {
+                      <span class="text-[9px] text-red-500 ml-auto">(Max)</span>
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left cursor-pointer w-full text-slate-800 dark:text-slate-200 bg-transparent border-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                    [disabled]="!canBuildSettlement(row)"
+                    (click)="selectTool('settlement', $event)"
+                  >
+                    <span>🏠</span>
+                    <span>{{ i18n.t().buildSettlement }}</span>
+                    @if (row.settlementsCount >= 5) {
+                      <span class="text-[9px] text-red-500 ml-auto">(Max)</span>
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left cursor-pointer w-full text-slate-800 dark:text-slate-200 bg-transparent border-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                    [disabled]="!canUpgradeToCity(row)"
+                    (click)="selectTool('city', $event)"
+                  >
+                    <span>🏰</span>
+                    <span>{{ i18n.t().upgradeToCity }}</span>
+                    @if (row.citiesCount >= 4) {
+                      <span class="text-[9px] text-red-500 ml-auto">(Max)</span>
+                    }
+                  </button>
+                  @if (store.activeBuildTool()) {
+                    <div class="h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
+                    <button
+                      type="button"
+                      class="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400 text-left cursor-pointer w-full bg-transparent border-0"
+                      (click)="selectTool(null, $event)"
+                    >
+                      <span>❌</span>
+                      <span>{{ i18n.t().cancel }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <div class="flex flex-col items-end">
+            <span class="text-base font-extrabold text-slate-800 dark:text-slate-100 tabular-nums">
+              {{ row.score }}
+            </span>
+            <span
+              class="text-[9px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide"
+            >
+              {{ i18n.t().pointsLabel }}
+            </span>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Bottom Panel Actions -->
+  @if (!store.gameWinner()) {
+    <div
+      class="p-3 bg-slate-50/50 dark:bg-slate-900/20 border-t border-indigo-150/40 dark:border-indigo-900/30 flex items-center justify-center rounded-b-2xl"
+    >
+      <span class="text-[10px] text-slate-400 dark:text-slate-500 text-center leading-tight">
+        💡 Usa el botón de construir (🔨) de un jugador para colocar sus piezas
+      </span>
+    </div>
+  }
+</div>

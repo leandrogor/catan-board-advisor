@@ -103,7 +103,7 @@
         }
 
         <!-- Phase 2: dice number display -->
-        @if (store.appPhase() === 'results') {
+        @if (store.appPhase() === 'results' || store.appPhase() === 'game') {
           @if (hex.isDesert) {
             <text
               [attr.x]="hex.center.x"
@@ -298,20 +298,22 @@
       }
     </g>
 
-    <!-- Vertex indicators (Phase 2 only) -->
-    @if (store.appPhase() === 'results') {
+    <!-- Vertex indicators (Phase 2 and Game phases) -->
+    @if (store.appPhase() === 'results' || store.appPhase() === 'game') {
       <!-- Suggested Target Vertices (Pulsing dashed ring in white/black) -->
-      @for (target of suggestedTargetCoords(); track target.id) {
-        <circle
-          [attr.cx]="target.pt.x"
-          [attr.cy]="target.pt.y"
-          [attr.r]="14"
-          fill="none"
-          stroke-width="1.5"
-          stroke-dasharray="2,3"
-          class="projected-svg-element animate-pulse"
-          style="pointer-events: none"
-        />
+      @if (store.appPhase() === 'results') {
+        @for (target of suggestedTargetCoords(); track target.id) {
+          <circle
+            [attr.cx]="target.pt.x"
+            [attr.cy]="target.pt.y"
+            [attr.r]="14"
+            fill="none"
+            stroke-width="1.5"
+            stroke-dasharray="2,3"
+            class="projected-svg-element animate-pulse"
+            style="pointer-events: none"
+          />
+        }
       }
 
       @for (vertex of displayVertices(); track vertex.id) {
@@ -385,7 +387,7 @@
             </text>
           }
 
-          <!-- Occupied house icon -->
+          <!-- Occupied house or city icon -->
           @if (vertex.isOccupied) {
             <text
               [attr.x]="vertex.position.x"
@@ -396,13 +398,17 @@
               font-size="12"
               class="pointer-events-none"
             >
-              🏠
+              {{ store.getSettlementAt(vertex.id)?.type === 'city' ? '🏰' : '🏠' }}
             </text>
           }
 
           <!-- Rank number for top distinct ranks -->
           @if (
-            vertex.rank && vertex.rank <= thresholdRank() && !vertex.isOccupied && !vertex.isBlocked
+            store.appPhase() === 'results' &&
+            vertex.rank &&
+            vertex.rank <= thresholdRank() &&
+            !vertex.isOccupied &&
+            !vertex.isBlocked
           ) {
             <text
               [attr.x]="vertex.position.x"
@@ -419,6 +425,108 @@
             </text>
           }
         </g>
+      }
+    }
+
+    <!-- Game Phase Build Tool Highlights Layer -->
+    @if (store.appPhase() === 'game' && store.activeBuildTool()) {
+      <!-- Settlement Spots -->
+      @if (store.activeBuildTool() === 'settlement') {
+        @for (spot of validSettlementVertices(); track spot.id) {
+          <g class="cursor-pointer group" (click)="onBuildSpotClick(spot.id)">
+            <!-- Outer pulsing ring -->
+            <circle
+              [attr.cx]="spot.pt.x"
+              [attr.cy]="spot.pt.y"
+              fill="none"
+              [attr.stroke]="store.currentPlayerColor()?.hex ?? '#10b981'"
+              stroke-width="2.5"
+              class="build-spot-ping"
+              style="pointer-events: none"
+            />
+            <!-- Inner highlight circle -->
+            <circle
+              [attr.cx]="spot.pt.x"
+              [attr.cy]="spot.pt.y"
+              [attr.r]="10"
+              fill="#10b981"
+              fill-opacity="0.45"
+              stroke="#047857"
+              stroke-width="1.5"
+              class="build-spot-interactive"
+            />
+          </g>
+        }
+      }
+
+      <!-- City Spots -->
+      @if (store.activeBuildTool() === 'city') {
+        @for (spot of validCityVertices(); track spot.id) {
+          <g class="cursor-pointer group" (click)="onBuildSpotClick(spot.id)">
+            <!-- Outer pulsing ring -->
+            <circle
+              [attr.cx]="spot.pt.x"
+              [attr.cy]="spot.pt.y"
+              fill="none"
+              [attr.stroke]="store.currentPlayerColor()?.hex ?? '#f59e0b'"
+              stroke-width="2.5"
+              class="build-spot-ping"
+              style="pointer-events: none"
+            />
+            <!-- Inner highlight circle -->
+            <circle
+              [attr.cx]="spot.pt.x"
+              [attr.cy]="spot.pt.y"
+              [attr.r]="12"
+              fill="#f59e0b"
+              fill-opacity="0.45"
+              stroke="#d97706"
+              stroke-width="1.5"
+              class="city-spot-interactive"
+            />
+          </g>
+        }
+      }
+
+      <!-- Road Edges -->
+      @if (store.activeBuildTool() === 'road') {
+        @for (edge of store.validRoadEdges(); track edge.from + '-' + edge.to) {
+          <g class="cursor-pointer group" (click)="onRoadEdgeClick(edge.from, edge.to)">
+            <!-- Faint dashed line preview -->
+            <line
+              [attr.x1]="edge.p1.x"
+              [attr.y1]="edge.p1.y"
+              [attr.x2]="edge.p2.x"
+              [attr.y2]="edge.p2.y"
+              [attr.stroke]="store.currentPlayerColor()?.hex ?? '#6366f1'"
+              stroke-width="5"
+              stroke-dasharray="5 3"
+              class="opacity-60 group-hover:opacity-100 transition-opacity"
+            />
+            <!-- Pulsing overlay line -->
+            <line
+              [attr.x1]="edge.p1.x"
+              [attr.y1]="edge.p1.y"
+              [attr.x2]="edge.p2.x"
+              [attr.y2]="edge.p2.y"
+              [attr.stroke]="store.currentPlayerColor()?.hex ?? '#6366f1'"
+              stroke-width="8"
+              stroke-linecap="round"
+              class="road-edge-glow"
+              style="pointer-events: none"
+            />
+            <!-- Generous click area -->
+            <line
+              [attr.x1]="edge.p1.x"
+              [attr.y1]="edge.p1.y"
+              [attr.x2]="edge.p2.x"
+              [attr.y2]="edge.p2.y"
+              stroke="transparent"
+              stroke-width="20"
+              stroke-linecap="round"
+            />
+          </g>
+        }
       }
     }
   </svg>

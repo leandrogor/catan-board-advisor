@@ -76,6 +76,23 @@ export interface Translations {
   rankingProdRank: string;
   rankingTurnOrder: string;
   rankingScore: string;
+  // Game mode keys
+  continueGame: string;
+  scoreboardTitle: string;
+  victoryPoints: string;
+  settlementsCount: string;
+  citiesCount: string;
+  roadsCount: string;
+  winnerBadge: string;
+  noRoadConnection: string;
+  limitSettlements: string;
+  limitCities: string;
+  limitRoads: string;
+  upgradeToCity: string;
+  buildSettlement: string;
+  buildRoad: string;
+  pointsLabel: string;
+  occupiedByOpponent: (colorName: string) => string;
 }
 
 export const EN: Translations = {
@@ -159,4 +176,21 @@ export const EN: Translations = {
   rankingProdRank: 'Rank',
   rankingTurnOrder: 'Turn',
   rankingScore: 'Score',
+  // Game mode keys
+  continueGame: 'Continue Game',
+  scoreboardTitle: 'Game Scoreboard',
+  victoryPoints: 'Victory Points',
+  settlementsCount: 'Settlements',
+  citiesCount: 'Cities',
+  roadsCount: 'Roads',
+  winnerBadge: 'Winner!',
+  noRoadConnection: 'Must connect to one of your roads',
+  limitSettlements: 'Limit of 5 settlements reached. Upgrade to city to build more.',
+  limitCities: 'Limit of 4 cities reached.',
+  limitRoads: 'Limit of 15 roads reached.',
+  upgradeToCity: 'Upgrade to City',
+  buildSettlement: 'Build Settlement',
+  buildRoad: 'Build Road',
+  pointsLabel: 'pts',
+  occupiedByOpponent: (colorName: string): string => `Occupied by ${colorName}`,
 };

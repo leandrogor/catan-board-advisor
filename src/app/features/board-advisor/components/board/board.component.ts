@@ -86,6 +86,9 @@ export class BoardComponent {
 
   protected readonly displayVertices = computed(() => {
     const vertices = this.store.rankedVertices();
+    if (this.store.appPhase() === 'game') {
+      return vertices.filter(v => v.isOccupied || v.id === this.store.selectedVertexId());
+    }
     const showZeros = this.store.showZeroScores();
     if (showZeros) return vertices;
 
@@ -96,6 +99,28 @@ export class BoardComponent {
         v.id === this.store.selectedVertexId() ||
         (v.rank !== null && v.rank <= threshold),
     );
+  });
+
+  protected readonly validSettlementVertices = computed(() => {
+    const spots = this.store.validSettlementSpots();
+    const map = this.vertexMap();
+    return spots
+      .map(id => {
+        const pt = map.get(id);
+        return { id, pt };
+      })
+      .filter((s): s is { id: string; pt: { x: number; y: number } } => s.pt !== undefined);
+  });
+
+  protected readonly validCityVertices = computed(() => {
+    const spots = this.store.validCitySpots();
+    const map = this.vertexMap();
+    return spots
+      .map(id => {
+        const pt = map.get(id);
+        return { id, pt };
+      })
+      .filter((s): s is { id: string; pt: { x: number; y: number } } => s.pt !== undefined);
   });
 
   protected readonly vertexMap = computed(() => {
@@ -312,6 +337,7 @@ export class BoardComponent {
   // ── Click handlers ────────────────────────────────────────────────────────
 
   protected onVertexClick(v: Vertex): void {
+    if (this.store.appPhase() === 'game' && this.store.activeBuildTool()) return;
     if (v.isBlocked) return;
 
     const wasSelectingRoad = this.store.isSelectingRoad();
@@ -366,12 +392,26 @@ export class BoardComponent {
   }
 
   protected onHexClick(hex: HexDefinition): void {
+    if (this.store.appPhase() === 'game' && this.store.activeBuildTool()) return;
     if (hex.isDesert) return; // Deserts are drag handles, not click targets
     if (this.store.appPhase() === 'setup') {
       this.store.toggleHexDisplay();
     } else {
       this.store.selectHex(this.store.selectedHexId() === hex.id ? null : hex.id);
     }
+  }
+
+  protected onBuildSpotClick(spotId: string): void {
+    const tool = this.store.activeBuildTool();
+    if (tool === 'settlement') {
+      this.store.buildSettlement(spotId);
+    } else if (tool === 'city') {
+      this.store.upgradeToCity(spotId);
+    }
+  }
+
+  protected onRoadEdgeClick(fromId: string, toId: string): void {
+    this.store.buildRoad(fromId, toId);
   }
 
   protected isSelected(v: Vertex): boolean {

@@ -6,6 +6,7 @@ import { HexInfoPanelComponent } from './components/hex-info-panel/hex-info-pane
 import { PlayerSetupComponent } from './components/player-setup/player-setup.component';
 import { TurnIndicatorComponent } from './components/turn-indicator/turn-indicator.component';
 import { SetupRankingComponent } from './components/setup-ranking/setup-ranking.component';
+import { GameScoreboardComponent } from './components/game-scoreboard/game-scoreboard.component';
 import { BoardStateStore } from './services/board-state.store';
 import { TranslationService } from '../../core/services/translation.service';
 
@@ -19,6 +20,7 @@ import { TranslationService } from '../../core/services/translation.service';
     PlayerSetupComponent,
     TurnIndicatorComponent,
     SetupRankingComponent,
+    GameScoreboardComponent,
   ],
   templateUrl: './board-advisor-page.component.html',
   styleUrl: './board-advisor-page.component.scss',

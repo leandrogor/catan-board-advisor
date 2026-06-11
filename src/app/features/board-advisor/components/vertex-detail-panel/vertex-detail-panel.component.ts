@@ -17,6 +17,48 @@ export class VertexDetailPanelComponent {
     return this.store.rankedVertices().find(v => v.id === id) ?? null;
   });
 
+  protected readonly settlementAtVertex = computed(() => {
+    const vertex = this.selectedVertex();
+    if (!vertex) return null;
+    return this.store.getSettlementAt(vertex.id) ?? null;
+  });
+
+  protected readonly playerPieceCounts = computed(() => {
+    const activeId = this.store.currentPlayerColor()?.id;
+    if (!activeId) return { settlements: 0, cities: 0, roads: 0 };
+    return this.store.getPlayerPieceCounts(activeId);
+  });
+
+  protected readonly canBuildSettlement = computed(() => {
+    const vertex = this.selectedVertex();
+    const activeId = this.store.currentPlayerColor()?.id;
+    if (!vertex || !activeId) return false;
+    if (vertex.isOccupied || vertex.isBlocked) return false;
+    if (this.playerPieceCounts().settlements >= 5) return false;
+    if (this.store.appPhase() === 'game' && !this.store.hasRoadConnected(vertex.id, activeId)) {
+      return false;
+    }
+    return true;
+  });
+
+  protected readonly canUpgradeToCity = computed(() => {
+    const settlement = this.settlementAtVertex();
+    const activeId = this.store.currentPlayerColor()?.id;
+    if (!settlement || !activeId) return false;
+    if (settlement.playerColorId !== activeId) return false;
+    if (settlement.type === 'city') return false;
+    if (this.playerPieceCounts().cities >= 4) return false;
+    return true;
+  });
+
+  protected readonly canBuildRoad = computed(() => {
+    const vertex = this.selectedVertex();
+    const activeId = this.store.currentPlayerColor()?.id;
+    if (!vertex || !activeId) return false;
+    if (this.playerPieceCounts().roads >= 15) return false;
+    return this.store.isValidRoadStart(vertex.id, activeId);
+  });
+
   protected readonly roadOptions = computed(() => {
     const vertex = this.selectedVertex();
     if (!vertex) return [];

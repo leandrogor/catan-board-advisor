@@ -79,3 +79,62 @@
   opacity: 0.75;
   touch-action: none;
 }
+
+@keyframes ping-pulse {
+  0% {
+    r: 10px;
+    opacity: 0.8;
+  }
+  100% {
+    r: 24px;
+    opacity: 0;
+  }
+}
+
+@keyframes glow-pulse {
+  0% {
+    opacity: 0.35;
+    stroke-width: 4px;
+  }
+  50% {
+    opacity: 0.85;
+    stroke-width: 8px;
+  }
+  100% {
+    opacity: 0.35;
+    stroke-width: 4px;
+  }
+}
+
+.build-spot-ping {
+  animation: ping-pulse 1.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  transform-origin: center;
+}
+
+.road-edge-glow {
+  animation: glow-pulse 1.6s ease-in-out infinite;
+}
+
+.build-spot-interactive {
+  transition:
+    fill-opacity 0.15s ease,
+    stroke-width 0.15s ease,
+    stroke-opacity 0.15s ease;
+
+  &:hover {
+    fill-opacity: 0.8 !important;
+    stroke-width: 2.2px !important;
+  }
+}
+
+.city-spot-interactive {
+  transition:
+    fill-opacity 0.15s ease,
+    stroke-width 0.15s ease,
+    stroke-opacity 0.15s ease;
+
+  &:hover {
+    fill-opacity: 0.8 !important;
+    stroke-width: 2.2px !important;
+  }
+}
