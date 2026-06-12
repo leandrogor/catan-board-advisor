@@ -5,7 +5,7 @@ import { SimulationResult } from '../models/simulation-result.model';
 
 @Injectable({ providedIn: 'root' })
 export class SimulationService {
-  static readonly TOTAL_MINI_GAMES = 1000;
+  static readonly TOTAL_MINI_GAMES = 10000;
   static readonly ROLLS_PER_GAME = 150;
 
   run(

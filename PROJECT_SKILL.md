@@ -14,7 +14,7 @@ By selecting the player count, the application dynamically adjusts the entire bo
 - **3-4 Players**: Renders the standard Base Board (19-hexagon grid, 1 desert).
 - **5-6 Players**: Renders the Extension Board (30-hexagon grid, 2 deserts).
 
-It runs a **Monte Carlo simulation** (1000 mini-games of player-count dependent rolls each: 80 rolls for 3 players, 100 for 4 players, 125 for 5 players, and 150 for 6 players) and produces a ranked heatmap of every intersection vertex to aid in setup selection.
+It runs a **Monte Carlo simulation** (10000 mini-games of player-count dependent rolls each: 80 rolls for 3 players, 100 for 4 players, 125 for 5 players, and 150 for 6 players) and produces a ranked heatmap of every intersection vertex to aid in setup selection.
 
 **Live URL**: `https://[username].github.io/catan-board-advisor/`
 
@@ -150,7 +150,7 @@ catan-board-advisor/
 | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `hex-math.utils.ts`               | Pure functions: hex coordinates, vertices, deduplication, adjacency, viewBox, heatmap, spiral mapping |
 | `board-state.store.ts`            | Single source of truth: 15 signals + 8 computed. Phase-aware undo/redo stacks and actions.            |
-| `simulation.service.ts`           | Stateless: runs 1000 mini-games (custom rolls depending on players), returns SimulationResult         |
+| `simulation.service.ts`           | Stateless: runs 10000 mini-games (custom rolls depending on players), returns SimulationResult        |
 | `board-layout.service.ts`         | Stateless: takes variant, desert positions + R, returns HexDefinition[]                               |
 | `board.component.*`               | SVG rendering: hexes, vertices, Pointer Events drag-and-drop, label upright rotation, scale           |
 | `vertex-detail-panel.component.*` | Detail drawer showing vertex score, ranking, adjacent tiles, and settlement toggle                    |
@@ -344,7 +344,7 @@ OUTPUT: SimulationResult { totalMiniGames, rollCountMap, resourceMap, maxRawScor
    - vertexAdjacentHexSet: Map<vertexId, Set<hexId>>
    - miniGameScores: Map<vertexId, number[]>
 
-2. Loop 1000 times (TOTAL_MINI_GAMES):
+2. Loop 10000 times (TOTAL_MINI_GAMES):
    - Initialize gameResources Map: vertexId → 0
    - Loop rollsPerGame times (depending on player count: 3→80, 4→100, 5→125, 6→150):
      - Roll dice: roll = random(1-6) + random(1-6)
@@ -355,7 +355,7 @@ OUTPUT: SimulationResult { totalMiniGames, rollCountMap, resourceMap, maxRawScor
    - Save resource rate (gameResources / rollsPerGame) to miniGameScores for each vertex
 
 3. Calculate average resources-per-roll:
-   - rawScore = average of all 1000 mini-game scores
+   - rawScore = average of all 10000 mini-game scores
    - totalResources = rawScore * rollsPerGame (representative resources per game)
    - normalizedScore = rawScore / maxRawScore (0-1 range)
 
@@ -368,7 +368,7 @@ OUTPUT: SimulationResult { totalMiniGames, rollCountMap, resourceMap, maxRawScor
 ### Performance & Integration
 
 - Wrapped inside a `setTimeout(0)` asynchronously to allow Angular to render the "Simulating..." spinner before blocking the thread.
-- Total complexity: ~O(1000 × rollsPerGame × vertices × ~3). Runs in ~10-25ms.
+- Total complexity: ~O(10000 × rollsPerGame × vertices × ~3). Runs in ~10-25ms.
 - To prevent mutating source vertices during simulation, the store copies vertices before invoking the service.
 
 ---
