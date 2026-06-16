@@ -44,8 +44,8 @@ export class BoardStateStore {
   readonly appPhase = signal<AppPhase>('setup');
 
   // ── Player setup ────────────────────────────────────────────────────────────
-  readonly playerCount = signal<3 | 4 | 5 | 6>(5);
-  readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 5));
+  readonly playerCount = signal<3 | 4 | 5 | 6>(3);
+  readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 3));
   readonly myPlayerColorId = signal<PlayerColor['id'] | null>(null);
 
   /** Which physical board is in use: 'base' for 3-4 players, 'ext' for 5-6. */
@@ -62,7 +62,10 @@ export class BoardStateStore {
   });
 
   // ── Board state ─────────────────────────────────────────────────────────────
-  readonly desertState = signal<DesertState>({ ...DEFAULT_EXT_DESERT_STATE });
+  readonly desertState = signal<DesertState>({
+    variant: 'base',
+    L1: { ...BASE_DEFAULT_DESERT_POSITION },
+  });
   readonly placedSettlements = signal<PlacedSettlement[]>([]);
   readonly placedRoads = signal<PlacedRoad[]>([]);
   readonly undoStack = signal<ActionSnapshot[]>([]);
@@ -73,7 +76,7 @@ export class BoardStateStore {
   readonly selectedHexId = signal<string | null>(null);
   readonly boardRotationDeg = signal<0 | 90 | 180 | 270>(0);
   readonly isSimulating = signal<boolean>(false);
-  readonly hexSize = signal<number>(computeHexSize(window.innerWidth));
+  readonly hexSize = signal<number>(computeBaseHexSize(window.innerWidth));
   readonly gameActivePlayerId = signal<string | null>(null);
   readonly activeBuildTool = signal<'road' | 'settlement' | 'city' | null>(null);
 
@@ -398,7 +401,7 @@ export class BoardStateStore {
 
   readonly myExpansionSuggestions = computed(() => {
     const myColor = this.myPlayerColorId();
-    if (!myColor || this.appPhase() !== 'results') {
+    if (!myColor || (this.appPhase() !== 'results' && this.appPhase() !== 'game')) {
       return [];
     }
 
@@ -586,9 +589,9 @@ export class BoardStateStore {
   }
 
   /**
-   * Resets everything to initial state: clears simulation, settlements, roads,
-   * turn tracking, desert positions, undo/redo stacks, and returns to Phase 1.
-   * Player count resets to 5 (ext); player color order is preserved.
+   * Resets the board for setup: clears simulation, settlements, roads,
+   * turn tracking, undo/redo stacks, and returns to Phase 1.
+   * Player count, player color order, player "Me" selection, and desert positions are preserved.
    */
   resetToSetup(): void {
     this._simulationResult.set(null);
@@ -605,11 +608,6 @@ export class BoardStateStore {
     this.selectedHexId.set(null);
     this.showNumbersInSetup.set(false);
     this.currentTurnIndex.set(0);
-    this.playerCount.set(5);
-    // Reset desert to ext defaults (matching playerCount=5)
-    this.desertState.set({ ...DEFAULT_EXT_DESERT_STATE });
-    // player colors are intentionally preserved
-    this.myPlayerColorId.set(null);
     this.activeBuildTool.set(null);
     this.appPhase.set('setup');
   }
@@ -1078,19 +1076,12 @@ export class BoardStateStore {
 
     // Migrate desert state if the board variant changes
     if (prevVariant !== newVariant) {
-      const current = this.desertState();
       if (newVariant === 'base') {
         // ext → base: always start from the base-board default (center).
-        // The ext L1 position coordinates refer to the ext board geometry
-        // and would land in the wrong place on the smaller base board.
         this.desertState.set({ variant: 'base', L1: { ...BASE_DEFAULT_DESERT_POSITION } });
       } else {
-        // base → ext: keep L1 position, restore L2 to default
-        this.desertState.set({
-          variant: 'ext',
-          L1: current.L1,
-          L2: { ...DEFAULT_EXT_DESERT_STATE.L2 },
-        });
+        // base → ext: always start from the ext-board defaults.
+        this.desertState.set({ ...DEFAULT_EXT_DESERT_STATE });
       }
 
       // Clear settlements/roads when board changes (they would reference wrong positions)

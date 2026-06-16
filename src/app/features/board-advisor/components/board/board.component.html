@@ -301,7 +301,7 @@
     <!-- Vertex indicators (Phase 2 and Game phases) -->
     @if (store.appPhase() === 'results' || store.appPhase() === 'game') {
       <!-- Suggested Target Vertices (Pulsing dashed ring in white/black) -->
-      @if (store.appPhase() === 'results') {
+      @if (store.appPhase() === 'results' || store.appPhase() === 'game') {
         @for (target of suggestedTargetCoords(); track target.id) {
           <circle
             [attr.cx]="target.pt.x"

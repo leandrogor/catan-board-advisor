@@ -84,10 +84,17 @@ export class BoardComponent {
     return distinctRanks.length >= 5 ? distinctRanks[4] : (distinctRanks.at(-1) ?? Infinity);
   });
 
+  protected readonly suggestedTargetIds = computed(() => {
+    return new Set(this.store.myExpansionSuggestions().map(s => s.targetVertexId));
+  });
+
   protected readonly displayVertices = computed(() => {
     const vertices = this.store.rankedVertices();
     if (this.store.appPhase() === 'game') {
-      return vertices.filter(v => v.isOccupied || v.id === this.store.selectedVertexId());
+      const suggestedIds = this.suggestedTargetIds();
+      return vertices.filter(
+        v => v.isOccupied || v.id === this.store.selectedVertexId() || suggestedIds.has(v.id),
+      );
     }
     const showZeros = this.store.showZeroScores();
     if (showZeros) return vertices;
