@@ -582,12 +582,14 @@ export class BoardStateStore {
     const hexes = this.hexes();
     const vertices = this.allVertices();
     const rolls = this.rollsPerGame();
+    // Yield execution to the browser for 100ms to guarantee style recalc & paint
+    // of the simulation overlay before blocking the main thread with CPU-bound work.
     setTimeout(() => {
       const result = this.simService.run(hexes, [...vertices.map(v => ({ ...v }))], rolls);
       this._simulationResult.set(result);
       this.isSimulating.set(false);
       this.appPhase.set('results');
-    }, 0);
+    }, 100);
   }
 
   /**
