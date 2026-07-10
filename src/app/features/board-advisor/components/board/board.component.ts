@@ -296,7 +296,7 @@ export class BoardComponent {
   ): { x: number; y: number; index: number; rowSign: number }[] {
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
-    const len = Math.sqrt(dx * dx + dy * dy);
+    const len = Math.hypot(dx, dy);
     if (len < 1) return [];
 
     // Unit vector along the segment
@@ -321,20 +321,21 @@ export class BoardComponent {
       const cx = p1.x + ux * t;
       const cy = p1.y + uy * t;
 
-      // Top row
-      dots.push({
-        x: cx + px * sideOffset,
-        y: cy + py * sideOffset,
-        index: i - 1,
-        rowSign: 1,
-      });
-      // Bottom row
-      dots.push({
-        x: cx - px * sideOffset,
-        y: cy - py * sideOffset,
-        index: i - 1,
-        rowSign: -1,
-      });
+      // Push both top and bottom row dots in a single call to avoid duplicate push calls
+      dots.push(
+        {
+          x: cx + px * sideOffset,
+          y: cy + py * sideOffset,
+          index: i - 1,
+          rowSign: 1,
+        },
+        {
+          x: cx - px * sideOffset,
+          y: cy - py * sideOffset,
+          index: i - 1,
+          rowSign: -1,
+        },
+      );
     }
 
     return dots;

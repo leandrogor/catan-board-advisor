@@ -29,6 +29,8 @@ import {
 } from '../../../shared/utils/hex-math.utils';
 
 export type AppPhase = 'setup' | 'results' | 'game';
+export type PlayerCount = 3 | 4 | 5 | 6;
+export type BoardRotationDeg = 0 | 90 | 180 | 270;
 
 @Injectable({ providedIn: 'root' })
 export class BoardStateStore {
@@ -44,7 +46,7 @@ export class BoardStateStore {
   readonly appPhase = signal<AppPhase>('setup');
 
   // ── Player setup ────────────────────────────────────────────────────────────
-  readonly playerCount = signal<3 | 4 | 5 | 6>(3);
+  readonly playerCount = signal<PlayerCount>(3);
   readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 3));
   readonly myPlayerColorId = signal<PlayerColor['id'] | null>(null);
 
@@ -74,7 +76,7 @@ export class BoardStateStore {
   readonly desertRedoStack = signal<DesertState[]>([]);
   readonly selectedVertexId = signal<string | null>(null);
   readonly selectedHexId = signal<string | null>(null);
-  readonly boardRotationDeg = signal<0 | 90 | 180 | 270>(0);
+  readonly boardRotationDeg = signal<BoardRotationDeg>(0);
   readonly isSimulating = signal<boolean>(false);
   readonly hexSize = signal<number>(computeBaseHexSize(window.innerWidth));
   readonly gameActivePlayerId = signal<string | null>(null);
@@ -1035,7 +1037,7 @@ export class BoardStateStore {
   }
 
   rotateBoard(): void {
-    this.boardRotationDeg.update(r => ((r + 90) % 360) as 0 | 90 | 180 | 270);
+    this.boardRotationDeg.update(r => ((r + 90) % 360) as BoardRotationDeg);
   }
 
   selectVertex(id: string | null): void {
@@ -1072,7 +1074,7 @@ export class BoardStateStore {
    * - When adding slots, the first unused color is appended.
    * - Player color order is always preserved.
    */
-  setPlayerCount(count: 3 | 4 | 5 | 6): void {
+  setPlayerCount(count: PlayerCount): void {
     if (count === this.playerCount()) return;
 
     const prevVariant = this.boardVariant();
@@ -1220,7 +1222,7 @@ export class BoardStateStore {
       // ── 1. Player count (determines board variant) ─────────────────────
       const count = s['playerCount'];
       if (typeof count === 'number' && [3, 4, 5, 6].includes(count)) {
-        this.playerCount.set(count as 3 | 4 | 5 | 6);
+        this.playerCount.set(count as PlayerCount);
       }
 
       // ── 2. Player colors ───────────────────────────────────────────────
@@ -1255,7 +1257,7 @@ export class BoardStateStore {
         this.currentTurnIndex.set(s['currentTurnIndex']);
       }
       if (typeof s['boardRotationDeg'] === 'number') {
-        this.boardRotationDeg.set(s['boardRotationDeg'] as 0 | 90 | 180 | 270);
+        this.boardRotationDeg.set(s['boardRotationDeg'] as BoardRotationDeg);
       }
 
       // ── 6. Simulation result ───────────────────────────────────────────

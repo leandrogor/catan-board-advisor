@@ -51,24 +51,26 @@ export class BoardAdvisorPageComponent {
     this.snapshotFileInput.nativeElement.click();
   }
 
-  /** Reads the selected JSON file and restores the game state from it. */
   protected onSnapshotFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result as string);
-        const ok = this.store.importSnapshot(parsed);
-        if (!ok) {
-          globalThis.alert('❌ El archivo no es un snapshot válido de Catan Board Advisor.');
+    file
+      .text()
+      .then(text => {
+        try {
+          const parsed = JSON.parse(text);
+          const ok = this.store.importSnapshot(parsed);
+          if (!ok) {
+            globalThis.alert('❌ El archivo no es un snapshot válido de Catan Board Advisor.');
+          }
+        } catch {
+          globalThis.alert('❌ No se pudo leer el archivo JSON.');
         }
-      } catch {
-        globalThis.alert('❌ No se pudo leer el archivo JSON.');
-      }
-    };
-    reader.readAsText(file);
+      })
+      .catch(() => {
+        globalThis.alert('❌ No se pudo leer el archivo.');
+      });
   }
 }
