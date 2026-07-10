@@ -501,7 +501,7 @@
                 [attr.cx]="dot.x"
                 [attr.cy]="dot.y"
                 r="1.8"
-                [attr.fill]="store.currentPlayerColor()?.hex ?? '#ffffff'"
+                [attr.fill]="getRunwayColor(store.currentPlayerColor()?.id ?? '')"
                 class="runway-dot group-hover:runway-dot-bright"
                 [style.animation-delay]="dot.index * 80 + 'ms'"
                 style="pointer-events: none"

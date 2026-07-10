@@ -6,6 +6,7 @@ import { Vertex } from '../../models/vertex.model';
 import { HexDefinition } from '../../models/hex.model';
 import { RoadOption } from '../../models/road-option.model';
 import { PLAYER_COLORS } from '../../models/player-color.model';
+import { ThemeService } from '../../../../core/services/theme.service';
 
 /** Ways to roll each dice value (out of 36 total combinations). */
 const DICE_WAYS: Readonly<Record<number, number>> = {
@@ -29,6 +30,7 @@ const DICE_WAYS: Readonly<Record<number, number>> = {
 export class BoardComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
+  protected readonly themeService = inject(ThemeService);
 
   protected readonly viewBox = computed(() => {
     const vb = this.store.viewBox();
@@ -336,6 +338,26 @@ export class BoardComponent {
     }
 
     return dots;
+  }
+
+  protected getRunwayColor(colorId: string): string {
+    const isDark = this.themeService.isDark();
+    if (!isDark) {
+      return PLAYER_COLORS.find(c => c.id === colorId)?.hex ?? '#ffffff';
+    }
+
+    switch (colorId) {
+      case 'blue':
+        return '#3b82f6'; // Bright blue
+      case 'green':
+        return '#10b981'; // Bright emerald green
+      case 'chocolate':
+        return '#f97316'; // Bright orange/brown
+      case 'red':
+        return '#ef4444'; // Bright red
+      default:
+        return PLAYER_COLORS.find(c => c.id === colorId)?.hex ?? '#ffffff';
+    }
   }
 
   /** A4: Font size proportional to dice probability (scaled to range [0.55, 1.0] × base). */

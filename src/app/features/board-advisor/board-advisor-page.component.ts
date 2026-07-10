@@ -29,7 +29,7 @@ export class BoardAdvisorPageComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
 
-  @ViewChild('snapshotFileInput') private snapshotFileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('snapshotFileInput') private readonly snapshotFileInput!: ElementRef<HTMLInputElement>;
 
   protected readonly settlementText = () =>
     this.i18n.t().settlementsPlaced(this.store.settledVertexIds().length);
