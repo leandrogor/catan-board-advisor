@@ -55,9 +55,9 @@
 
       <div class="space-y-5">
         <div>
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-300">{{
+          <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block">{{
             i18n.t().scoreFormat
-          }}</label>
+          }}</span>
           <div class="mt-2 flex gap-2">
             <button
               class="flex-1 text-sm py-1.5 rounded-md transition-colors"
@@ -85,15 +85,18 @@
         </div>
 
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-300">{{
-            i18n.t().showZeroScores
-          }}</label>
+          <span
+            class="text-sm font-medium text-slate-700 dark:text-slate-300"
+            id="label-show-zero"
+            >{{ i18n.t().showZeroScores }}</span
+          >
           <button
             class="relative w-11 h-6 rounded-full transition-colors"
             [class]="store.showZeroScores() ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'"
             (click)="store.toggleShowZeroScores()"
             role="switch"
             [attr.aria-checked]="store.showZeroScores()"
+            aria-labelledby="label-show-zero"
           >
             <span
               class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
@@ -103,15 +106,18 @@
         </div>
 
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-300">{{
-            i18n.t().autoZoom
-          }}</label>
+          <span
+            class="text-sm font-medium text-slate-700 dark:text-slate-300"
+            id="label-auto-zoom"
+            >{{ i18n.t().autoZoom }}</span
+          >
           <button
             class="relative w-11 h-6 rounded-full transition-colors"
             [class]="store.enableAutoZoom() ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'"
             (click)="store.toggleAutoZoom()"
             role="switch"
             [attr.aria-checked]="store.enableAutoZoom()"
+            aria-labelledby="label-auto-zoom"
           >
             <span
               class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"

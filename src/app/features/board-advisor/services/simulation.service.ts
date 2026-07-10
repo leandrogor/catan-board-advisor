@@ -48,8 +48,12 @@ export class SimulationService {
         gameResources.set(v.id, 0);
       }
 
+      const randomValues = new Uint32Array(rollsPerGame * 2);
+      crypto.getRandomValues(randomValues);
+      let randIdx = 0;
+
       for (let roll = 0; roll < rollsPerGame; roll++) {
-        const diceRoll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
+        const diceRoll = (randomValues[randIdx++] % 6) + 1 + (randomValues[randIdx++] % 6) + 1;
         if (diceRoll === 7) continue; // Robber — no resources produced
 
         // Tally roll count for this dice value

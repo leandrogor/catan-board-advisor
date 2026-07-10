@@ -1,14 +1,23 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { EN, Translations } from '../../features/board-advisor/i18n/en.translations';
 import { ES } from '../../features/board-advisor/i18n/es.translations';
 
 @Injectable({ providedIn: 'root' })
 export class TranslationService {
+  private readonly document = inject(DOCUMENT);
+
   readonly lang = signal<'en' | 'es'>(
     (localStorage.getItem('catan-lang') as 'en' | 'es') ??
       (navigator.language.startsWith('es') ? 'es' : 'en'),
   );
   readonly t = computed<Translations>(() => (this.lang() === 'en' ? EN : ES));
+
+  constructor() {
+    effect(() => {
+      this.document.documentElement.lang = this.lang();
+    });
+  }
 
   toggle(): void {
     const next = this.lang() === 'en' ? 'es' : 'en';
