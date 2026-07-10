@@ -174,12 +174,15 @@ export class BoardStateStore {
       const hasLongestRoad = this.longestRoadOwnerId() === color.id;
       const score = settlementsCount * 1 + citiesCount * 2 + (hasLongestRoad ? 2 : 0);
 
-      // Compute average production rate for active game scoreboard
+      // Compute total expected production rate (resources per roll) for active game scoreboard
       let totalProd = 0;
       if (myPlacements.length > 0) {
-        totalProd = myPlacements.reduce((sum, p) => sum + (vertexScoreMap.get(p.vertexId) ?? 0), 0);
+        totalProd = myPlacements.reduce((sum, p) => {
+          const factor = p.type === 'city' ? 2 : 1;
+          return sum + factor * (vertexScoreMap.get(p.vertexId) ?? 0);
+        }, 0);
       }
-      const avgProd = myPlacements.length > 0 ? totalProd / myPlacements.length : 0;
+      const avgProd = totalProd;
 
       return {
         color,

@@ -94,6 +94,7 @@ export interface Translations {
   buildRoad: string;
   pointsLabel: string;
   occupiedByOpponent: (colorName: string) => string;
+  totalExpectedProd: string;
   // Snapshot
   saveSnapshot: string;
   loadSnapshot: string;
@@ -198,6 +199,7 @@ export const EN: Translations = {
   buildRoad: 'Build Road',
   pointsLabel: 'pts',
   occupiedByOpponent: (colorName: string): string => `Occupied by ${colorName}`,
+  totalExpectedProd: 'Total expected resources per roll',
   // Snapshot
   saveSnapshot: '💾 Save Snapshot',
   loadSnapshot: '📂 Load Snapshot',

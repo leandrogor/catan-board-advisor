@@ -100,6 +100,7 @@ export const ES: Translations = {
   buildRoad: 'Construir Camino',
   pointsLabel: 'pt',
   occupiedByOpponent: (colorName: string): string => `Ocupado por ${colorName}`,
+  totalExpectedProd: 'Total de recursos esperados por tirada',
   // Snapshot
   saveSnapshot: '💾 Guardar Snapshot',
   loadSnapshot: '📂 Cargar Snapshot',
