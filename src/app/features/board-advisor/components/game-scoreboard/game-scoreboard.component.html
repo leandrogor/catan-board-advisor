@@ -5,7 +5,10 @@
   <!-- Winner Banner -->
   @if (store.gameWinner(); as winner) {
     <div
-      class="px-4 py-3 bg-linear-to-r from-amber-500 to-orange-500 text-white font-bold text-center text-sm shadow-md animate-pulse flex items-center justify-center gap-2 rounded-t-2xl"
+      class="px-4 py-3 font-bold text-center text-sm shadow-md animate-pulse flex items-center justify-center gap-2 rounded-t-2xl transition-all duration-300"
+      [style.background-color]="winner.hex"
+      [class.text-slate-900]="winner.id === 'cream'"
+      [class.text-white]="winner.id !== 'cream'"
     >
       <span>🏆</span>
       <span>{{ i18n.t().winnerBadge }} {{ colorName(winner) }}!</span>

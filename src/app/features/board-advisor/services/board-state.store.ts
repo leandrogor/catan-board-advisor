@@ -543,7 +543,11 @@ export class BoardStateStore {
 
   readonly myExpansionSuggestions = computed(() => {
     const myColor = this.myPlayerColorId();
-    if (!myColor || (this.appPhase() !== 'results' && this.appPhase() !== 'game')) {
+    if (
+      !myColor ||
+      (this.appPhase() !== 'results' && this.appPhase() !== 'game') ||
+      this.gameWinner()
+    ) {
       return [];
     }
 
