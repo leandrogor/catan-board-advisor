@@ -23,7 +23,7 @@ describe('BoardStateStore - Longest Road', () => {
       store.placedRoads.set([]);
       const result = store.calculateLongestRoadForPlayer('red');
       expect(result.path).toHaveSize(0);
-      expect(result.length).toBe(result.path.length);
+      expect(result).toHaveSize(result.path.length);
     });
 
     it('should return 1 for a single road segment', () => {
@@ -31,7 +31,7 @@ describe('BoardStateStore - Longest Road', () => {
       store.placedRoads.set([road]);
       const result = store.calculateLongestRoadForPlayer('red');
       expect(result.path).toHaveSize(1);
-      expect(result.length).toBe(result.path.length);
+      expect(result).toHaveSize(result.path.length);
       expect(result.path[0]).toEqual(road);
     });
 
@@ -43,7 +43,7 @@ describe('BoardStateStore - Longest Road', () => {
       ]);
       const result = store.calculateLongestRoadForPlayer('red');
       expect(result.path).toHaveSize(3);
-      expect(result.length).toBe(result.path.length);
+      expect(result).toHaveSize(result.path.length);
     });
 
     it('should respect opponent settlements blocking the path', () => {
@@ -59,7 +59,7 @@ describe('BoardStateStore - Longest Road', () => {
       // Path should be broken at v3, so longest road can only be 2 (v1 -> v2 -> v3)
       const result = store.calculateLongestRoadForPlayer('red');
       expect(result.path).toHaveSize(2);
-      expect(result.length).toBe(result.path.length);
+      expect(result).toHaveSize(result.path.length);
     });
 
     it('should allow own settlements to not block the path', () => {
@@ -75,7 +75,7 @@ describe('BoardStateStore - Longest Road', () => {
       // Path remains unbroken, length = 3
       const result = store.calculateLongestRoadForPlayer('red');
       expect(result.path).toHaveSize(3);
-      expect(result.length).toBe(result.path.length);
+      expect(result).toHaveSize(result.path.length);
     });
 
     it('should calculate loop path lengths correctly', () => {
@@ -88,7 +88,7 @@ describe('BoardStateStore - Longest Road', () => {
 
       const result = store.calculateLongestRoadForPlayer('red');
       expect(result.path).toHaveSize(3);
-      expect(result.length).toBe(result.path.length);
+      expect(result).toHaveSize(result.path.length);
     });
 
     it('should calculate loop + tail path lengths correctly without reusing road segments', () => {
@@ -103,7 +103,7 @@ describe('BoardStateStore - Longest Road', () => {
       // Path v4 -> v1 -> v2 -> v3 -> v1 is length 4 (no edge repeated)
       const result = store.calculateLongestRoadForPlayer('red');
       expect(result.path).toHaveSize(4);
-      expect(result.length).toBe(result.path.length);
+      expect(result).toHaveSize(result.path.length);
     });
   });
 
