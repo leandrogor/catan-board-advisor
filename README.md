@@ -17,13 +17,29 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
 - **Dynamic Board Layouts**:
   - **3-4 Players**: Standard Base Board layout (19 hexes, 1 desert, letters A to R).
   - **5-6 Players**: Extension Board layout (30 hexes, 2 deserts, letters A to Zc).
-- **Pointer-Events Drag-and-Drop**: Drag deserts (`L1` and `L2` in extension, or the single desert in base) directly on the board. Token numbers and letters dynamically recalculate their spiral paths counterclockwise.
-- **Monte Carlo Simulation Engine**: Computes $10000$ mini-games of player-count dependent rolls each (80 rolls for 3 players, 100 for 4 players, 125 for 5 players, and 150 for 6 players) in under $20\text{ms}$ to yield raw resource probabilities per vertex.
+- **Pointer-Events Drag-and-Drop**: Drag deserts (`L1` and `L2` in extension, or the single desert in base) directly on the board. Token numbers and letters dynamically recalculate their spiral paths counter-clockwise.
+- **Monte Carlo Simulation Engine**: Computes $10000$ mini-games of player-count dependent rolls each (80 rolls for 3 players, 100 for 4 players, 125 for 5 players, and 150 for 6 players) in under $25\text{ms}$ (with a 100ms yield to guarantee UI render updates) to yield raw expected resource probabilities per vertex.
 - **Vertex Heatmap & Ranking**: Visualizes optimal intersections using HSL-based heatmaps, highlighting the best spot with pulsing rings, and displaying top ranking slots directly on the board.
 - **Snake Draft Placement Order**: Simulates the standard setup order (e.g. $1 \to 2 \to 3 \to 4 \to 4 \to 3 \to 2 \to 1$). It tracks whose turn it is, alerts you when to pick, and ranks placements on a final leaderboard once complete.
 - **Road Expansion Planner**: Evaluates and suggests the best expansion roads based on projected target settlement scores and distance cost (evaluated in unified transactions with undo/redo support).
-- **Phase-Aware Undo/Redo**: Distinct undo/redo transactions for Phase 1 (desert configuration) and Phase 2 (settlement placements & road selection).
+- **Active Game Mode (Phase 3)**:
+  - Transition from board setup straight into live gameplay.
+  - Scoreboard tracking settlements, cities, roads, total Victory Points (VP), and expected production rates.
+  - Custom build tools (Settlements, Cities, Roads) with interactive placement highlights and piece limit enforcement (5 settlements, 4 cities, 15 roads).
+  - Expected resource production stat reflecting current building counts (settlement = 1x, city = 2x expected resources per roll).
+  - Dynamic game-ending announcement at 10 VP with custom winning color styling.
+- **Longest Road Award**:
+  - DFS-based path analyzer tracking the longest continuous road network for each player.
+  - Accounts for blocking rules where opponent settlements cut road connectivity.
+  - Grants +2 Victory Points to the lead player with a network of at least 5 roads, obeying standard Catan tie-breaker rules.
+- **Snapshot Import/Export**:
+  - Save your active game state by exporting a `.json` snapshot file.
+  - Load snapshots instantly to resume configuration or gameplay sessions on any device.
+- **Phase-Aware Undo/Redo**: Full undo/redo transaction support for Phase 1 (desert configuration), Phase 2 (settlement placements & road selection), and Phase 3 (active gameplay actions).
 - **Settings Control Center**: Toggle between decimal rates and percentage rates, hide/show zero-probability scores, and enable auto-zoom behavior on active selections.
+- **Visual runway indicators & Neon High Contrast**:
+  - Animated glowing LED-style runway lights highlighting valid road building directions in the current player's color.
+  - Tailored color palette mappings matching dark player colors (like blue or chocolate) to bright neon versions in Dark Mode for perfect SVG contrast.
 - **Dark Mode & Multilingual**: Sleek dark/light modes and fully signal-based Spanish/English i18n support.
 - **Progressive Web App (PWA)**: Works offline, can be installed on home screens, and launches instantly.
 
