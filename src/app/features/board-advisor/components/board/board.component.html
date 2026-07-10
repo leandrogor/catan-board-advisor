@@ -147,6 +147,27 @@
 
     <!-- Dedicated Road Layer -->
     <g class="road-layer">
+      <!-- Longest Road Highlights (drawn behind all roads to keep them synchronized) -->
+      @for (trackRef of [longestRoadTrackKey()]; track trackRef) {
+        @if (longestRoadHighlightCoords().length > 0) {
+          <g class="longest-road-highlights">
+            @for (road of longestRoadHighlightCoords(); track $index) {
+              <line
+                [attr.x1]="road.p1.x"
+                [attr.y1]="road.p1.y"
+                [attr.x2]="road.p2.x"
+                [attr.y2]="road.p2.y"
+                [attr.stroke]="road.colorHex"
+                stroke-width="12"
+                stroke-linecap="round"
+                class="longest-road-glow"
+                style="pointer-events: none"
+              />
+            }
+          </g>
+        }
+      }
+
       <!-- 1. Placed Roads (persistent thick lines in occupied color) -->
       @for (road of placedRoadCoords(); track $index) {
         <line

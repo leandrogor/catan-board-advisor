@@ -27,4 +27,5 @@ export interface ActionSnapshot {
   turnIndex: number;
   gameActivePlayerId?: string | null;
   appPhase?: 'setup' | 'results' | 'game';
+  longestRoadOwnerId?: string | null;
 }

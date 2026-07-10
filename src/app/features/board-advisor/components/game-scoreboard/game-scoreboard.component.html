@@ -68,13 +68,23 @@
               class="inline-block w-3.5 h-3.5 rounded-full shadow-sm ring-1 ring-white dark:ring-slate-600 shrink-0"
               [style.background-color]="row.color.hex"
             ></span>
-            <span class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
+            <span
+              class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1"
+            >
               {{ colorName(row.color) }}
               @if (store.myPlayerColorId() === row.color.id) {
                 <span
-                  class="ml-1 text-[8px] font-extrabold uppercase bg-indigo-600 dark:bg-indigo-500 text-white px-1 py-0.5 rounded-xs"
+                  class="text-[8px] font-extrabold uppercase bg-indigo-600 dark:bg-indigo-500 text-white px-1 py-0.5 rounded-xs"
                 >
                   {{ i18n.t().isMeLabel }}
+                </span>
+              }
+              @if (row.hasLongestRoad) {
+                <span
+                  class="text-[8px] font-extrabold uppercase bg-amber-500 dark:bg-amber-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0 animate-pulse"
+                  title="Holds the Longest Road (+2 VP)"
+                >
+                  👑 {{ i18n.t().longestRoadBadge }}
                 </span>
               }
             </span>
@@ -96,11 +106,16 @@
                 >{{ row.citiesCount }}/4</span
               >
             </span>
-            <span class="flex items-center gap-0.5" title="Roads built">
+            <span class="flex items-center gap-0.5" title="Roads built (longest path length)">
               🛣️
               <span class="font-semibold" [class.text-amber-600]="row.roadsCount === 15"
                 >{{ row.roadsCount }}/15</span
               >
+              @if (row.longestRoadLength > 0) {
+                <span class="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+                  ({{ row.longestRoadLength }})
+                </span>
+              }
             </span>
             <span class="text-[10px] text-indigo-600 dark:text-indigo-400 ml-1">
               ⚡ {{ formatProduction(row.avgProd) }}

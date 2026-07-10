@@ -140,10 +140,40 @@ export class BoardComponent {
     return map;
   });
 
+  protected readonly longestRoadTrackKey = computed(() => {
+    const lr = this.store.longestRoadDetails();
+    if (!lr) return '';
+    const edgeKeys = lr.path.map(r => (r.from < r.to ? `${r.from}_${r.to}` : `${r.to}_${r.from}`));
+    return `${lr.ownerId}_${lr.length}_${edgeKeys.join('-')}`;
+  });
+
+  protected readonly longestRoadHighlightCoords = computed(() => {
+    const map = this.vertexMap();
+    const lrDetails = this.store.longestRoadDetails();
+    if (!lrDetails || lrDetails.length < 5) return [];
+
+    const ownerColor = this.store.playerColors().find(c => c.id === lrDetails.ownerId);
+    const colorHex = ownerColor?.hex ?? '#fbbf24';
+
+    return lrDetails.path
+      .map(r => {
+        const p1 = map.get(r.from);
+        const p2 = map.get(r.to);
+        return { p1, p2, colorHex };
+      })
+      .filter(
+        (
+          r,
+        ): r is { p1: { x: number; y: number }; p2: { x: number; y: number }; colorHex: string } =>
+          r.p1 !== undefined && r.p2 !== undefined,
+      );
+  });
+
   protected readonly placedRoadCoords = computed(() => {
     const map = this.vertexMap();
     const roads = this.store.placedRoads();
     const colorHexMap = new Map<string, string>(PLAYER_COLORS.map(c => [c.id, c.hex]));
+
     return roads
       .map(r => {
         const p1 = map.get(r.from);

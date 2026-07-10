@@ -10,6 +10,8 @@ export interface ScoreboardRow {
   roadsCount: number;
   score: number;
   avgProd: number;
+  longestRoadLength: number;
+  hasLongestRoad: boolean;
 }
 
 @Component({

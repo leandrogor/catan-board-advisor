@@ -81,6 +81,7 @@ export class BoardStateStore {
   readonly hexSize = signal<number>(computeBaseHexSize(window.innerWidth));
   readonly gameActivePlayerId = signal<string | null>(null);
   readonly activeBuildTool = signal<'road' | 'settlement' | 'city' | null>(null);
+  readonly longestRoadOwnerId = signal<string | null>(null);
 
   // ── Road selection state ───────────────────────────────────────────────────
   readonly isSelectingRoad = signal<boolean>(false);
@@ -121,10 +122,43 @@ export class BoardStateStore {
   private readonly _simulationResult = signal<SimulationResult | null>(null);
   readonly simulationResult = this._simulationResult.asReadonly();
 
+  // ── Longest Road ───────────────────────────────────────────────────────────
+  readonly playerLongestRoads = computed<Record<string, { length: number; path: PlacedRoad[] }>>(
+    () => {
+      const result: Record<string, { length: number; path: PlacedRoad[] }> = {};
+      for (const player of this.playerColors()) {
+        result[player.id] = this.calculateLongestRoadForPlayer(player.id);
+      }
+      return result;
+    },
+  );
+
+  readonly longestRoadLengths = computed<Record<string, number>>(() => {
+    const lengths: Record<string, number> = {};
+    const details = this.playerLongestRoads();
+    for (const id of Object.keys(details)) {
+      lengths[id] = details[id].length;
+    }
+    return lengths;
+  });
+
+  readonly longestRoadDetails = computed(() => {
+    const ownerId = this.longestRoadOwnerId();
+    if (!ownerId) return null;
+    const details = this.playerLongestRoads()[ownerId];
+    if (!details) return null;
+    return {
+      ownerId,
+      length: details.length,
+      path: details.path,
+    };
+  });
+
   readonly playerScores = computed(() => {
     const colors = this.playerColors();
     const placements = this.placedSettlements();
     const scored = this.scoredVertices();
+    const lengths = this.longestRoadLengths();
 
     // Build vertex score lookup
     const vertexScoreMap = new Map<string, number>();
@@ -137,7 +171,8 @@ export class BoardStateStore {
       const settlementsCount = myPlacements.filter(p => p.type === 'settlement' || !p.type).length;
       const citiesCount = myPlacements.filter(p => p.type === 'city').length;
       const roadsCount = this.placedRoads().filter(r => r.playerColorId === color.id).length;
-      const score = settlementsCount * 1 + citiesCount * 2;
+      const hasLongestRoad = this.longestRoadOwnerId() === color.id;
+      const score = settlementsCount * 1 + citiesCount * 2 + (hasLongestRoad ? 2 : 0);
 
       // Compute average production rate for active game scoreboard
       let totalProd = 0;
@@ -153,6 +188,8 @@ export class BoardStateStore {
         roadsCount,
         score,
         avgProd,
+        longestRoadLength: lengths[color.id] ?? 0,
+        hasLongestRoad,
       };
     });
   });
@@ -403,6 +440,107 @@ export class BoardStateStore {
     return { settlements, cities, roads };
   }
 
+  calculateLongestRoadForPlayer(playerColorId: string): { length: number; path: PlacedRoad[] } {
+    const myRoads = this.placedRoads().filter(r => r.playerColorId === playerColorId);
+    if (myRoads.length === 0) return { length: 0, path: [] };
+
+    // Find opponent settled vertex IDs
+    const opponentSettled = new Set(
+      this.placedSettlements()
+        .filter(s => s.playerColorId !== playerColorId)
+        .map(s => s.vertexId),
+    );
+
+    // Build adjacency list for roads
+    const adj = new Map<string, { to: string; road: PlacedRoad }[]>();
+    for (const r of myRoads) {
+      if (!adj.has(r.from)) adj.set(r.from, []);
+      if (!adj.has(r.to)) adj.set(r.to, []);
+      adj.get(r.from)!.push({ to: r.to, road: r });
+      adj.get(r.to)!.push({ to: r.from, road: r });
+    }
+
+    let bestPath: PlacedRoad[] = [];
+    const visitedRoads = new Set<PlacedRoad>();
+
+    const dfs = (v: string): PlacedRoad[] => {
+      // If vertex is blocked by opponent and we already have traversed some roads
+      if (opponentSettled.has(v) && visitedRoads.size > 0) {
+        return [];
+      }
+
+      let bestSubPath: PlacedRoad[] = [];
+      const edges = adj.get(v) || [];
+      for (const edge of edges) {
+        if (!visitedRoads.has(edge.road)) {
+          visitedRoads.add(edge.road);
+          const subPath = dfs(edge.to);
+          const fullSubPath = [edge.road, ...subPath];
+          if (fullSubPath.length > bestSubPath.length) {
+            bestSubPath = fullSubPath;
+          }
+          visitedRoads.delete(edge.road); // backtrack
+        }
+      }
+      return bestSubPath;
+    };
+
+    // Run DFS from each vertex in the road network
+    for (const startNode of adj.keys()) {
+      const path = dfs(startNode);
+      if (path.length > bestPath.length) {
+        bestPath = path;
+      }
+    }
+
+    return {
+      length: bestPath.length,
+      path: bestPath,
+    };
+  }
+
+  recalculateLongestRoadOwner(): void {
+    const lengths = this.longestRoadLengths();
+    const currentOwner = this.longestRoadOwnerId();
+
+    // Find max length
+    let maxLength = 0;
+    const players = this.playerColors();
+    for (const p of players) {
+      const len = lengths[p.id] ?? 0;
+      if (len > maxLength) {
+        maxLength = len;
+      }
+    }
+
+    // Minimum road length of 5 is required to qualify
+    if (maxLength < 5) {
+      this.longestRoadOwnerId.set(null);
+      return;
+    }
+
+    const topPlayers = players.filter(p => (lengths[p.id] ?? 0) === maxLength);
+
+    if (currentOwner) {
+      const currentOwnerLength = lengths[currentOwner] ?? 0;
+      // Current owner keeps the card if they are still tied for the longest (even if length changed)
+      if (currentOwnerLength === maxLength) {
+        return;
+      }
+      // If current owner is no longer in the lead:
+      if (topPlayers.length === 1) {
+        // Unique new leader
+        this.longestRoadOwnerId.set(topPlayers[0].id);
+      } else {
+        // Tie among leaders, card returns to bank
+        this.longestRoadOwnerId.set(null);
+      }
+    } else if (topPlayers.length === 1) {
+      // No current owner: must be a unique leader to claim
+      this.longestRoadOwnerId.set(topPlayers[0].id);
+    }
+  }
+
   readonly myExpansionSuggestions = computed(() => {
     const myColor = this.myPlayerColorId();
     if (!myColor || (this.appPhase() !== 'results' && this.appPhase() !== 'game')) {
@@ -615,6 +753,7 @@ export class BoardStateStore {
     this.showNumbersInSetup.set(false);
     this.currentTurnIndex.set(0);
     this.activeBuildTool.set(null);
+    this.longestRoadOwnerId.set(null);
     this.appPhase.set('setup');
   }
 
@@ -627,6 +766,7 @@ export class BoardStateStore {
         turnIndex: this.currentTurnIndex(),
         gameActivePlayerId: null,
         appPhase: this.appPhase(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
       },
     ]);
     this.redoStack.set([]);
@@ -652,6 +792,7 @@ export class BoardStateStore {
         turnIndex: this.currentTurnIndex(),
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
       },
     ]);
     this.redoStack.set([]);
@@ -659,6 +800,7 @@ export class BoardStateStore {
       ...list,
       { vertexId, playerColorId: colorId, type: 'settlement' },
     ]);
+    this.recalculateLongestRoadOwner();
     this.selectedVertexId.set(null);
   }
 
@@ -672,6 +814,7 @@ export class BoardStateStore {
         turnIndex: this.currentTurnIndex(),
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
       },
     ]);
     this.redoStack.set([]);
@@ -679,6 +822,7 @@ export class BoardStateStore {
       ...list,
       { vertexId, playerColorId: colorId, type: 'settlement' },
     ]);
+    this.recalculateLongestRoadOwner();
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
   }
@@ -692,12 +836,14 @@ export class BoardStateStore {
         turnIndex: this.currentTurnIndex(),
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
       },
     ]);
     this.redoStack.set([]);
     this.placedSettlements.update(list =>
       list.map(s => (s.vertexId === vertexId ? { ...s, type: 'city' } : s)),
     );
+    this.recalculateLongestRoadOwner();
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
   }
@@ -712,6 +858,7 @@ export class BoardStateStore {
         turnIndex: this.currentTurnIndex(),
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
       },
     ]);
     this.redoStack.set([]);
@@ -719,6 +866,7 @@ export class BoardStateStore {
       ...roads,
       { from: fromId, to: toId, playerColorId: colorId },
     ]);
+    this.recalculateLongestRoadOwner();
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
   }
@@ -732,11 +880,13 @@ export class BoardStateStore {
         turnIndex: this.currentTurnIndex(),
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
       },
     ]);
     this.redoStack.set([]);
     this.placedSettlements.update(list => list.filter(s => s.vertexId !== vertexId));
     this.placedRoads.update(roads => roads.filter(r => r.from !== vertexId && r.to !== vertexId));
+    this.recalculateLongestRoadOwner();
     this.selectedVertexId.set(null);
   }
 
@@ -758,6 +908,7 @@ export class BoardStateStore {
           turnIndex: this.currentTurnIndex(),
           gameActivePlayerId: this.gameActivePlayerId(),
           appPhase: this.appPhase(),
+          longestRoadOwnerId: this.longestRoadOwnerId(),
         },
       ]);
       const last = stack.at(-1)!;
@@ -770,6 +921,7 @@ export class BoardStateStore {
       if (last.appPhase !== undefined) {
         this.appPhase.set(last.appPhase);
       }
+      this.longestRoadOwnerId.set(last.longestRoadOwnerId ?? null);
       this.undoStack.update(s => s.slice(0, -1));
       this.selectedVertexId.set(null);
     }
@@ -793,6 +945,7 @@ export class BoardStateStore {
           turnIndex: this.currentTurnIndex(),
           gameActivePlayerId: this.gameActivePlayerId(),
           appPhase: this.appPhase(),
+          longestRoadOwnerId: this.longestRoadOwnerId(),
         },
       ]);
       const last = stack.at(-1)!;
@@ -805,6 +958,7 @@ export class BoardStateStore {
       if (last.appPhase !== undefined) {
         this.appPhase.set(last.appPhase);
       }
+      this.longestRoadOwnerId.set(last.longestRoadOwnerId ?? null);
       this.redoStack.update(r => r.slice(0, -1));
       this.selectedVertexId.set(null);
     }
@@ -1179,6 +1333,7 @@ export class BoardStateStore {
       boardRotationDeg: this.boardRotationDeg(),
       appPhase: this.appPhase(),
       gameActivePlayerId: this.gameActivePlayerId(),
+      longestRoadOwnerId: this.longestRoadOwnerId(),
       simulationResult: result
         ? {
             totalMiniGames: result.totalMiniGames,
@@ -1288,6 +1443,16 @@ export class BoardStateStore {
       // ── 7. Game-phase active player ────────────────────────────────────
       const activeId = s['gameActivePlayerId'];
       this.gameActivePlayerId.set(typeof activeId === 'string' ? activeId : null);
+
+      // ── 7.5. Longest road owner ────────────────────────────────────────
+      const lrOwnerId = s['longestRoadOwnerId'];
+      if (typeof lrOwnerId === 'string') {
+        this.longestRoadOwnerId.set(lrOwnerId);
+      } else {
+        // Fallback for older snapshots
+        this.longestRoadOwnerId.set(null);
+        this.recalculateLongestRoadOwner();
+      }
 
       // ── 8. Clear transient state ───────────────────────────────────────
       this.undoStack.set([]);

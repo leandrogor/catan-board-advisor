@@ -164,3 +164,18 @@
   // filter adds a soft glow so dots look like LEDs
   filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
 }
+
+@keyframes longest-road-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    stroke-width: 10px;
+  }
+  50% {
+    opacity: 0.75;
+    stroke-width: 13px;
+  }
+}
+.longest-road-glow {
+  animation: longest-road-pulse 2s ease-in-out infinite;
+}

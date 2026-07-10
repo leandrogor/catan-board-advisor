@@ -84,6 +84,7 @@ export interface Translations {
   citiesCount: string;
   roadsCount: string;
   winnerBadge: string;
+  longestRoadBadge: string;
   noRoadConnection: string;
   limitSettlements: string;
   limitCities: string;
@@ -187,6 +188,7 @@ export const EN: Translations = {
   citiesCount: 'Cities',
   roadsCount: 'Roads',
   winnerBadge: 'Winner!',
+  longestRoadBadge: 'Longest Road',
   noRoadConnection: 'Must connect to one of your roads',
   limitSettlements: 'Limit of 5 settlements reached. Upgrade to city to build more.',
   limitCities: 'Limit of 4 cities reached.',

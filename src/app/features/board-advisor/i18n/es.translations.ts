@@ -89,6 +89,7 @@ export const ES: Translations = {
   citiesCount: 'Ciudades',
   roadsCount: 'Caminos',
   winnerBadge: '¡Ganador!',
+  longestRoadBadge: 'Gran Ruta Vial',
   noRoadConnection: 'Debe conectar con uno de tus caminos',
   limitSettlements:
     'Límite de 5 poblados alcanzado. Mejora un poblado a ciudad para construir más.',
