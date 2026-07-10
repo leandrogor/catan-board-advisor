@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ViewChild, ElementRef } from '@angular/core';
 import { BoardComponent } from './components/board/board.component';
 import { BoardControlsComponent } from './components/board-controls/board-controls.component';
 import { VertexDetailPanelComponent } from './components/vertex-detail-panel/vertex-detail-panel.component';
@@ -29,6 +29,8 @@ export class BoardAdvisorPageComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
 
+  @ViewChild('snapshotFileInput') private snapshotFileInput!: ElementRef<HTMLInputElement>;
+
   protected readonly settlementText = () =>
     this.i18n.t().settlementsPlaced(this.store.settledVertexIds().length);
 
@@ -41,5 +43,32 @@ export class BoardAdvisorPageComponent {
     if (globalThis.confirm(this.i18n.t().resetConfirmMessage)) {
       this.store.resetToSetup();
     }
+  }
+
+  /** Opens the hidden file input so the user can pick a snapshot JSON. */
+  protected triggerSnapshotImport(): void {
+    this.snapshotFileInput.nativeElement.value = '';
+    this.snapshotFileInput.nativeElement.click();
+  }
+
+  /** Reads the selected JSON file and restores the game state from it. */
+  protected onSnapshotFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string);
+        const ok = this.store.importSnapshot(parsed);
+        if (!ok) {
+          globalThis.alert('❌ El archivo no es un snapshot válido de Catan Board Advisor.');
+        }
+      } catch {
+        globalThis.alert('❌ No se pudo leer el archivo JSON.');
+      }
+    };
+    reader.readAsText(file);
   }
 }

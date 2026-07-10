@@ -229,12 +229,14 @@ export class BoardStateStore {
         if (this.hasRoadOnEdge(v1.id, v2.id)) continue;
 
         addedKeys.add(key);
-        edges.push({
-          from: v1.id,
-          to: v2.id,
-          p1: v1.position,
-          p2: v2.position,
-        });
+        // Always orient so p1 = source (valid road start) for correct animation direction.
+        // If both vertices are valid starts, v1 is treated as source (arbitrary but consistent).
+        if (isV1ValidStart) {
+          edges.push({ from: v1.id, to: v2.id, p1: v1.position, p2: v2.position });
+        } else {
+          // Only v2 is the valid start – swap so p1 is the source
+          edges.push({ from: v2.id, to: v1.id, p1: v2.position, p2: v1.position });
+        }
       }
     }
     return edges;
@@ -1149,6 +1151,162 @@ export class BoardStateStore {
       this.myPlayerColorId.set(null);
     } else {
       this.myPlayerColorId.set(colorId);
+    }
+  }
+
+  // ── Snapshot export / import ──────────────────────────────────────────────
+
+  /**
+   * Serializes the full current game state to a plain JSON object and
+   * triggers a browser file download named `catan-snapshot-{timestamp}.json`.
+   */
+  exportSnapshot(): void {
+    const result = this.simulationResult();
+    const snapshot = {
+      version: 1,
+      playerCount: this.playerCount(),
+      playerColors: this.playerColors(),
+      myPlayerColorId: this.myPlayerColorId(),
+      boardVariant: this.boardVariant(),
+      desertState: this.desertState(),
+      placedSettlements: this.placedSettlements(),
+      placedRoads: this.placedRoads(),
+      currentTurnIndex: this.currentTurnIndex(),
+      boardRotationDeg: this.boardRotationDeg(),
+      appPhase: this.appPhase(),
+      gameActivePlayerId: this.gameActivePlayerId(),
+      simulationResult: result
+        ? {
+            totalMiniGames: result.totalMiniGames,
+            rollCountMap: Array.from(result.rollCountMap.entries()),
+            resourceMap: Array.from(result.resourceMap.entries()),
+            maxRawScore: result.maxRawScore,
+            rankedVertexIds: result.rankedVertexIds,
+          }
+        : null,
+    };
+
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `catan-snapshot-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Restores game state from a snapshot object parsed from a JSON file.
+   * Returns true on success, false if the snapshot structure is invalid.
+   *
+   * Signal-setting order matters:
+   *   1. playerCount  → boardVariant (computed) updates
+   *   2. playerColors, myPlayerColorId
+   *   3. hexSize      → must be set AFTER boardVariant is stable
+   *   4. desertState  → hexes + allVertices recompute
+   *   5. placedSettlements, placedRoads, currentTurnIndex, boardRotationDeg
+   *   6. simulationResult → scoredVertices can now map vertex IDs → scores
+   *   7. gameActivePlayerId
+   *   8. appPhase     → set LAST so the UI re-renders with all data in place
+   */
+  importSnapshot(raw: unknown): boolean {
+    if (!raw || typeof raw !== 'object') return false;
+    const s = raw as Record<string, unknown>;
+    if (s['version'] !== 1) return false;
+
+    try {
+      // ── 1. Player count (determines board variant) ─────────────────────
+      const count = s['playerCount'];
+      if (typeof count === 'number' && [3, 4, 5, 6].includes(count)) {
+        this.playerCount.set(count as 3 | 4 | 5 | 6);
+      }
+
+      // ── 2. Player colors ───────────────────────────────────────────────
+      if (Array.isArray(s['playerColors']) && s['playerColors'].length > 0) {
+        this.playerColors.set(s['playerColors'] as PlayerColor[]);
+      }
+      this.myPlayerColorId.set(
+        (s['myPlayerColorId'] as PlayerColor['id'] | null | undefined) ?? null,
+      );
+
+      // ── 3. Hex size (must match the board variant just set) ────────────
+      const variant = this.boardVariant();
+      if (variant === 'base') {
+        this.hexSize.set(computeBaseHexSize(window.innerWidth));
+      } else {
+        this.hexSize.set(computeHexSize(window.innerWidth));
+      }
+
+      // ── 4. Desert state (recomputes hexes + allVertices) ───────────────
+      if (s['desertState'] && typeof s['desertState'] === 'object') {
+        this.desertState.set(s['desertState'] as DesertState);
+      }
+
+      // ── 5. Board actions ───────────────────────────────────────────────
+      if (Array.isArray(s['placedSettlements'])) {
+        this.placedSettlements.set(s['placedSettlements'] as PlacedSettlement[]);
+      }
+      if (Array.isArray(s['placedRoads'])) {
+        this.placedRoads.set(s['placedRoads'] as PlacedRoad[]);
+      }
+      if (typeof s['currentTurnIndex'] === 'number') {
+        this.currentTurnIndex.set(s['currentTurnIndex']);
+      }
+      if (typeof s['boardRotationDeg'] === 'number') {
+        this.boardRotationDeg.set(s['boardRotationDeg'] as 0 | 90 | 180 | 270);
+      }
+
+      // ── 6. Simulation result ───────────────────────────────────────────
+      // resourceMap keys are vertex IDs (strings); these must match the IDs
+      // produced by the just-restored hex grid, so desertState must be set first.
+      const rawResult = s['simulationResult'] as Record<string, unknown> | null | undefined;
+      if (rawResult && typeof rawResult === 'object') {
+        const resourceEntries = rawResult['resourceMap'] as [string, number][] | undefined;
+        const rollEntries = rawResult['rollCountMap'] as [number, number][] | undefined;
+
+        const resourceMap = new Map<string, number>(resourceEntries ?? []);
+        // rollCountMap keys serialise as strings via JSON – coerce back to number
+        const rollCountMap = new Map<number, number>(
+          (rollEntries ?? []).map(([k, v]) => [Number(k), v]),
+        );
+
+        this._simulationResult.set({
+          totalMiniGames: (rawResult['totalMiniGames'] as number) ?? 0,
+          rollCountMap,
+          resourceMap,
+          maxRawScore: (rawResult['maxRawScore'] as number) ?? 0,
+          rankedVertexIds: (rawResult['rankedVertexIds'] as string[]) ?? [],
+        });
+      } else {
+        this._simulationResult.set(null);
+      }
+
+      // ── 7. Game-phase active player ────────────────────────────────────
+      const activeId = s['gameActivePlayerId'];
+      this.gameActivePlayerId.set(typeof activeId === 'string' ? activeId : null);
+
+      // ── 8. Clear transient state ───────────────────────────────────────
+      this.undoStack.set([]);
+      this.redoStack.set([]);
+      this.desertUndoStack.set([]);
+      this.desertRedoStack.set([]);
+      this.selectedVertexId.set(null);
+      this.selectedHexId.set(null);
+      this.isSelectingRoad.set(false);
+      this.pendingSettlementVertexId.set(null);
+      this.currentRoadOptions.set([]);
+      this.activeBuildTool.set(null);
+      this.panelVisible.set(true);
+
+      // ── 9. Phase (LAST – triggers full UI re-render) ───────────────────
+      const phase = s['appPhase'] as AppPhase | undefined;
+      if (phase === 'results' || phase === 'game' || phase === 'setup') {
+        this.appPhase.set(phase);
+      }
+
+      return true;
+    } catch {
+      return false;
     }
   }
 }

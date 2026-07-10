@@ -79,6 +79,22 @@
             {{ i18n.t().startSimulation }}
           }
         </button>
+
+        <!-- Snapshot import: load a previously saved game state -->
+        <button
+          class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
+          [disabled]="store.isSimulating()"
+          (click)="triggerSnapshotImport()"
+        >
+          {{ i18n.t().loadSnapshot }}
+        </button>
+        <input
+          #snapshotFileInput
+          type="file"
+          accept=".json"
+          class="hidden"
+          (change)="onSnapshotFileSelected($event)"
+        />
       </div>
     } @else {
       <!-- Results Phase Controls -->
@@ -152,6 +168,14 @@
             🎮 {{ i18n.t().continueGame }}
           </button>
         }
+
+        <!-- Snapshot export: save current state to JSON -->
+        <button
+          class="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600"
+          (click)="store.exportSnapshot()"
+        >
+          {{ i18n.t().saveSnapshot }}
+        </button>
 
         <div class="hidden lg:block">
           <app-vertex-detail-panel />

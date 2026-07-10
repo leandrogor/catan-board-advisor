@@ -99,4 +99,7 @@ export const ES: Translations = {
   buildRoad: 'Construir Camino',
   pointsLabel: 'pt',
   occupiedByOpponent: (colorName: string): string => `Ocupado por ${colorName}`,
+  // Snapshot
+  saveSnapshot: '💾 Guardar Snapshot',
+  loadSnapshot: '📂 Cargar Snapshot',
 };

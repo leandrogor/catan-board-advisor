@@ -1,12 +1,15 @@
 <div class="relative w-full flex items-center justify-center">
-  <!-- Simulating overlay -->
+  <!-- Simulating overlay: fixed so it always covers the full viewport on mobile too -->
   @if (store.isSimulating()) {
-    <div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg z-10">
+    <div
+      class="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+      style="touch-action: none; pointer-events: all"
+    >
       <div
-        class="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-full px-5 py-3 shadow-lg"
+        class="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-full px-6 py-4 shadow-2xl"
       >
-        <span class="animate-spin text-xl">⚙️</span>
-        <span class="font-medium text-slate-900 dark:text-slate-100">{{
+        <span class="animate-spin text-2xl">⚙️</span>
+        <span class="font-semibold text-slate-900 dark:text-slate-100 text-base">{{
           i18n.t().simulating
         }}</span>
       </div>
@@ -241,7 +244,7 @@
             [attr.aria-label]="'Select road direction rank ' + sel.opt.rank"
           />
 
-          <!-- Visible road selection line -->
+          <!-- Original rank-colored line (setup/results: initial settlement placement) -->
           <line
             [attr.x1]="sel.p1.x"
             [attr.y1]="sel.p1.y"
@@ -488,34 +491,23 @@
         }
       }
 
-      <!-- Road Edges -->
+      <!-- Road Edges (game phase road build tool) -->
       @if (store.activeBuildTool() === 'road') {
         @for (edge of store.validRoadEdges(); track edge.from + '-' + edge.to) {
           <g class="cursor-pointer group" (click)="onRoadEdgeClick(edge.from, edge.to)">
-            <!-- Faint dashed line preview -->
-            <line
-              [attr.x1]="edge.p1.x"
-              [attr.y1]="edge.p1.y"
-              [attr.x2]="edge.p2.x"
-              [attr.y2]="edge.p2.y"
-              [attr.stroke]="store.currentPlayerColor()?.hex ?? '#6366f1'"
-              stroke-width="5"
-              stroke-dasharray="5 3"
-              class="opacity-60 group-hover:opacity-100 transition-opacity"
-            />
-            <!-- Pulsing overlay line -->
-            <line
-              [attr.x1]="edge.p1.x"
-              [attr.y1]="edge.p1.y"
-              [attr.x2]="edge.p2.x"
-              [attr.y2]="edge.p2.y"
-              [attr.stroke]="store.currentPlayerColor()?.hex ?? '#6366f1'"
-              stroke-width="8"
-              stroke-linecap="round"
-              class="road-edge-glow"
-              style="pointer-events: none"
-            />
-            <!-- Generous click area -->
+            <!-- Runway LED lights on hover: brighter on group-hover -->
+            @for (dot of getRoadLights(edge.p1, edge.p2); track dot.index + '_' + dot.rowSign) {
+              <circle
+                [attr.cx]="dot.x"
+                [attr.cy]="dot.y"
+                r="1.8"
+                [attr.fill]="store.currentPlayerColor()?.hex ?? '#ffffff'"
+                class="runway-dot group-hover:runway-dot-bright"
+                [style.animation-delay]="dot.index * 80 + 'ms'"
+                style="pointer-events: none"
+              />
+            }
+            <!-- Generous click area (invisible, handles hover + click) -->
             <line
               [attr.x1]="edge.p1.x"
               [attr.y1]="edge.p1.y"

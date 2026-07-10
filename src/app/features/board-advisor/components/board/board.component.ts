@@ -173,6 +173,7 @@ export class BoardComponent {
     }[] = [];
     for (const s of suggestions) {
       for (const r of s.newRoads) {
+        if (this.store.hasRoadOnEdge(r.from, r.to)) continue;
         const p1 = map.get(r.from);
         const p2 = map.get(r.to);
         if (p1 && p2) {
@@ -280,6 +281,61 @@ export class BoardComponent {
 
   protected getPolygonPoints(hex: HexDefinition): string {
     return hexPolygonPoints(hex.center.x, hex.center.y, this.R());
+  }
+
+  /**
+   * Returns two rows of LED dot positions for the runway-light animation
+   * along the road segment from p1 to p2.
+   * Each dot has: x, y, index (for animation-delay staggering), and rowSign (+1 / -1).
+   */
+  protected getRoadLights(
+    p1: { x: number; y: number },
+    p2: { x: number; y: number },
+  ): { x: number; y: number; index: number; rowSign: number }[] {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1) return [];
+
+    // Unit vector along the segment
+    const ux = dx / len;
+    const uy = dy / len;
+
+    // Perpendicular unit vector (rotated 90°)
+    const px = -uy;
+    const py = ux;
+
+    // Side offset in SVG units: close to the edge line
+    const sideOffset = 2;
+
+    // One dot every ~8 SVG units, minimum 6 so short edges always look full
+    const dotCount = Math.max(6, Math.round(len / 8));
+    const step = len / (dotCount + 1);
+
+    const dots: { x: number; y: number; index: number; rowSign: number }[] = [];
+
+    for (let i = 1; i <= dotCount; i++) {
+      const t = i * step;
+      const cx = p1.x + ux * t;
+      const cy = p1.y + uy * t;
+
+      // Top row
+      dots.push({
+        x: cx + px * sideOffset,
+        y: cy + py * sideOffset,
+        index: i - 1,
+        rowSign: 1,
+      });
+      // Bottom row
+      dots.push({
+        x: cx - px * sideOffset,
+        y: cy - py * sideOffset,
+        index: i - 1,
+        rowSign: -1,
+      });
+    }
+
+    return dots;
   }
 
   /** A4: Font size proportional to dice probability (scaled to range [0.55, 1.0] × base). */
