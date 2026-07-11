@@ -7,6 +7,7 @@ import { PlayerSetupComponent } from './components/player-setup/player-setup.com
 import { TurnIndicatorComponent } from './components/turn-indicator/turn-indicator.component';
 import { SetupRankingComponent } from './components/setup-ranking/setup-ranking.component';
 import { GameScoreboardComponent } from './components/game-scoreboard/game-scoreboard.component';
+import { DevCardsPanelComponent } from './components/dev-cards-panel/dev-cards-panel.component';
 import { BoardStateStore } from './services/board-state.store';
 import { TranslationService } from '../../core/services/translation.service';
 
@@ -21,6 +22,7 @@ import { TranslationService } from '../../core/services/translation.service';
     TurnIndicatorComponent,
     SetupRankingComponent,
     GameScoreboardComponent,
+    DevCardsPanelComponent,
   ],
   templateUrl: './board-advisor-page.component.html',
   styleUrl: './board-advisor-page.component.scss',

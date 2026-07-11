@@ -43,21 +43,19 @@
   <!-- Player List -->
   <div class="divide-y divide-indigo-100/70 dark:divide-indigo-900/30">
     @for (row of scoreboardRows(); track row.color.id; let idx = $index) {
-      @let isActive =
-        store.currentPlayerColor()?.id === row.color.id &&
-        (buildPickerOpen() || store.activeBuildTool() !== null);
+      @let isPickerActive = activePickerPlayerId() === row.color.id && buildPickerOpen();
       @let isWinner = store.gameWinner()?.id === row.color.id;
 
       <div
         class="grid grid-cols-[2.5rem_1fr_auto] gap-x-2 items-center px-4 py-3 transition-all relative w-full text-left text-slate-800 dark:text-slate-200"
-        [class.bg-indigo-600/10]="isActive"
-        [class.dark:bg-indigo-500/10]="isActive"
-        [class.border-l-4]="isActive"
-        [class.border-indigo-500]="isActive"
-        [class.hover:bg-indigo-50/50]="!isActive"
-        [class.dark:hover:bg-indigo-950/20]="!isActive"
+        [class.bg-indigo-600/10]="isPickerActive"
+        [class.dark:bg-indigo-500/10]="isPickerActive"
+        [class.border-l-4]="isPickerActive"
+        [class.border-indigo-500]="isPickerActive"
+        [class.hover:bg-indigo-50/50]="!isPickerActive"
+        [class.dark:hover:bg-indigo-950/20]="!isPickerActive"
         [class.opacity-60]="store.gameWinner() && !isWinner"
-        [class.z-20]="isActive"
+        [class.z-20]="isPickerActive"
       >
         <!-- Rank -->
         <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300 relative z-10">
@@ -66,13 +64,13 @@
 
         <!-- Info & Piece Counts -->
         <div class="flex flex-col min-w-0 relative z-10">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <span
               class="inline-block w-3.5 h-3.5 rounded-full shadow-sm ring-1 ring-white dark:ring-slate-600 shrink-0"
               [style.background-color]="row.color.hex"
             ></span>
             <span
-              class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1"
+              class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1 flex-wrap"
             >
               {{ colorName(row.color) }}
               @if (store.myPlayerColorId() === row.color.id) {
@@ -82,12 +80,24 @@
                   {{ i18n.t().isMeLabel }}
                 </span>
               }
-              @if (row.hasLongestRoad) {
-                <span
-                  class="text-[8px] font-extrabold uppercase bg-amber-500 dark:bg-amber-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0 animate-pulse"
-                  title="Holds the Longest Road (+2 VP)"
-                >
-                  👑 {{ i18n.t().longestRoadBadge }}
+              @if (row.hasLongestRoad || row.hasLargestArmy) {
+                <span class="inline-flex items-center gap-1 shrink-0 animate-pulse">
+                  @if (row.hasLongestRoad) {
+                    <span
+                      class="text-[8px] font-extrabold uppercase bg-amber-500 dark:bg-amber-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0"
+                      title="Holds the Longest Road (+2 VP)"
+                    >
+                      👑 {{ i18n.t().longestRoadBadge }}
+                    </span>
+                  }
+                  @if (row.hasLargestArmy) {
+                    <span
+                      class="text-[8px] font-extrabold uppercase bg-rose-500 dark:bg-rose-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0"
+                      title="Holds the Largest Army (+2 VP)"
+                    >
+                      🛡️ {{ i18n.t().largestArmyBadge }}
+                    </span>
+                  }
                 </span>
               }
             </span>
@@ -95,7 +105,7 @@
 
           <!-- Pieces Stock & Production details -->
           <div
-            class="flex items-center gap-2.5 mt-1 text-[11px] text-slate-500 dark:text-slate-400"
+            class="flex items-center gap-2.5 mt-1 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap"
           >
             <span class="flex items-center gap-0.5" title="Settlements placed">
               🏠
@@ -127,6 +137,33 @@
               ⚡ {{ formatProduction(row.avgProd) }}
             </span>
           </div>
+
+          <!-- Dev Cards Summary Row -->
+          <div
+            class="flex items-center gap-2.5 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap"
+          >
+            @if (row.knightsPlayed > 0) {
+              <span class="flex items-center gap-0.5" [title]="i18n.t().devCardsKnightsPlayed">
+                ⚔️ <span class="font-semibold">{{ row.knightsPlayed }}</span>
+              </span>
+            }
+            @if (row.vpCards > 0) {
+              <span
+                class="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-semibold"
+                title="Victory Point cards"
+              >
+                🏆 +{{ row.vpCards }}VP
+              </span>
+            }
+            @if (row.devCardsInHand > 0) {
+              <span
+                class="flex items-center gap-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded-full font-semibold"
+                [title]="i18n.t().devCardsInHand"
+              >
+                🃏 {{ row.devCardsInHand }}
+              </span>
+            }
+          </div>
         </div>
 
         <!-- Victory Points score badge & Active Tool popover (relative and z-10 to catch clicks) -->
@@ -138,17 +175,18 @@
                 type="button"
                 class="w-8 h-8 rounded-full border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-slate-800 flex items-center justify-center text-sm shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all select-none z-20"
                 (click)="onBuildButtonClick(row.color.id, $event)"
-                [attr.aria-label]="'Select building option'"
+                [attr.aria-label]="'Select building option for ' + colorName(row.color)"
               >
-                {{ isActive ? getActiveToolEmoji() : '🔨' }}
+                {{ isPickerActive ? getActiveToolEmoji() : '🔨' }}
               </button>
 
-              @if (isActive && buildPickerOpen()) {
+              @if (isPickerActive && buildPickerOpen()) {
                 <div
-                  class="absolute right-0 bottom-full mb-2 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 flex flex-col gap-1 w-44"
+                  class="absolute right-0 bottom-full mb-2 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 flex flex-col gap-1 w-52"
                   role="menu"
-                  [attr.aria-label]="'Select building piece'"
+                  [attr.aria-label]="'Actions for ' + colorName(row.color)"
                 >
+                  <!-- Build Actions -->
                   <button
                     type="button"
                     class="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left cursor-pointer w-full text-slate-800 dark:text-slate-200 bg-transparent border-0 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -185,6 +223,62 @@
                       <span class="text-[9px] text-red-500 ml-auto">(Max)</span>
                     }
                   </button>
+
+                  <!-- Dev Cards separator -->
+                  <div class="h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
+                  <span
+                    class="px-3 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+                  >
+                    {{ i18n.t().devCardsTitle }}
+                  </span>
+
+                  <!-- Buy Dev Card -->
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 text-left cursor-pointer w-full text-violet-700 dark:text-violet-300 bg-transparent border-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                    [disabled]="!canPurchaseDevCard()"
+                    (click)="onPurchaseDevCard(row.color.id, $event)"
+                  >
+                    <span>🃏</span>
+                    <span>{{ i18n.t().devCardsPurchase }}</span>
+                  </button>
+
+                  <!-- Play Card submenu toggle -->
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left cursor-pointer w-full text-slate-800 dark:text-slate-200 bg-transparent border-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                    [disabled]="!canPlayDevCard(row)"
+                    (click)="togglePlayCardMenu($event)"
+                  >
+                    <span>🎴</span>
+                    <span>{{ i18n.t().devCardsPlay }}</span>
+                    @if (row.devCardsInHand > 0) {
+                      <span
+                        class="ml-auto text-[9px] font-bold text-violet-600 dark:text-violet-400"
+                      >
+                        {{ row.devCardsInHand }}🃏
+                      </span>
+                    }
+                    <span class="ml-auto text-slate-400">{{ showPlayCardMenu() ? '▲' : '▼' }}</span>
+                  </button>
+
+                  <!-- Play card type list (collapsible) -->
+                  @if (showPlayCardMenu() && canPlayDevCard(row)) {
+                    <div class="flex flex-col gap-0.5 pl-3">
+                      @for (cardDef of DEV_CARD_TYPES; track cardDef.type) {
+                        <button
+                          type="button"
+                          class="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-left cursor-pointer w-full text-slate-700 dark:text-slate-300 bg-transparent border-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                          [disabled]="!isCardTypeAvailable(cardDef.type)"
+                          (click)="onPlayDevCard(row.color.id, cardDef.type, $event)"
+                        >
+                          <span>{{ cardDef.emoji }}</span>
+                          <span>{{ getDevCardLabel(cardDef.type) }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+
                   @if (store.activeBuildTool()) {
                     <div class="h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
                     <button
@@ -219,11 +313,21 @@
   <!-- Bottom Panel Actions -->
   @if (!store.gameWinner()) {
     <div
-      class="p-3 bg-slate-50/50 dark:bg-slate-900/20 border-t border-indigo-150/40 dark:border-indigo-900/30 flex items-center justify-center rounded-b-2xl"
+      class="p-3 bg-slate-50/50 dark:bg-slate-900/20 border-t border-indigo-150/40 dark:border-indigo-900/30 flex items-center justify-between gap-2 rounded-b-2xl"
     >
-      <span class="text-[10px] text-slate-400 dark:text-slate-500 text-center leading-tight">
-        💡 Usa el botón de construir (🔨) de un jugador para colocar sus piezas
+      <span class="text-[10px] text-slate-400 dark:text-slate-500 text-center leading-tight flex-1">
+        💡 {{ i18n.t().devCardsBuildHint }}
       </span>
+      <button
+        type="button"
+        class="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 hover:bg-violet-200 dark:hover:bg-violet-800/40 transition-colors shrink-0 border border-violet-200 dark:border-violet-800"
+        (click)="openDevCardsPanel($event)"
+        id="dev-cards-panel-btn"
+        aria-label="Open Development Cards panel"
+      >
+        🃏
+        <span>{{ i18n.t().devCardsTitle }}</span>
+      </button>
     </div>
   }
 </div>

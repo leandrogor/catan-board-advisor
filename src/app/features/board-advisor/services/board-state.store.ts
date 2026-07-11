@@ -8,6 +8,14 @@ import {
   PlacedSettlement,
   PlacedRoad,
 } from '../models/road-option.model';
+import {
+  DevCardType,
+  PlayedDevCard,
+  DevCardDeckConfig,
+  FULL_DECK,
+  BASE_DECK,
+  DEV_CARD_TYPES,
+} from '../models/dev-card.model';
 import { PlayerColor, PLAYER_COLORS } from '../models/player-color.model';
 import { BoardVariant } from '../models/board-variant.model';
 import {
@@ -83,6 +91,18 @@ export class BoardStateStore {
   readonly activeBuildTool = signal<'road' | 'settlement' | 'city' | null>(null);
   readonly longestRoadOwnerId = signal<string | null>(null);
 
+  // ── Development Cards ──────────────────────────────────────────────────────
+  /** When true, uses the 25-card base deck instead of the 34-card full deck. Only for ≤4 players. */
+  readonly useReducedDeck = signal<boolean>(false);
+  /** Maps playerColorId → number of dev cards purchased but not yet revealed. */
+  readonly devCardsPurchased = signal<Record<string, number>>({});
+  /** Ordered list of all dev cards that have been played/revealed. */
+  readonly devCardsPlayed = signal<PlayedDevCard[]>([]);
+  /** Player ID who currently holds the Largest Army card (≥3 knights played). */
+  readonly largestArmyOwnerId = signal<string | null>(null);
+  /** Controls visibility of the dev cards info panel drawer. */
+  readonly devCardsPanelOpen = signal<boolean>(false);
+
   // ── Road selection state ───────────────────────────────────────────────────
   readonly isSelectingRoad = signal<boolean>(false);
   readonly pendingSettlementVertexId = signal<string | null>(null);
@@ -154,6 +174,133 @@ export class BoardStateStore {
     };
   });
 
+  // ── Dev Card Computed Signals ──────────────────────────────────────────────
+
+  /** Active deck configuration: BASE_DECK (25) if useReducedDeck, else FULL_DECK (34). */
+  readonly activeDeckConfig = computed<DevCardDeckConfig>(() =>
+    this.useReducedDeck() && this.playerCount() <= 4 ? BASE_DECK : FULL_DECK,
+  );
+
+  /** Total number of each type played across all players. */
+  readonly totalPlayedByType = computed<Record<DevCardType, number>>(() => {
+    const played = this.devCardsPlayed();
+    const result: Record<DevCardType, number> = {
+      knight: 0,
+      victoryPoint: 0,
+      monopoly: 0,
+      roadBuilding: 0,
+      yearOfPlenty: 0,
+    };
+    for (const card of played) {
+      result[card.type]++;
+    }
+    return result;
+  });
+
+  /** How many of each type are still unaccounted for (in the deck + in players' hands). */
+  readonly remainingByType = computed<Record<DevCardType, number>>(() => {
+    const deck = this.activeDeckConfig();
+    const played = this.totalPlayedByType();
+    return {
+      knight: Math.max(0, deck.knight - played.knight),
+      victoryPoint: Math.max(0, deck.victoryPoint - played.victoryPoint),
+      monopoly: Math.max(0, deck.monopoly - played.monopoly),
+      roadBuilding: Math.max(0, deck.roadBuilding - played.roadBuilding),
+      yearOfPlenty: Math.max(0, deck.yearOfPlenty - played.yearOfPlenty),
+    };
+  });
+
+  /** Total cards remaining (in deck + in all hands, not yet revealed). */
+  readonly remainingTotal = computed<number>(() => {
+    const r = this.remainingByType();
+    return DEV_CARD_TYPES.reduce((sum, t) => sum + r[t], 0);
+  });
+
+  /**
+   * Draw probability for each card type.
+   * Based on remaining cards in deck EXCLUDING cards in players' hands.
+   * i.e., remainingByType minus cards purchased but not yet played.
+   */
+  readonly drawProbabilities = computed<Record<DevCardType, number>>(() => {
+    const remaining = this.remainingByType();
+    // Total cards held in players' hands (purchased but not revealed)
+    const purchased = this.devCardsPurchased();
+    const totalInHand = Object.values(purchased).reduce((sum, n) => sum + n, 0);
+    // Cards available in the draw pile
+    const totalInPile = this.remainingTotal() - totalInHand;
+    if (totalInPile <= 0) {
+      return { knight: 0, victoryPoint: 0, monopoly: 0, roadBuilding: 0, yearOfPlenty: 0 };
+    }
+    // For probability calculation, we can only infer the pile composition:
+    // since we don't know which specific cards are in hands vs pile,
+    // we distribute remaining cards proportionally.
+    const result: Record<DevCardType, number> = {
+      knight: 0,
+      victoryPoint: 0,
+      monopoly: 0,
+      roadBuilding: 0,
+      yearOfPlenty: 0,
+    };
+    for (const type of DEV_CARD_TYPES) {
+      result[type] = totalInPile > 0 ? remaining[type] / this.remainingTotal() : 0;
+    }
+    return result;
+  });
+
+  /** Knights played per player. */
+  readonly playerKnightsPlayed = computed<Record<string, number>>(() => {
+    const played = this.devCardsPlayed();
+    const result: Record<string, number> = {};
+    for (const card of played) {
+      if (card.type === 'knight') {
+        result[card.playerColorId] = (result[card.playerColorId] ?? 0) + 1;
+      }
+    }
+    return result;
+  });
+
+  /** Victory Point cards revealed per player. */
+  readonly playerVPCards = computed<Record<string, number>>(() => {
+    const played = this.devCardsPlayed();
+    const result: Record<string, number> = {};
+    for (const card of played) {
+      if (card.type === 'victoryPoint') {
+        result[card.playerColorId] = (result[card.playerColorId] ?? 0) + 1;
+      }
+    }
+    return result;
+  });
+
+  /** Per-player summary: purchased (in hand), total played, played by type. */
+  readonly playerDevCardsSummary = computed(() => {
+    const colors = this.playerColors();
+    const purchased = this.devCardsPurchased();
+    const played = this.devCardsPlayed();
+
+    return colors.map(color => {
+      const inHand = purchased[color.id] ?? 0;
+      const myPlayed = played.filter(c => c.playerColorId === color.id);
+      const playedByType: Record<DevCardType, number> = {
+        knight: 0,
+        victoryPoint: 0,
+        monopoly: 0,
+        roadBuilding: 0,
+        yearOfPlenty: 0,
+      };
+      for (const card of myPlayed) {
+        playedByType[card.type]++;
+      }
+      return {
+        color,
+        inHand,
+        totalPlayed: myPlayed.length,
+        playedByType,
+      };
+    });
+  });
+
+  // ── Scores ─────────────────────────────────────────────────────────────────
+
   readonly playerScores = computed(() => {
     const colors = this.playerColors();
     const placements = this.placedSettlements();
@@ -172,7 +319,16 @@ export class BoardStateStore {
       const citiesCount = myPlacements.filter(p => p.type === 'city').length;
       const roadsCount = this.placedRoads().filter(r => r.playerColorId === color.id).length;
       const hasLongestRoad = this.longestRoadOwnerId() === color.id;
-      const score = settlementsCount * 1 + citiesCount * 2 + (hasLongestRoad ? 2 : 0);
+      const hasLargestArmy = this.largestArmyOwnerId() === color.id;
+      const vpCards = this.playerVPCards()[color.id] ?? 0;
+      const knightsPlayed = this.playerKnightsPlayed()[color.id] ?? 0;
+      const devCardsInHand = this.devCardsPurchased()[color.id] ?? 0;
+      const score =
+        settlementsCount * 1 +
+        citiesCount * 2 +
+        (hasLongestRoad ? 2 : 0) +
+        (hasLargestArmy ? 2 : 0) +
+        vpCards;
 
       // Compute total expected production rate (resources per roll) for active game scoreboard
       let totalProd = 0;
@@ -193,6 +349,10 @@ export class BoardStateStore {
         avgProd,
         longestRoadLength: lengths[color.id] ?? 0,
         hasLongestRoad,
+        hasLargestArmy,
+        vpCards,
+        knightsPlayed,
+        devCardsInHand,
       };
     });
   });
@@ -502,6 +662,49 @@ export class BoardStateStore {
     };
   }
 
+  /**
+   * Awards the Largest Army card to the player with the most knights.
+   * Minimum 3 knights to qualify. Current holder retains on a tie.
+   * If surpassed but tied with others for first, card returns to bank.
+   */
+  recalculateLargestArmyOwner(): void {
+    const knightCounts = this.playerKnightsPlayed();
+    const currentOwner = this.largestArmyOwnerId();
+    const players = this.playerColors();
+
+    let maxKnights = 0;
+    for (const p of players) {
+      const k = knightCounts[p.id] ?? 0;
+      if (k > maxKnights) maxKnights = k;
+    }
+
+    // Minimum 3 knights to qualify
+    if (maxKnights < 3) {
+      this.largestArmyOwnerId.set(null);
+      return;
+    }
+
+    const topPlayers = players.filter(p => (knightCounts[p.id] ?? 0) === maxKnights);
+
+    if (currentOwner) {
+      const currentOwnerKnights = knightCounts[currentOwner] ?? 0;
+      // Current owner keeps card if still tied for most knights
+      if (currentOwnerKnights === maxKnights) {
+        return;
+      }
+      // Current owner no longer leads:
+      if (topPlayers.length === 1) {
+        this.largestArmyOwnerId.set(topPlayers[0].id);
+      } else {
+        // Tie for lead — card returns to bank
+        this.largestArmyOwnerId.set(null);
+      }
+    } else if (topPlayers.length === 1) {
+      // No current owner — must be unique leader to claim
+      this.largestArmyOwnerId.set(topPlayers[0].id);
+    }
+  }
+
   recalculateLongestRoadOwner(): void {
     const lengths = this.longestRoadLengths();
     const currentOwner = this.longestRoadOwnerId();
@@ -761,6 +964,10 @@ export class BoardStateStore {
     this.currentTurnIndex.set(0);
     this.activeBuildTool.set(null);
     this.longestRoadOwnerId.set(null);
+    this.largestArmyOwnerId.set(null);
+    this.devCardsPurchased.set({});
+    this.devCardsPlayed.set([]);
+    this.devCardsPanelOpen.set(false);
     this.appPhase.set('setup');
   }
 
@@ -774,6 +981,9 @@ export class BoardStateStore {
         gameActivePlayerId: null,
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
+        largestArmyOwnerId: this.largestArmyOwnerId(),
+        devCardsPurchased: { ...this.devCardsPurchased() },
+        devCardsPlayed: [...this.devCardsPlayed()],
       },
     ]);
     this.redoStack.set([]);
@@ -916,6 +1126,9 @@ export class BoardStateStore {
           gameActivePlayerId: this.gameActivePlayerId(),
           appPhase: this.appPhase(),
           longestRoadOwnerId: this.longestRoadOwnerId(),
+          largestArmyOwnerId: this.largestArmyOwnerId(),
+          devCardsPurchased: { ...this.devCardsPurchased() },
+          devCardsPlayed: [...this.devCardsPlayed()],
         },
       ]);
       const last = stack.at(-1)!;
@@ -929,6 +1142,13 @@ export class BoardStateStore {
         this.appPhase.set(last.appPhase);
       }
       this.longestRoadOwnerId.set(last.longestRoadOwnerId ?? null);
+      this.largestArmyOwnerId.set(last.largestArmyOwnerId ?? null);
+      if (last.devCardsPurchased !== undefined) {
+        this.devCardsPurchased.set({ ...last.devCardsPurchased });
+      }
+      if (last.devCardsPlayed !== undefined) {
+        this.devCardsPlayed.set([...last.devCardsPlayed]);
+      }
       this.undoStack.update(s => s.slice(0, -1));
       this.selectedVertexId.set(null);
     }
@@ -953,6 +1173,9 @@ export class BoardStateStore {
           gameActivePlayerId: this.gameActivePlayerId(),
           appPhase: this.appPhase(),
           longestRoadOwnerId: this.longestRoadOwnerId(),
+          largestArmyOwnerId: this.largestArmyOwnerId(),
+          devCardsPurchased: { ...this.devCardsPurchased() },
+          devCardsPlayed: [...this.devCardsPlayed()],
         },
       ]);
       const last = stack.at(-1)!;
@@ -966,6 +1189,13 @@ export class BoardStateStore {
         this.appPhase.set(last.appPhase);
       }
       this.longestRoadOwnerId.set(last.longestRoadOwnerId ?? null);
+      this.largestArmyOwnerId.set(last.largestArmyOwnerId ?? null);
+      if (last.devCardsPurchased !== undefined) {
+        this.devCardsPurchased.set({ ...last.devCardsPurchased });
+      }
+      if (last.devCardsPlayed !== undefined) {
+        this.devCardsPlayed.set([...last.devCardsPlayed]);
+      }
       this.redoStack.update(r => r.slice(0, -1));
       this.selectedVertexId.set(null);
     }
@@ -1227,6 +1457,82 @@ export class BoardStateStore {
     this.enableAutoZoom.update(v => !v);
   }
 
+  toggleReducedDeck(): void {
+    this.useReducedDeck.update(v => !v);
+  }
+
+  /**
+   * Records that a player purchased a development card (type unknown).
+   * Increments their in-hand counter.
+   */
+  purchaseDevCard(playerColorId: string): void {
+    const purchased = this.devCardsPurchased();
+    const totalInHand = Object.values(purchased).reduce((s, n) => s + n, 0);
+    if (this.remainingTotal() - totalInHand <= 0) return; // limit reached
+
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.placedSettlements(),
+        roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        appPhase: this.appPhase(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
+        largestArmyOwnerId: this.largestArmyOwnerId(),
+        devCardsPurchased: { ...this.devCardsPurchased() },
+        devCardsPlayed: [...this.devCardsPlayed()],
+      },
+    ]);
+    this.redoStack.set([]);
+    this.devCardsPurchased.update(current => ({
+      ...current,
+      [playerColorId]: (current[playerColorId] ?? 0) + 1,
+    }));
+  }
+
+  /**
+   * Records that a player played/revealed a development card.
+   * Decrements their in-hand counter (must be > 0) and appends to played log.
+   * If the card is a knight, recalculates the Largest Army award.
+   */
+  playDevCard(playerColorId: string, type: DevCardType): void {
+    const current = this.devCardsPurchased();
+    const inHand = current[playerColorId] ?? 0;
+    if (inHand <= 0) return; // nothing to play
+
+    // Limit check for the card type
+    const deck = this.activeDeckConfig();
+    const played = this.totalPlayedByType();
+    if (played[type] >= deck[type]) return; // limit reached for this card type!
+
+    this.undoStack.update(s => [
+      ...s,
+      {
+        settled: this.placedSettlements(),
+        roads: this.placedRoads(),
+        turnIndex: this.currentTurnIndex(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        appPhase: this.appPhase(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
+        largestArmyOwnerId: this.largestArmyOwnerId(),
+        devCardsPurchased: { ...this.devCardsPurchased() },
+        devCardsPlayed: [...this.devCardsPlayed()],
+      },
+    ]);
+    this.redoStack.set([]);
+
+    this.devCardsPurchased.update(prev => ({
+      ...prev,
+      [playerColorId]: Math.max(0, (prev[playerColorId] ?? 0) - 1),
+    }));
+    this.devCardsPlayed.update(list => [...list, { type, playerColorId }]);
+
+    if (type === 'knight') {
+      this.recalculateLargestArmyOwner();
+    }
+  }
+
   /**
    * Changes the player count.
    * - Crossing the 4→5 boundary switches the board variant.
@@ -1341,6 +1647,10 @@ export class BoardStateStore {
       appPhase: this.appPhase(),
       gameActivePlayerId: this.gameActivePlayerId(),
       longestRoadOwnerId: this.longestRoadOwnerId(),
+      largestArmyOwnerId: this.largestArmyOwnerId(),
+      useReducedDeck: this.useReducedDeck(),
+      devCardsPurchased: this.devCardsPurchased(),
+      devCardsPlayed: this.devCardsPlayed(),
       simulationResult: result
         ? {
             totalMiniGames: result.totalMiniGames,
@@ -1459,6 +1769,31 @@ export class BoardStateStore {
         // Fallback for older snapshots
         this.longestRoadOwnerId.set(null);
         this.recalculateLongestRoadOwner();
+      }
+
+      // ── 7.6. Largest army owner ────────────────────────────────────────
+      const laOwnerId = s['largestArmyOwnerId'];
+      if (typeof laOwnerId === 'string') {
+        this.largestArmyOwnerId.set(laOwnerId);
+      } else {
+        this.largestArmyOwnerId.set(null);
+      }
+
+      // ── 7.7. Development cards ─────────────────────────────────────────
+      if (typeof s['useReducedDeck'] === 'boolean') {
+        this.useReducedDeck.set(s['useReducedDeck']);
+      } else {
+        this.useReducedDeck.set(false);
+      }
+      if (s['devCardsPurchased'] && typeof s['devCardsPurchased'] === 'object') {
+        this.devCardsPurchased.set(s['devCardsPurchased'] as Record<string, number>);
+      } else {
+        this.devCardsPurchased.set({});
+      }
+      if (Array.isArray(s['devCardsPlayed'])) {
+        this.devCardsPlayed.set(s['devCardsPlayed'] as PlayedDevCard[]);
+      } else {
+        this.devCardsPlayed.set([]);
       }
 
       // ── 8. Clear transient state ───────────────────────────────────────

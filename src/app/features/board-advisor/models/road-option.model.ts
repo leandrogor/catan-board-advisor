@@ -28,4 +28,7 @@ export interface ActionSnapshot {
   gameActivePlayerId?: string | null;
   appPhase?: 'setup' | 'results' | 'game';
   longestRoadOwnerId?: string | null;
+  largestArmyOwnerId?: string | null;
+  devCardsPurchased?: Record<string, number>;
+  devCardsPlayed?: import('./dev-card.model').PlayedDevCard[];
 }

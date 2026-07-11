@@ -98,6 +98,31 @@ export interface Translations {
   // Snapshot
   saveSnapshot: string;
   loadSnapshot: string;
+  // Development Cards
+  devCardsTitle: string;
+  devCardsPurchase: string;
+  devCardsPlay: string;
+  devCardKnight: string;
+  devCardVictoryPoint: string;
+  devCardMonopoly: string;
+  devCardRoadBuilding: string;
+  devCardYearOfPlenty: string;
+  largestArmyBadge: string;
+  devCardsRemaining: string;
+  devCardsPlayed: string;
+  devCardsProbability: string;
+  devCardsInHand: string;
+  devCardsKnightsPlayed: string;
+  devCardsDeckType: string;
+  devCardsDeckFull: string;
+  devCardsDeckBase: string;
+  devCardsDeckHint: string;
+  devCardsNoCards: string;
+  devCardsEstimatedPotential: string;
+  devCardsBuildHint: string;
+  devCardsDeckCardsLeft: (remaining: number, total: number) => string;
+  devCardsPieLabelLine1: string;
+  devCardsPieLabelLine2: string;
 }
 
 export const EN: Translations = {
@@ -203,4 +228,30 @@ export const EN: Translations = {
   // Snapshot
   saveSnapshot: '💾 Save Snapshot',
   loadSnapshot: '📂 Load Snapshot',
+  // Development Cards
+  devCardsTitle: 'Development Cards',
+  devCardsPurchase: 'Buy Dev Card',
+  devCardsPlay: 'Play Card:',
+  devCardKnight: 'Knight',
+  devCardVictoryPoint: 'Victory Point',
+  devCardMonopoly: 'Monopoly',
+  devCardRoadBuilding: 'Road Building',
+  devCardYearOfPlenty: 'Year of Plenty',
+  largestArmyBadge: 'Largest Army',
+  devCardsRemaining: 'Remaining',
+  devCardsPlayed: 'Played',
+  devCardsProbability: 'Draw Probability',
+  devCardsInHand: 'Cards in hand',
+  devCardsKnightsPlayed: 'Knights played',
+  devCardsDeckType: 'Development Deck',
+  devCardsDeckFull: 'Full Deck (34 cards)',
+  devCardsDeckBase: 'Base Deck (25 cards)',
+  devCardsDeckHint: 'Use the reduced 25-card base deck for 3-4 player games.',
+  devCardsNoCards: 'No cards in hand',
+  devCardsEstimatedPotential: 'Estimated potential',
+  devCardsBuildHint: 'Use 🔨 to buy or play development cards',
+  devCardsDeckCardsLeft: (remaining: number, total: number): string =>
+    `${remaining}/${total} cards remaining`,
+  devCardsPieLabelLine1: 'if you draw',
+  devCardsPieLabelLine2: 'a card',
 };

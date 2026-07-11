@@ -32,6 +32,14 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
   - DFS-based path analyzer tracking the longest continuous road network for each player.
   - Accounts for blocking rules where opponent settlements cut road connectivity.
   - Grants +2 Victory Points to the lead player with a network of at least 5 roads, obeying standard Catan tie-breaker rules.
+- **Development Cards Tracking & Draw Probabilities**:
+  - Track purchased (in-hand) and played development cards per player (Knight, Victory Point, Monopoly, Road Building, Year of Plenty).
+  - Enforces deck capacities dynamically (34-card full deck by default, or 25-card base deck option). Enforces strict limits, preventing players from playing or buying cards exceeding deck totals.
+  - Interactive probability donut chart visualizing the exact chance of drawing each card type next based on unrevealed cards.
+  - Estimated potential calculation for opponent hands in play.
+- **Largest Army Award**:
+  - Awards +2 Victory Points to the first player to play 3 Knights, following standard Catan majority transfer and tie-breaker rules.
+  - Synchronizes badge pulse animation with the Longest Road badge in the scoreboard for a unified visual effect.
 - **Snapshot Import/Export**:
   - Save your active game state by exporting a `.json` snapshot file.
   - Load snapshots instantly to resume configuration or gameplay sessions on any device.
