@@ -173,6 +173,11 @@ export class GameScoreboardComponent {
     this.store.devCardsPanelOpen.set(true);
   }
 
+  protected openStatsPanel(event: Event): void {
+    event.stopPropagation();
+    this.store.gameStatsPanelOpen.set(true);
+  }
+
   protected getDevCardLabel(type: DevCardType): string {
     const t = this.i18n.t();
     const map: Record<DevCardType, string> = {

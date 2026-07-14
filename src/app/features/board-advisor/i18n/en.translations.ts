@@ -123,6 +123,26 @@ export interface Translations {
   devCardsDeckCardsLeft: (remaining: number, total: number) => string;
   devCardsPieLabelLine1: string;
   devCardsPieLabelLine2: string;
+  statsTitle: string;
+  statsTabProgress: string;
+  statsTabProjection: string;
+  statsVPTrend: string;
+  statsProdTrend: string;
+  statsRoundsToWin: string;
+  statsRoundsWon: string;
+  statsNoData: string;
+  statsLogTitle: string;
+  statsEngineSpeed: string;
+  statsEngineFast: string;
+  statsEngineMedium: string;
+  statsEngineSlow: string;
+  statsProjectionsHint: string;
+  statsProdPower: string;
+  statsMoveNum: string;
+  statsAwardLongestRoadGained: string;
+  statsAwardLongestRoadLost: string;
+  statsAwardLargestArmyGained: string;
+  statsAwardLargestArmyLost: string;
 }
 
 export const EN: Translations = {
@@ -254,4 +274,25 @@ export const EN: Translations = {
     `${remaining}/${total} cards remaining`,
   devCardsPieLabelLine1: 'if you draw',
   devCardsPieLabelLine2: 'a card',
+  statsTitle: 'Game Statistics',
+  statsTabProgress: 'Progression',
+  statsTabProjection: 'Projections',
+  statsVPTrend: 'Victory Points Progression',
+  statsProdTrend: 'Production Engine Growth',
+  statsRoundsToWin: 'Est. Rounds to Win',
+  statsRoundsWon: 'Won! 🏆',
+  statsNoData: 'No buildings placed in the active game yet. Build something to see stats!',
+  statsLogTitle: 'Game Log',
+  statsEngineSpeed: 'Engine Speed',
+  statsEngineFast: 'Fast ⚡',
+  statsEngineMedium: 'Moderate ⚖️',
+  statsEngineSlow: 'Slow 🐌',
+  statsProjectionsHint:
+    'Projections estimate how many full rounds of table turns (1 roll per player) are needed to reach 10 VP based on current production rates.',
+  statsProdPower: 'Current Production Power',
+  statsMoveNum: 'Move',
+  statsAwardLongestRoadGained: '+Longest Road',
+  statsAwardLongestRoadLost: '-Longest Road',
+  statsAwardLargestArmyGained: '+Largest Army',
+  statsAwardLargestArmyLost: '-Largest Army',
 };

@@ -280,4 +280,66 @@ describe('BoardStateStore - Longest Road', () => {
       expect(store.longestRoadOwnerId()).toBe('red');
     });
   });
+
+  describe('Game History & Action Grouping', () => {
+    it('should initialize game history on startGamePhase', () => {
+      store.appPhase.set('setup');
+      store.placedSettlements.set([
+        { vertexId: 'v1', playerColorId: 'red', type: 'settlement' },
+        { vertexId: 'v2', playerColorId: 'blue', type: 'settlement' },
+      ]);
+      store.startGamePhase();
+
+      expect(store.appPhase()).toBe('game');
+      const history = store.gameHistory();
+      expect(history).toHaveSize(1);
+      expect(history[0].entryId).toBe('start');
+      expect(history[0].placements).toHaveSize(2);
+    });
+
+    it('should append entry on first action by player and update on consecutive actions', () => {
+      store.appPhase.set('game');
+      store.gameActivePlayerId.set('red');
+
+      // Initialize start state
+      store.gameHistory.set([
+        {
+          entryId: 'start',
+          playerColorId: '',
+          description: 'Start',
+          scores: { red: 2, blue: 2, mustard: 2 },
+          avgProd: { red: 0.1, blue: 0.1, mustard: 0.1 },
+          placements: [],
+          roads: [],
+          devCardsPurchased: {},
+          devCardsPlayed: [],
+          timestamp: Date.now(),
+        },
+      ]);
+
+      // 1. Red builds a road (first action) -> appends a new entry
+      store.buildRoad('v1', 'v2');
+
+      let history = store.gameHistory();
+      expect(history).toHaveSize(2);
+      expect(history[1].playerColorId).toBe('red');
+      expect(history[1].description).toMatch(/1 camino|1 road/);
+
+      // 2. Red builds a settlement (consecutive action) -> updates the last entry
+      store.buildSettlement('v3');
+
+      history = store.gameHistory();
+      expect(history).toHaveSize(2); // Still 2 entries!
+      expect(history[1].description).toMatch(/poblado|settlement/);
+
+      // 3. Blue builds a road (different player) -> appends a new entry
+      store.gameActivePlayerId.set('blue');
+      store.buildRoad('u1', 'u2');
+
+      history = store.gameHistory();
+      expect(history).toHaveSize(3); // Appended!
+      expect(history[2].playerColorId).toBe('blue');
+      expect(history[2].description).toMatch(/1 camino|1 road/);
+    });
+  });
 });

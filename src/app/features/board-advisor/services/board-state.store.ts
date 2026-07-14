@@ -26,6 +26,8 @@ import {
 import { BASE_DEFAULT_DESERT_POSITION } from '../data/base-catan-board-layout.data';
 import { BoardLayoutService } from './board-layout.service';
 import { SimulationService } from './simulation.service';
+import { GameHistoryEntry } from '../models/game-history.model';
+import { TranslationService } from '../../../core/services/translation.service';
 import {
   assignSpiralLetters,
   assignBaseSpiralLetters,
@@ -42,6 +44,11 @@ export type BoardRotationDeg = 0 | 90 | 180 | 270;
 
 @Injectable({ providedIn: 'root' })
 export class BoardStateStore {
+  private readonly translationService = inject(TranslationService);
+
+  readonly gameHistory = signal<GameHistoryEntry[]>([]);
+  readonly gameStatsPanelOpen = signal<boolean>(false);
+
   // ── Settings ────────────────────────────────────────────────────────────────
   readonly scoreFormat = signal<'decimal' | 'percentage'>(
     (localStorage.getItem('catan-score-fmt') as 'decimal' | 'percentage') ?? 'decimal',
@@ -942,6 +949,217 @@ export class BoardStateStore {
     }, 100);
   }
 
+  private generateEntryDescription(
+    prev: GameHistoryEntry,
+    currPlacements: PlacedSettlement[],
+    currRoads: PlacedRoad[],
+    currPurchased: Record<string, number>,
+    currPlayed: PlayedDevCard[],
+    currLongestRoadOwnerId: string | null,
+    currLargestArmyOwnerId: string | null,
+    colorId: string,
+  ): string {
+    const prevMyPlacements = prev.placements.filter(p => p.playerColorId === colorId);
+    const currMyPlacements = currPlacements.filter(p => p.playerColorId === colorId);
+
+    const prevSettlements = prevMyPlacements.filter(p => p.type === 'settlement' || !p.type).length;
+    const currSettlements = currMyPlacements.filter(p => p.type === 'settlement' || !p.type).length;
+    const prevCities = prevMyPlacements.filter(p => p.type === 'city').length;
+    const currCities = currMyPlacements.filter(p => p.type === 'city').length;
+
+    const prevRoadsCount = prev.roads.filter(r => r.playerColorId === colorId).length;
+    const currRoadsCount = currRoads.filter(r => r.playerColorId === colorId).length;
+
+    const prevPurchasedCount = prev.devCardsPurchased[colorId] ?? 0;
+    const currPurchasedCount = currPurchased[colorId] ?? 0;
+
+    const prevPlayedCount = prev.devCardsPlayed.filter(c => c.playerColorId === colorId).length;
+    const currPlayedCount = currPlayed.filter(c => c.playerColorId === colorId).length;
+
+    const settleDiff = currSettlements - prevSettlements;
+    const cityDiff = currCities - prevCities;
+    const roadDiff = currRoadsCount - prevRoadsCount;
+    const devCardDiff = currPurchasedCount - prevPurchasedCount;
+    const devCardPlayedDiff = currPlayedCount - prevPlayedCount;
+
+    const parts: string[] = [];
+    const isEs = this.translationService.lang() === 'es';
+
+    if (settleDiff > 0) {
+      const settlePlural = settleDiff > 1 ? 's' : '';
+      const settleDesc = isEs
+        ? `${settleDiff} poblado${settlePlural}`
+        : `${settleDiff} settlement${settlePlural}`;
+      parts.push(settleDesc);
+    }
+    if (cityDiff > 0) {
+      const cityPluralEs = cityDiff > 1 ? 'es' : '';
+      const cityPluralEn = cityDiff > 1 ? 'ies' : 'y';
+      const cityDesc = isEs
+        ? `${cityDiff} ciudad${cityPluralEs}`
+        : `${cityDiff} cit${cityPluralEn}`;
+      parts.push(cityDesc);
+    }
+    if (roadDiff > 0) {
+      const roadPlural = roadDiff > 1 ? 's' : '';
+      const roadDesc = isEs ? `${roadDiff} camino${roadPlural}` : `${roadDiff} road${roadPlural}`;
+      parts.push(roadDesc);
+    }
+    if (devCardDiff > 0) {
+      const cardPlural = devCardDiff > 1 ? 's' : '';
+      const cardDesc = isEs
+        ? `${devCardDiff} carta${cardPlural} comprada${cardPlural}`
+        : `${devCardDiff} card${cardPlural} bought`;
+      parts.push(cardDesc);
+    }
+    if (devCardPlayedDiff > 0) {
+      const playPlural = devCardPlayedDiff > 1 ? 's' : '';
+      const playDesc = isEs
+        ? `${devCardPlayedDiff} carta${playPlural} jugada${playPlural}`
+        : `${devCardPlayedDiff} card${playPlural} played`;
+      parts.push(playDesc);
+    }
+
+    // Award changes
+    const prevLR = prev.longestRoadOwnerId ?? null;
+    const prevLA = prev.largestArmyOwnerId ?? null;
+
+    if (prevLR !== currLongestRoadOwnerId) {
+      if (currLongestRoadOwnerId === colorId) {
+        parts.push(this.translationService.t().statsAwardLongestRoadGained);
+      } else if (prevLR === colorId) {
+        parts.push(this.translationService.t().statsAwardLongestRoadLost);
+      }
+    }
+
+    if (prevLA !== currLargestArmyOwnerId) {
+      if (currLargestArmyOwnerId === colorId) {
+        parts.push(this.translationService.t().statsAwardLargestArmyGained);
+      } else if (prevLA === colorId) {
+        parts.push(this.translationService.t().statsAwardLargestArmyLost);
+      }
+    }
+
+    // Removals
+    if (settleDiff < 0) {
+      const absSettle = Math.abs(settleDiff);
+      const settleRemPlural = absSettle > 1 ? 's' : '';
+      const settleRemDesc = isEs
+        ? `${settleDiff} poblado${settleRemPlural}`
+        : `${settleDiff} settlement${settleRemPlural}`;
+      parts.push(settleRemDesc);
+    }
+    if (cityDiff < 0) {
+      const absCity = Math.abs(cityDiff);
+      const cityRemPluralEs = absCity > 1 ? 'es' : '';
+      const cityRemPluralEn = absCity > 1 ? 'ies' : 'y';
+      const cityRemDesc = isEs
+        ? `${cityDiff} ciudad${cityRemPluralEs}`
+        : `${cityDiff} cit${cityRemPluralEn}`;
+      parts.push(cityRemDesc);
+    }
+    if (roadDiff < 0) {
+      const absRoad = Math.abs(roadDiff);
+      const roadRemPlural = absRoad > 1 ? 's' : '';
+      const roadRemDesc = isEs
+        ? `${roadDiff} camino${roadRemPlural}`
+        : `${roadDiff} road${roadRemPlural}`;
+      parts.push(roadRemDesc);
+    }
+
+    if (parts.length === 0) {
+      return isEs ? 'Acción' : 'Action';
+    }
+    return parts.join(', ');
+  }
+
+  private updateHistoryLog(activePlayerColorId: string): void {
+    if (this.appPhase() !== 'game') return;
+
+    const history = this.gameHistory();
+    if (history.length === 0) return;
+
+    const currentPlacements = this.placedSettlements();
+    const currentRoads = this.placedRoads();
+    const currentPurchased = this.devCardsPurchased();
+    const currentPlayed = this.devCardsPlayed();
+    const currentLR = this.longestRoadOwnerId();
+    const currentLA = this.largestArmyOwnerId();
+
+    const scoresMap: Record<string, number> = {};
+    const prodMap: Record<string, number> = {};
+    for (const scoreRow of this.playerScores()) {
+      scoresMap[scoreRow.color.id] = scoreRow.score;
+      prodMap[scoreRow.color.id] = scoreRow.avgProd;
+    }
+
+    const lastEntry = history.at(-1)!;
+
+    if (lastEntry.entryId !== 'start' && lastEntry.playerColorId === activePlayerColorId) {
+      // Group consecutive action: compare with the entry BEFORE the last entry
+      const prevEntry = history.at(-2) || history[0];
+
+      const desc = this.generateEntryDescription(
+        prevEntry,
+        currentPlacements,
+        currentRoads,
+        currentPurchased,
+        currentPlayed,
+        currentLR,
+        currentLA,
+        activePlayerColorId,
+      );
+
+      this.gameHistory.update(list => {
+        const copy = [...list];
+        copy[copy.length - 1] = {
+          entryId: lastEntry.entryId,
+          playerColorId: activePlayerColorId,
+          description: desc,
+          scores: scoresMap,
+          avgProd: prodMap,
+          placements: [...currentPlacements],
+          roads: [...currentRoads],
+          devCardsPurchased: { ...currentPurchased },
+          devCardsPlayed: [...currentPlayed],
+          longestRoadOwnerId: currentLR,
+          largestArmyOwnerId: currentLA,
+          timestamp: Date.now(),
+        };
+        return copy;
+      });
+    } else {
+      // Append a new entry
+      const desc = this.generateEntryDescription(
+        lastEntry,
+        currentPlacements,
+        currentRoads,
+        currentPurchased,
+        currentPlayed,
+        currentLR,
+        currentLA,
+        activePlayerColorId,
+      );
+
+      const newEntry: GameHistoryEntry = {
+        entryId: `move-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+        playerColorId: activePlayerColorId,
+        description: desc,
+        scores: scoresMap,
+        avgProd: prodMap,
+        placements: [...currentPlacements],
+        roads: [...currentRoads],
+        devCardsPurchased: { ...currentPurchased },
+        devCardsPlayed: [...currentPlayed],
+        longestRoadOwnerId: currentLR,
+        largestArmyOwnerId: currentLA,
+        timestamp: Date.now(),
+      };
+
+      this.gameHistory.update(list => [...list, newEntry]);
+    }
+  }
+
   /**
    * Resets the board for setup: clears simulation, settlements, roads,
    * turn tracking, undo/redo stacks, and returns to Phase 1.
@@ -968,6 +1186,8 @@ export class BoardStateStore {
     this.devCardsPurchased.set({});
     this.devCardsPlayed.set([]);
     this.devCardsPanelOpen.set(false);
+    this.gameHistory.set([]);
+    this.gameStatsPanelOpen.set(false);
     this.appPhase.set('setup');
   }
 
@@ -984,6 +1204,7 @@ export class BoardStateStore {
         largestArmyOwnerId: this.largestArmyOwnerId(),
         devCardsPurchased: { ...this.devCardsPurchased() },
         devCardsPlayed: [...this.devCardsPlayed()],
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -991,6 +1212,30 @@ export class BoardStateStore {
     this.gameActivePlayerId.set(firstColor);
     this.activeBuildTool.set(null);
     this.appPhase.set('game');
+
+    const scoresMap: Record<string, number> = {};
+    const prodMap: Record<string, number> = {};
+    for (const scoreRow of this.playerScores()) {
+      scoresMap[scoreRow.color.id] = scoreRow.score;
+      prodMap[scoreRow.color.id] = scoreRow.avgProd;
+    }
+
+    const startEntry: GameHistoryEntry = {
+      entryId: 'start',
+      playerColorId: '',
+      description: this.translationService.lang() === 'es' ? 'Fase Inicial' : 'Initial Phase',
+      scores: scoresMap,
+      avgProd: prodMap,
+      placements: [...this.placedSettlements()],
+      roads: [...this.placedRoads()],
+      devCardsPurchased: { ...this.devCardsPurchased() },
+      devCardsPlayed: [...this.devCardsPlayed()],
+      longestRoadOwnerId: this.longestRoadOwnerId(),
+      largestArmyOwnerId: this.largestArmyOwnerId(),
+      timestamp: Date.now(),
+    };
+
+    this.gameHistory.set([startEntry]);
   }
 
   selectActivePlayerInGame(playerColorId: string): void {
@@ -1010,6 +1255,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -1032,6 +1278,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -1042,9 +1289,12 @@ export class BoardStateStore {
     this.recalculateLongestRoadOwner();
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
+    this.updateHistoryLog(colorId);
   }
 
   upgradeToCity(vertexId: string): void {
+    const colorId =
+      this.placedSettlements().find(s => s.vertexId === vertexId)?.playerColorId ?? 'red';
     this.undoStack.update(s => [
       ...s,
       {
@@ -1054,6 +1304,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -1063,6 +1314,7 @@ export class BoardStateStore {
     this.recalculateLongestRoadOwner();
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
+    this.updateHistoryLog(colorId);
   }
 
   buildRoad(fromId: string, toId: string): void {
@@ -1076,6 +1328,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -1086,9 +1339,12 @@ export class BoardStateStore {
     this.recalculateLongestRoadOwner();
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
+    this.updateHistoryLog(colorId);
   }
 
   removeSettlement(vertexId: string): void {
+    const settlement = this.placedSettlements().find(s => s.vertexId === vertexId);
+    const colorId = settlement?.playerColorId ?? '';
     this.undoStack.update(s => [
       ...s,
       {
@@ -1098,6 +1354,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -1105,6 +1362,9 @@ export class BoardStateStore {
     this.placedRoads.update(roads => roads.filter(r => r.from !== vertexId && r.to !== vertexId));
     this.recalculateLongestRoadOwner();
     this.selectedVertexId.set(null);
+    if (colorId) {
+      this.updateHistoryLog(colorId);
+    }
   }
 
   undo(): void {
@@ -1129,6 +1389,7 @@ export class BoardStateStore {
           largestArmyOwnerId: this.largestArmyOwnerId(),
           devCardsPurchased: { ...this.devCardsPurchased() },
           devCardsPlayed: [...this.devCardsPlayed()],
+          gameHistory: [...this.gameHistory()],
         },
       ]);
       const last = stack.at(-1)!;
@@ -1148,6 +1409,11 @@ export class BoardStateStore {
       }
       if (last.devCardsPlayed !== undefined) {
         this.devCardsPlayed.set([...last.devCardsPlayed]);
+      }
+      if (last.gameHistory !== undefined) {
+        this.gameHistory.set([...last.gameHistory]);
+      } else {
+        this.gameHistory.set([]);
       }
       this.undoStack.update(s => s.slice(0, -1));
       this.selectedVertexId.set(null);
@@ -1176,6 +1442,7 @@ export class BoardStateStore {
           largestArmyOwnerId: this.largestArmyOwnerId(),
           devCardsPurchased: { ...this.devCardsPurchased() },
           devCardsPlayed: [...this.devCardsPlayed()],
+          gameHistory: [...this.gameHistory()],
         },
       ]);
       const last = stack.at(-1)!;
@@ -1195,6 +1462,11 @@ export class BoardStateStore {
       }
       if (last.devCardsPlayed !== undefined) {
         this.devCardsPlayed.set([...last.devCardsPlayed]);
+      }
+      if (last.gameHistory !== undefined) {
+        this.gameHistory.set([...last.gameHistory]);
+      } else {
+        this.gameHistory.set([]);
       }
       this.redoStack.update(r => r.slice(0, -1));
       this.selectedVertexId.set(null);
@@ -1276,6 +1548,7 @@ export class BoardStateStore {
         turnIndex: this.currentTurnIndex(),
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -1286,6 +1559,7 @@ export class BoardStateStore {
         ...roads,
         { from: fromId, to: toVertexId, playerColorId: colorId },
       ]);
+      this.updateHistoryLog(colorId);
     } else {
       // In setup phase: place settlement + road, and advance turn
       this.placedSettlements.update(list => [
@@ -1482,6 +1756,7 @@ export class BoardStateStore {
         largestArmyOwnerId: this.largestArmyOwnerId(),
         devCardsPurchased: { ...this.devCardsPurchased() },
         devCardsPlayed: [...this.devCardsPlayed()],
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -1489,6 +1764,7 @@ export class BoardStateStore {
       ...current,
       [playerColorId]: (current[playerColorId] ?? 0) + 1,
     }));
+    this.updateHistoryLog(playerColorId);
   }
 
   /**
@@ -1518,6 +1794,7 @@ export class BoardStateStore {
         largestArmyOwnerId: this.largestArmyOwnerId(),
         devCardsPurchased: { ...this.devCardsPurchased() },
         devCardsPlayed: [...this.devCardsPlayed()],
+        gameHistory: [...this.gameHistory()],
       },
     ]);
     this.redoStack.set([]);
@@ -1531,6 +1808,7 @@ export class BoardStateStore {
     if (type === 'knight') {
       this.recalculateLargestArmyOwner();
     }
+    this.updateHistoryLog(playerColorId);
   }
 
   /**
@@ -1651,6 +1929,7 @@ export class BoardStateStore {
       useReducedDeck: this.useReducedDeck(),
       devCardsPurchased: this.devCardsPurchased(),
       devCardsPlayed: this.devCardsPlayed(),
+      gameHistory: this.gameHistory(),
       simulationResult: result
         ? {
             totalMiniGames: result.totalMiniGames,
@@ -1794,6 +2073,13 @@ export class BoardStateStore {
         this.devCardsPlayed.set(s['devCardsPlayed'] as PlayedDevCard[]);
       } else {
         this.devCardsPlayed.set([]);
+      }
+
+      // ── 7.8. Game history ──────────────────────────────────────────────
+      if (Array.isArray(s['gameHistory'])) {
+        this.gameHistory.set(s['gameHistory'] as GameHistoryEntry[]);
+      } else {
+        this.gameHistory.set([]);
       }
 
       // ── 8. Clear transient state ───────────────────────────────────────

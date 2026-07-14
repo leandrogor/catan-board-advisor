@@ -1,0 +1,34 @@
+:host {
+  display: block;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+svg path {
+  transition:
+    d 0.5s ease,
+    stroke-dasharray 0.5s ease,
+    stroke-dashoffset 0.5s ease;
+}
+
+svg circle {
+  transition:
+    cx 0.5s ease,
+    cy 0.5s ease;
+}

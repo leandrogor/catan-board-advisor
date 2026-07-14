@@ -5,5 +5,7 @@
 }
 
 svg circle {
-  transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease;
+  transition:
+    stroke-dasharray 0.5s ease,
+    stroke-dashoffset 0.5s ease;
 }
