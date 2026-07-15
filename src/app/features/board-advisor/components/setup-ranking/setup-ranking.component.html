@@ -13,17 +13,16 @@
     </div>
 
     <div
-      class="grid grid-cols-[3rem_1.5rem_1fr_auto] gap-x-2 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-indigo-100 dark:border-indigo-900/50"
+      class="grid grid-cols-[3rem_1fr_auto] gap-x-2 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-indigo-100 dark:border-indigo-900/50"
     >
       <span>{{ i18n.t().rankingProdRank }}</span>
-      <span class="text-center">{{ i18n.t().rankingTurnOrder }}</span>
       <span></span>
       <span class="text-right">{{ i18n.t().rankingScore }}</span>
     </div>
 
     @for (row of rankingRows(); track row.playerColor.id) {
       <div
-        class="grid grid-cols-[3rem_1.5rem_1fr_auto] gap-x-2 items-center px-4 py-2.5 border-b border-indigo-100/70 dark:border-indigo-900/30 last:border-0 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+        class="grid grid-cols-[3rem_1fr_auto] gap-x-2 items-center px-4 py-2.5 border-b border-indigo-100/70 dark:border-indigo-900/30 last:border-0 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
         [class.bg-indigo-100/40]="store.myPlayerColorId() === row.playerColor.id"
         [class.dark:bg-indigo-950/40]="store.myPlayerColorId() === row.playerColor.id"
       >
@@ -31,20 +30,21 @@
           #{{ row.productionRank }}
         </span>
 
-        <span class="text-xs text-center text-slate-500 dark:text-slate-400 font-medium">
-          ({{ row.turnOrder }})
-        </span>
-
         <div class="flex items-center gap-2 min-w-0">
           <span
             class="inline-block w-4 h-4 rounded-full shadow-sm ring-1 ring-white dark:ring-slate-600 shrink-0"
             [style.background-color]="row.playerColor.hex"
           ></span>
-          <span class="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+          <span
+            class="text-sm font-medium text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5"
+          >
             {{ colorName(row.playerColor) }}
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              ({{ row.turnOrder }})
+            </span>
             @if (store.myPlayerColorId() === row.playerColor.id) {
               <span
-                class="ml-1.5 inline-block text-[9px] font-extrabold uppercase bg-indigo-600 dark:bg-indigo-500 text-white px-1.5 py-0.5 rounded-sm"
+                class="inline-block text-[9px] font-extrabold uppercase bg-indigo-600 dark:bg-indigo-500 text-white px-1.5 py-0.5 rounded-sm shrink-0"
               >
                 {{ i18n.t().isMeLabel }}
               </span>
@@ -55,7 +55,7 @@
         <span
           class="text-sm font-mono font-semibold text-slate-700 dark:text-slate-300 tabular-nums"
         >
-          {{ formatScore(row.avgScore) }}
+          {{ formatScore(row.totalScore) }}
         </span>
       </div>
     }

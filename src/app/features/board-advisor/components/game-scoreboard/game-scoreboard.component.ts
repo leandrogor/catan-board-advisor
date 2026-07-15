@@ -67,6 +67,10 @@ export class GameScoreboardComponent {
     return map[color.id] ?? color.id;
   }
 
+  protected getTurnOrder(colorId: string): number {
+    return this.store.playerColors().findIndex(c => c.id === colorId) + 1;
+  }
+
   protected formatProduction(val: number): string {
     if (this.store.scoreFormat() === 'percentage') {
       return `${(val * 100).toFixed(1)}%`;

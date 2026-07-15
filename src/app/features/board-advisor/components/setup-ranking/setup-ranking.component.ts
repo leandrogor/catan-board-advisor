@@ -6,7 +6,7 @@ import { PlayerColor } from '../../models/player-color.model';
 interface PlayerRankingRow {
   playerColor: PlayerColor;
   turnOrder: number; // 1-based index in playerColors
-  avgScore: number;
+  totalScore: number;
   productionRank: number; // 1224 rule
 }
 
@@ -30,32 +30,31 @@ export class SetupRankingComponent {
       vertexScoreMap.set(v.id, v.rawScore);
     }
 
-    // For each player, compute avgScore from their 2 settlements
-    const playerData: { playerColor: PlayerColor; turnOrder: number; avgScore: number }[] =
+    // For each player, compute totalScore from their settlements
+    const playerData: { playerColor: PlayerColor; turnOrder: number; totalScore: number }[] =
       playerColors.map((color, idx) => {
         const mySettlements = placements.filter(s => s.playerColorId === color.id);
-        let avgScore = 0;
+        let totalScore = 0;
         if (mySettlements.length > 0) {
-          const total = mySettlements.reduce(
+          totalScore = mySettlements.reduce(
             (sum, s) => sum + (vertexScoreMap.get(s.vertexId) ?? 0),
             0,
           );
-          avgScore = total / mySettlements.length;
         }
-        return { playerColor: color, turnOrder: idx + 1, avgScore };
+        return { playerColor: color, turnOrder: idx + 1, totalScore };
       });
 
-    // Sort descending by avgScore
-    playerData.sort((a, b) => b.avgScore - a.avgScore);
+    // Sort descending by totalScore
+    playerData.sort((a, b) => b.totalScore - a.totalScore);
 
-    // Apply 1224 tie-ranking rule: group by exact avgScore equality
+    // Apply 1224 tie-ranking rule: group by exact totalScore equality
     const rows: PlayerRankingRow[] = [];
     let runningCount = 0;
     let i = 0;
     while (i < playerData.length) {
-      const groupScore = playerData[i].avgScore;
+      const groupScore = playerData[i].totalScore;
       const groupStart = i;
-      while (i < playerData.length && playerData[i].avgScore === groupScore) {
+      while (i < playerData.length && playerData[i].totalScore === groupScore) {
         i++;
       }
       const groupRank = 1 + runningCount;
