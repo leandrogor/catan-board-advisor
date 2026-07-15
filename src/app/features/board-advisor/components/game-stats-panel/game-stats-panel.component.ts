@@ -52,6 +52,9 @@ export class GameStatsPanelComponent {
   protected readonly highlightedPlayerId = signal<string | null>(null);
   protected readonly svgWidth = signal<number>(700);
   protected readonly svgHeight = signal<number>(300);
+  protected readonly svgTopMargin = computed(() => {
+    return this.svgWidth() < 640 ? 150 : 95;
+  });
 
   // ViewChild reference to zoomContainer
   protected readonly zoomContainer = viewChild<ElementRef<HTMLDivElement>>('zoomContainer');
@@ -410,6 +413,8 @@ export class GameStatsPanelComponent {
     const isZoom = this.isZoomMode();
     const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
     const H = this.svgHeight();
+    const topMargin = this.svgTopMargin();
+    const rangeY = H - topMargin - 35;
 
     return colors.map(color => {
       const points = history.map((entry, idx) => {
@@ -422,7 +427,7 @@ export class GameStatsPanelComponent {
           x = 60 + (idx / (total - 1)) * (W - 120);
         }
         const score = entry.scores[color.id] ?? 2;
-        const y = H - 35 - ((score - 2) / (maxScore - 2)) * (H - 120);
+        const y = H - 35 - ((score - 2) / (maxScore - 2)) * rangeY;
         return { x, y, score, idx };
       });
 
@@ -450,6 +455,8 @@ export class GameStatsPanelComponent {
     const isZoom = this.isZoomMode();
     const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
     const H = this.svgHeight();
+    const topMargin = this.svgTopMargin();
+    const rangeY = H - topMargin - 35;
 
     return colors.map(color => {
       const points = history.map((entry, idx) => {
@@ -462,7 +469,7 @@ export class GameStatsPanelComponent {
           x = 60 + (idx / (total - 1)) * (W - 120);
         }
         const val = entry.avgProd[color.id] ?? 0;
-        const y = H - 35 - (val / maxYield) * (H - 120);
+        const y = H - 35 - (val / maxYield) * rangeY;
         return { x, y, val, idx };
       });
 
@@ -486,9 +493,11 @@ export class GameStatsPanelComponent {
     const allScores = history.flatMap(e => Object.values(e.scores));
     const maxScore = Math.max(10, ...allScores);
     const H = this.svgHeight();
+    const topMargin = this.svgTopMargin();
+    const rangeY = H - topMargin - 35;
 
     return lines.map(line => {
-      const y = H - 35 - ((line.score - 2) / (maxScore - 2)) * (H - 120);
+      const y = H - 35 - ((line.score - 2) / (maxScore - 2)) * rangeY;
       return { score: line.score, y };
     });
   });
@@ -503,9 +512,11 @@ export class GameStatsPanelComponent {
     const allYields = history.flatMap(e => Object.values(e.avgProd));
     const maxYield = Math.max(0.5, ...allYields);
     const H = this.svgHeight();
+    const topMargin = this.svgTopMargin();
+    const rangeY = H - topMargin - 35;
 
     return lines.map(line => {
-      const y = H - 35 - (line.val / maxYield) * (H - 120);
+      const y = H - 35 - (line.val / maxYield) * rangeY;
       return { val: line.val, y };
     });
   });
