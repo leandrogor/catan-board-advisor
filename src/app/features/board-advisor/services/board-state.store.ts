@@ -1073,10 +1073,24 @@ export class BoardStateStore {
       parts.push(cardDesc);
     }
     if (devCardPlayedDiff > 0) {
+      const prevMyPlayed = prev.devCardsPlayed.filter(c => c.playerColorId === colorId);
+      const currMyPlayed = currPlayed.filter(c => c.playerColorId === colorId);
+      const newPlayedCards = currMyPlayed.slice(prevMyPlayed.length);
+      const t = this.translationService.t();
+      const cardNameMap: Record<DevCardType, string> = {
+        knight: t.devCardKnight,
+        victoryPoint: t.devCardVictoryPoint,
+        monopoly: t.devCardMonopoly,
+        roadBuilding: t.devCardRoadBuilding,
+        yearOfPlenty: t.devCardYearOfPlenty,
+      };
+      const cardNamesList = newPlayedCards.map(c => cardNameMap[c.type] || c.type);
+      const cardNamesStr = cardNamesList.length > 0 ? ` (${cardNamesList.join(', ')})` : '';
+
       const playPlural = devCardPlayedDiff > 1 ? 's' : '';
       const playDesc = isEs
-        ? `${devCardPlayedDiff} carta${playPlural} jugada${playPlural}`
-        : `${devCardPlayedDiff} card${playPlural} played`;
+        ? `${devCardPlayedDiff} carta${playPlural} jugada${playPlural}${cardNamesStr}`
+        : `${devCardPlayedDiff} card${playPlural} played${cardNamesStr}`;
       parts.push(playDesc);
     }
 
@@ -1101,12 +1115,13 @@ export class BoardStateStore {
     }
 
     // Removals
-    if (settleDiff < 0) {
-      const absSettle = Math.abs(settleDiff);
+    const adjustedSettleDiff = settleDiff + Math.max(cityDiff, 0);
+    if (adjustedSettleDiff < 0) {
+      const absSettle = Math.abs(adjustedSettleDiff);
       const settleRemPlural = absSettle > 1 ? 's' : '';
       const settleRemDesc = isEs
-        ? `${settleDiff} poblado${settleRemPlural}`
-        : `${settleDiff} settlement${settleRemPlural}`;
+        ? `${adjustedSettleDiff} poblado${settleRemPlural}`
+        : `${adjustedSettleDiff} settlement${settleRemPlural}`;
       parts.push(settleRemDesc);
     }
     if (cityDiff < 0) {

@@ -341,6 +341,73 @@ describe('BoardStateStore - Longest Road', () => {
       expect(history[2].playerColorId).toBe('blue');
       expect(history[2].description).toMatch(/1 camino|1 road/);
     });
+
+    it('should format city upgrades and played development cards correctly in Spanish and English history logs', () => {
+      const translationService = store['translationService'];
+
+      // Test Spanish
+      translationService.lang.set('es');
+      store.appPhase.set('game');
+      store.gameActivePlayerId.set('red');
+
+      store.gameHistory.set([
+        {
+          entryId: 'start',
+          playerColorId: '',
+          description: 'Start',
+          scores: { red: 2 },
+          avgProd: { red: 0.1 },
+          placements: [{ vertexId: 'v1', playerColorId: 'red', type: 'settlement' }],
+          roads: [],
+          devCardsPurchased: { red: 2 },
+          devCardsPlayed: [],
+          timestamp: Date.now(),
+        },
+      ]);
+      store.placedSettlements.set([{ vertexId: 'v1', playerColorId: 'red', type: 'settlement' }]);
+      store.devCardsPurchased.set({ red: 2 });
+      store.devCardsPlayed.set([]);
+
+      store.upgradeToCity('v1');
+      let history = store.gameHistory();
+      expect(history).toHaveSize(2);
+      expect(history[1].description).toBe('1 ciudad');
+
+      store.playDevCard('red', 'knight');
+      history = store.gameHistory();
+      expect(history).toHaveSize(2);
+      expect(history[1].description).toBe('1 ciudad, 1 carta jugada (Caballero)');
+
+      // Test English
+      translationService.lang.set('en');
+      store.gameHistory.set([
+        {
+          entryId: 'start',
+          playerColorId: '',
+          description: 'Start',
+          scores: { red: 2 },
+          avgProd: { red: 0.1 },
+          placements: [{ vertexId: 'v1', playerColorId: 'red', type: 'settlement' }],
+          roads: [],
+          devCardsPurchased: { red: 2 },
+          devCardsPlayed: [],
+          timestamp: Date.now(),
+        },
+      ]);
+      store.placedSettlements.set([{ vertexId: 'v1', playerColorId: 'red', type: 'settlement' }]);
+      store.devCardsPurchased.set({ red: 2 });
+      store.devCardsPlayed.set([]);
+
+      store.upgradeToCity('v1');
+      history = store.gameHistory();
+      expect(history).toHaveSize(2);
+      expect(history[1].description).toBe('1 city');
+
+      store.playDevCard('red', 'knight');
+      history = store.gameHistory();
+      expect(history).toHaveSize(2);
+      expect(history[1].description).toBe('1 city, 1 card played (Knight)');
+    });
   });
 
   describe('Snapshot import/export resolution independence', () => {
@@ -560,7 +627,7 @@ describe('BoardStateStore - Longest Road', () => {
       const sug = suggestions.find(s => s.targetVertexId === v4Id);
       expect(sug).toBeDefined();
       if (sug) {
-        expect(sug.newRoads.length).toBe(3);
+        expect(sug.newRoads).toHaveSize(3);
         const hasV1ToV2 = sug.newRoads.some(
           r => (r.from === v1Id && r.to === v2Id) || (r.from === v2Id && r.to === v1Id),
         );
