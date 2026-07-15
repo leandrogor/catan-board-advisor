@@ -52,9 +52,7 @@ export class GameStatsPanelComponent {
   protected readonly highlightedPlayerId = signal<string | null>(null);
   protected readonly svgWidth = signal<number>(700);
   protected readonly svgHeight = signal<number>(300);
-  protected readonly svgTopMargin = computed(() => {
-    return this.svgWidth() < 640 ? 150 : 95;
-  });
+  protected readonly svgTopMargin = computed(() => 30);
 
   // ViewChild reference to zoomContainer
   protected readonly zoomContainer = viewChild<ElementRef<HTMLDivElement>>('zoomContainer');
