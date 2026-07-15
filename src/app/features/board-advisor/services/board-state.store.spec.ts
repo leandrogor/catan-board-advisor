@@ -406,4 +406,174 @@ describe('BoardStateStore - Longest Road', () => {
       expect(matchingVertex).toBeDefined();
     });
   });
+
+  describe('myExpansionSuggestions road occupancy validation', () => {
+    it('should not suggest paths that are blocked by opponent roads', () => {
+      // 1. Setup board
+      store.playerCount.set(3);
+      store.desertState.set({ variant: 'base', L1: { row: 2, col: 2 } });
+      store.hexSize.set(60);
+      store.appPhase.set('game');
+      store.myPlayerColorId.set('green');
+
+      // Find 3 connected vertices v1 -> v2 -> v3
+      const vertices = store.allVertices();
+      const v1 = vertices.find(v => v.adjacentVertexIds.length >= 2);
+      expect(v1).toBeDefined();
+      const v2Id = v1!.adjacentVertexIds[0];
+      const v2 = vertices.find(v => v.id === v2Id);
+      expect(v2).toBeDefined();
+      const v3Id = v2!.adjacentVertexIds.find(id => id !== v1!.id)!;
+      expect(v3Id).toBeDefined();
+
+      // Ensure vertices are not blocked/occupied initially
+      store.placedSettlements.set([]);
+      store.placedRoads.set([]);
+
+      // Place green settlement at v1
+      store.placedSettlements.set([
+        { vertexId: v1!.id, playerColorId: 'green', type: 'settlement' },
+      ]);
+      // Place green road v1 -> v2
+      store.placedRoads.set([{ from: v1!.id, to: v2Id, playerColorId: 'green' }]);
+
+      // At this point, v2 is adjacent to our road network. v3 is also adjacent to v2.
+      // So the advisor should suggest a 1-road extension from v2 to v3 (or another adjacent vertex).
+      let suggestions = store.myExpansionSuggestions();
+      expect(suggestions.length).toBeGreaterThan(0);
+
+      // Verify suggestion target and path
+      const sug = suggestions.find(s => s.targetVertexId === v3Id);
+      if (sug) {
+        const hasV2ToV3 = sug.newRoads.some(
+          r => (r.from === v2Id && r.to === v3Id) || (r.from === v3Id && r.to === v2Id),
+        );
+        expect(hasV2ToV3).toBe(true);
+      }
+
+      // Now, place a blue road on the edge v2 -> v3
+      store.placedRoads.set([
+        { from: v1!.id, to: v2Id, playerColorId: 'green' },
+        { from: v2Id, to: v3Id, playerColorId: 'blue' },
+      ]);
+
+      // The advisor should recalculate and no longer suggest v3 via v2 -> v3
+      suggestions = store.myExpansionSuggestions();
+      const blockedSug = suggestions.find(s => s.targetVertexId === v3Id);
+      if (blockedSug) {
+        // If there's still a suggestion for v3, it must not be via the blocked edge v2 -> v3
+        const hasBlockedRoad = blockedSug.newRoads.some(
+          r => (r.from === v2Id && r.to === v3Id) || (r.from === v3Id && r.to === v2Id),
+        );
+        expect(hasBlockedRoad).toBe(false);
+      }
+    });
+
+    it('should suggest a 3-road extension if all 1-road and 2-road paths are blocked', () => {
+      // 1. Setup board
+      store.playerCount.set(3);
+      store.desertState.set({ variant: 'base', L1: { row: 2, col: 2 } });
+      store.hexSize.set(60);
+      store.appPhase.set('game');
+      store.myPlayerColorId.set('green');
+
+      // Find 4 connected vertices v1 -> v2 -> v3 -> v4 and a blocking neighbor of v3
+      const vertices = store.allVertices();
+      let path: string[] | null = null;
+      for (const start of vertices) {
+        for (const next1 of start.adjacentVertexIds) {
+          const v2 = vertices.find(v => v.id === next1);
+          if (!v2) continue;
+          for (const next2 of v2.adjacentVertexIds) {
+            if (next2 === start.id) continue;
+            const v3 = vertices.find(v => v.id === next2);
+            if (!v3) continue;
+            for (const next3 of v3.adjacentVertexIds) {
+              if (next3 === next1 || next3 === start.id) continue;
+              // We need v3 to have at least one other neighbor to block it
+              const vBlockId = v3.adjacentVertexIds.find(id => id !== next1 && id !== next3);
+              if (vBlockId) {
+                path = [start.id, next1, next2, next3, vBlockId];
+                break;
+              }
+            }
+            if (path) break;
+          }
+          if (path) break;
+        }
+        if (path) break;
+      }
+      expect(path).toBeDefined();
+      const [v1Id, v2Id, v3Id, v4Id, vBlockId] = path!;
+
+      // Reset placements and roads
+      const placedSet = new Set<string>([v1Id, vBlockId]);
+      const placedSettlements = [
+        { vertexId: v1Id, playerColorId: 'green', type: 'settlement' as const },
+        { vertexId: vBlockId, playerColorId: 'blue', type: 'settlement' as const },
+      ];
+
+      const v1 = vertices.find(v => v.id === v1Id)!;
+      for (const tId of v1.adjacentVertexIds) {
+        const vT = vertices.find(v => v.id === tId);
+        if (!vT) continue;
+        for (const uId of vT.adjacentVertexIds) {
+          if (uId === v1Id || uId === v3Id) continue;
+
+          const vU = vertices.find(v => v.id === uId)!;
+          if (vU.adjacentVertexIds.includes(v4Id)) {
+            // Block uId by placing a blue settlement at its neighbor (not v4Id, not tId, not v1Id)
+            const uBlockId = vU.adjacentVertexIds.find(
+              id => id !== v4Id && id !== tId && id !== v1Id,
+            )!;
+            if (!placedSet.has(uBlockId)) {
+              placedSet.add(uBlockId);
+              placedSettlements.push({
+                vertexId: uBlockId,
+                playerColorId: 'blue',
+                type: 'settlement' as const,
+              });
+            }
+          } else {
+            // Occupy uId directly
+            if (!placedSet.has(uId)) {
+              placedSet.add(uId);
+              placedSettlements.push({
+                vertexId: uId,
+                playerColorId: 'blue',
+                type: 'settlement' as const,
+              });
+            }
+          }
+        }
+      }
+
+      store.placedSettlements.set(placedSettlements);
+      store.placedRoads.set([]);
+
+      // Check suggestions. Since v2 is adjacent to v1 (blocked), and v3 is adjacent to vBlockId (blocked),
+      // there are no 1-road or 2-road suggestions targeting unblocked spots from v1.
+      // But v4 is unblocked, so it should suggest a 3-road extension from v1 to v4: v1 -> v2 -> v3 -> v4.
+      const suggestions = store.myExpansionSuggestions();
+      expect(suggestions.length).toBeGreaterThan(0);
+
+      const sug = suggestions.find(s => s.targetVertexId === v4Id);
+      expect(sug).toBeDefined();
+      if (sug) {
+        expect(sug.newRoads.length).toBe(3);
+        const hasV1ToV2 = sug.newRoads.some(
+          r => (r.from === v1Id && r.to === v2Id) || (r.from === v2Id && r.to === v1Id),
+        );
+        const hasV2ToV3 = sug.newRoads.some(
+          r => (r.from === v2Id && r.to === v3Id) || (r.from === v3Id && r.to === v2Id),
+        );
+        const hasV3ToV4 = sug.newRoads.some(
+          r => (r.from === v3Id && r.to === v4Id) || (r.from === v4Id && r.to === v3Id),
+        );
+        expect(hasV1ToV2).toBe(true);
+        expect(hasV2ToV3).toBe(true);
+        expect(hasV3ToV4).toBe(true);
+      }
+    });
+  });
 });

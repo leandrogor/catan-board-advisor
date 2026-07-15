@@ -776,12 +776,32 @@ export class BoardStateStore {
     }[] = [];
 
     for (const s of mySettlements) {
-      // Find the roads connected to this settlement
-      const connectedRoads = myRoads.filter(r => r.from === s.vertexId || r.to === s.vertexId);
-      const endpoints = connectedRoads.map(r => (r.from === s.vertexId ? r.to : r.from));
+      // Find all vertices reachable by this specific settlement s via myRoads
+      const reachable = new Set<string>([s.vertexId]);
+      const queue = [s.vertexId];
 
-      const sVertex = vertices.find(v => v.id === s.vertexId);
-      if (!sVertex) continue;
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+
+        // Opponent settlements block road propagation.
+        // We only allow propagation through empty vertices or our own settlements/cities.
+        const currVertex = vertices.find(v => v.id === curr);
+        if (currVertex && currVertex.isOccupied && curr !== s.vertexId) {
+          const settlement = this.getSettlementAt(curr);
+          if (settlement?.playerColorId !== myColor) {
+            continue;
+          }
+        }
+
+        const connected = myRoads.filter(r => r.from === curr || r.to === curr);
+        for (const r of connected) {
+          const next = r.from === curr ? r.to : r.from;
+          if (!reachable.has(next)) {
+            reachable.add(next);
+            queue.push(next);
+          }
+        }
+      }
 
       let bestCandidate: {
         targetVertexId: string;
@@ -789,58 +809,82 @@ export class BoardStateStore {
         score: number;
       } | null = null;
 
-      // --- Priority 1: 1-road extension from endpoints (E -> T) ---
-      const p1Candidates: {
+      // --- Priority 0: 0-road extension (build directly on an already reachable vertex) ---
+      const p0Candidates: {
         targetVertexId: string;
         newRoads: { from: string; to: string }[];
         score: number;
       }[] = [];
-      for (const ep of endpoints) {
-        const epVertex = vertices.find(v => v.id === ep);
-        if (!epVertex) continue;
-
-        for (const adjId of epVertex.adjacentVertexIds) {
-          if (adjId === s.vertexId || endpoints.includes(adjId)) continue;
-          const vAdj = vertices.find(v => v.id === adjId);
-          if (vAdj && !vAdj.isOccupied && !vAdj.isBlocked) {
-            p1Candidates.push({
-              targetVertexId: adjId,
-              newRoads: [{ from: ep, to: adjId }],
-              score: vAdj.rawScore,
-            });
-          }
+      for (const vId of reachable) {
+        const v = vertices.find(vx => vx.id === vId);
+        if (v && !v.isOccupied && !v.isBlocked) {
+          p0Candidates.push({
+            targetVertexId: vId,
+            newRoads: [],
+            score: v.rawScore,
+          });
         }
       }
 
-      if (p1Candidates.length > 0) {
-        p1Candidates.sort((a, b) => b.score - a.score);
-        bestCandidate = p1Candidates[0];
+      if (p0Candidates.length > 0) {
+        p0Candidates.sort((a, b) => b.score - a.score);
+        bestCandidate = p0Candidates[0];
       }
 
-      // --- Priority 2: 2-road extension from endpoints (E -> T -> U) ---
+      // --- Priority 1: 1-road extension from reachable vertices (V -> T) ---
+      if (!bestCandidate) {
+        const p1Candidates: {
+          targetVertexId: string;
+          newRoads: { from: string; to: string }[];
+          score: number;
+        }[] = [];
+        for (const vId of reachable) {
+          const vVertex = vertices.find(v => v.id === vId);
+          if (!vVertex) continue;
+
+          for (const adjId of vVertex.adjacentVertexIds) {
+            if (reachable.has(adjId) || this.hasRoadOnEdge(vId, adjId)) continue;
+            const vAdj = vertices.find(v => v.id === adjId);
+            if (vAdj && !vAdj.isOccupied && !vAdj.isBlocked) {
+              p1Candidates.push({
+                targetVertexId: adjId,
+                newRoads: [{ from: vId, to: adjId }],
+                score: vAdj.rawScore,
+              });
+            }
+          }
+        }
+
+        if (p1Candidates.length > 0) {
+          p1Candidates.sort((a, b) => b.score - a.score);
+          bestCandidate = p1Candidates[0];
+        }
+      }
+
+      // --- Priority 2: 2-road extension from reachable vertices (V -> T -> U) ---
       if (!bestCandidate) {
         const p2Candidates: {
           targetVertexId: string;
           newRoads: { from: string; to: string }[];
           score: number;
         }[] = [];
-        for (const ep of endpoints) {
-          const epVertex = vertices.find(v => v.id === ep);
-          if (!epVertex) continue;
+        for (const vId of reachable) {
+          const vVertex = vertices.find(v => v.id === vId);
+          if (!vVertex) continue;
 
-          for (const tId of epVertex.adjacentVertexIds) {
-            if (tId === s.vertexId || endpoints.includes(tId)) continue;
+          for (const tId of vVertex.adjacentVertexIds) {
+            if (reachable.has(tId) || this.hasRoadOnEdge(vId, tId)) continue;
             const vT = vertices.find(v => v.id === tId);
             // Can build road through T only if it is not occupied by an opponent
             if (vT && !vT.isOccupied) {
               for (const uId of vT.adjacentVertexIds) {
-                if (uId === ep || uId === s.vertexId) continue;
+                if (uId === vId || reachable.has(uId) || this.hasRoadOnEdge(tId, uId)) continue;
                 const vU = vertices.find(v => v.id === uId);
                 if (vU && !vU.isOccupied && !vU.isBlocked) {
                   p2Candidates.push({
                     targetVertexId: uId,
                     newRoads: [
-                      { from: ep, to: tId },
+                      { from: vId, to: tId },
                       { from: tId, to: uId },
                     ],
                     score: vU.rawScore,
@@ -857,31 +901,47 @@ export class BoardStateStore {
         }
       }
 
-      // --- Priority 3: 2-road paths from S along other connections (S -> A -> B) ---
+      // --- Priority 3: 3-road extension from reachable vertices (V -> T -> U -> W) ---
       if (!bestCandidate) {
         const p3Candidates: {
           targetVertexId: string;
           newRoads: { from: string; to: string }[];
           score: number;
         }[] = [];
-        // Other connections are adjacent vertices of S that are not part of endpoints
-        const otherAdjs = sVertex.adjacentVertexIds.filter(adjId => !endpoints.includes(adjId));
-        for (const aId of otherAdjs) {
-          const vA = vertices.find(v => v.id === aId);
-          // Can build road through A only if not occupied
-          if (vA && !vA.isOccupied) {
-            for (const bId of vA.adjacentVertexIds) {
-              if (bId === s.vertexId) continue;
-              const vB = vertices.find(v => v.id === bId);
-              if (vB && !vB.isOccupied && !vB.isBlocked) {
-                p3Candidates.push({
-                  targetVertexId: bId,
-                  newRoads: [
-                    { from: s.vertexId, to: aId },
-                    { from: aId, to: bId },
-                  ],
-                  score: vB.rawScore,
-                });
+        for (const vId of reachable) {
+          const vVertex = vertices.find(v => v.id === vId);
+          if (!vVertex) continue;
+
+          for (const tId of vVertex.adjacentVertexIds) {
+            if (reachable.has(tId) || this.hasRoadOnEdge(vId, tId)) continue;
+            const vT = vertices.find(v => v.id === tId);
+            if (vT && !vT.isOccupied) {
+              for (const uId of vT.adjacentVertexIds) {
+                if (uId === vId || reachable.has(uId) || this.hasRoadOnEdge(tId, uId)) continue;
+                const vU = vertices.find(v => v.id === uId);
+                if (vU && !vU.isOccupied) {
+                  for (const wId of vU.adjacentVertexIds) {
+                    if (
+                      wId === tId ||
+                      wId === vId ||
+                      reachable.has(wId) ||
+                      this.hasRoadOnEdge(uId, wId)
+                    )
+                      continue;
+                    const vW = vertices.find(v => v.id === wId);
+                    if (vW && !vW.isOccupied && !vW.isBlocked) {
+                      p3Candidates.push({
+                        targetVertexId: wId,
+                        newRoads: [
+                          { from: vId, to: tId },
+                          { from: tId, to: uId },
+                          { from: uId, to: wId },
+                        ],
+                        score: vW.rawScore,
+                      });
+                    }
+                  }
+                }
               }
             }
           }
