@@ -63,6 +63,8 @@ export function hexVertices(cx: number, cy: number, R: number): { x: number; y: 
 export function deduplicateVertices(hexes: HexDefinition[], R: number): Vertex[] {
   const vertices: Vertex[] = [];
   const TOLERANCE_SQ = 1; // 1.0 squared, matching coordinates within 1 pixel
+  const refR = 100;
+  const isExtension = hexes.length > 19;
 
   for (const hex of hexes) {
     const verts = hexVertices(hex.center.x, hex.center.y, R);
@@ -79,7 +81,27 @@ export function deduplicateVertices(hexes: HexDefinition[], R: number): Vertex[]
           existing.adjacentHexIds.push(hex.id);
         }
       } else {
-        const key = `${Math.round(v.x * 10)}-${Math.round(v.y * 10)}`;
+        // Calculate reference coordinates for the ID using refR = 100
+        const cx_ref = isExtension
+          ? hexCenter(hex.row, hex.col, refR).x
+          : baseHexCenter(hex.row, hex.col, refR).x;
+        const cy_ref = isExtension
+          ? hexCenter(hex.row, hex.col, refR).y
+          : baseHexCenter(hex.row, hex.col, refR).y;
+
+        // Which vertex index is this? (0 to 5)
+        const hexVerts = hexVertices(hex.center.x, hex.center.y, R);
+        const index = hexVerts.findIndex(hv => {
+          const dx = hv.x - v.x;
+          const dy = hv.y - v.y;
+          return dx * dx + dy * dy < TOLERANCE_SQ;
+        });
+
+        // Get the corresponding vertex coordinates at refR = 100
+        const refVerts = hexVertices(cx_ref, cy_ref, refR);
+        const refV = refVerts[index !== -1 ? index : 0];
+
+        const key = `${Math.round(refV.x * 10)}-${Math.round(refV.y * 10)}`;
         vertices.push({
           id: `v-${key}`,
           position: { x: v.x, y: v.y },

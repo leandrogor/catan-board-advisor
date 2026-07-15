@@ -342,4 +342,68 @@ describe('BoardStateStore - Longest Road', () => {
       expect(history[2].description).toMatch(/1 camino|1 road/);
     });
   });
+
+  describe('Snapshot import/export resolution independence', () => {
+    it('should correctly restore placed settlements when imported at a different hex size', () => {
+      // 1. Setup board with a specific variant & desertState
+      store.playerCount.set(3); // Base game
+      store.desertState.set({
+        variant: 'base',
+        L1: { row: 2, col: 2 },
+      });
+      // Set a starting hex size R = 60 (e.g. desktop)
+      store.hexSize.set(60);
+
+      // Force grid/vertices to compute
+      const initialVertices = store.allVertices();
+      expect(initialVertices.length).toBeGreaterThan(0);
+
+      // Place a settlement on the first vertex
+      const firstVertex = initialVertices[0];
+      store.placedSettlements.set([
+        { vertexId: firstVertex.id, playerColorId: 'red', type: 'settlement' },
+      ]);
+
+      // 2. Export state to a mock snapshot JSON object
+      const snapshot = {
+        version: 1,
+        playerCount: store.playerCount(),
+        playerColors: store.playerColors(),
+        myPlayerColorId: store.myPlayerColorId(),
+        boardVariant: store.boardVariant(),
+        desertState: store.desertState(),
+        placedSettlements: store.placedSettlements(),
+        placedRoads: store.placedRoads(),
+        currentTurnIndex: store.currentTurnIndex(),
+        boardRotationDeg: store.boardRotationDeg(),
+        appPhase: store.appPhase(),
+        gameActivePlayerId: store.gameActivePlayerId(),
+        longestRoadOwnerId: store.longestRoadOwnerId(),
+        largestArmyOwnerId: store.largestArmyOwnerId(),
+        useReducedDeck: store.useReducedDeck(),
+        devCardsPurchased: store.devCardsPurchased(),
+        devCardsPlayed: store.devCardsPlayed(),
+        gameHistory: store.gameHistory(),
+        simulationResult: null,
+      };
+
+      // 3. Reset the board and change size to R = 30 (e.g. mobile)
+      store.placedSettlements.set([]);
+      store.hexSize.set(30);
+
+      // 4. Import the snapshot
+      const success = store.importSnapshot(snapshot);
+      expect(success).toBe(true);
+
+      // 5. Verify that the settlement is restored on the correct vertex
+      const restoredSettlements = store.placedSettlements();
+      expect(restoredSettlements).toHaveSize(1);
+      expect(restoredSettlements[0].vertexId).toBe(firstVertex.id);
+
+      // Verify that the restored settlement matches a vertex in the new grid
+      const newVertices = store.allVertices();
+      const matchingVertex = newVertices.find(v => v.id === restoredSettlements[0].vertexId);
+      expect(matchingVertex).toBeDefined();
+    });
+  });
 });
