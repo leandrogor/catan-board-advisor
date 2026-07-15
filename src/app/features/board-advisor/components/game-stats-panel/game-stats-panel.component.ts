@@ -213,7 +213,7 @@ export class GameStatsPanelComponent {
     const scores = this.store.playerScores();
     const playerCount = this.store.playerCount();
 
-    return scores.map(row => {
+    const list = scores.map(row => {
       const currentVP = row.score;
       const vpsNeeded = Math.max(0, 10 - currentVP);
       const avgProd = row.avgProd;
@@ -223,6 +223,7 @@ export class GameStatsPanelComponent {
       let speedClass: string;
       let speedTextKey:
         'statsEngineSlow' | 'statsEngineMedium' | 'statsEngineFast' | 'statsRoundsWon';
+      const sortRounds = rRound >= 0.05 ? vpsNeeded / rRound : Infinity;
 
       if (vpsNeeded === 0) {
         roundsRange = '0';
@@ -259,25 +260,41 @@ export class GameStatsPanelComponent {
         roundsRange,
         speedClass,
         speedTextKey,
+        sortRounds,
       };
     });
+
+    list.sort((a, b) => {
+      if (a.sortRounds !== b.sortRounds) {
+        return a.sortRounds - b.sortRounds;
+      }
+      return b.avgProd - a.avgProd;
+    });
+
+    return list;
   });
 
   /**
    * Bar dimensions for Expected Production Comparison Bar Chart
    */
   protected readonly expectedYieldBars = computed(() => {
-    const scores = this.store.playerScores();
-    if (scores.length === 0) return [];
+    const projList = this.projections();
+    if (projList.length === 0) return [];
 
-    const maxProd = Math.max(0.5, ...scores.map(s => s.avgProd));
+    const maxProd = Math.max(0.5, ...projList.map(s => s.avgProd));
 
-    return scores.map(row => {
-      const pct = (row.avgProd / maxProd) * 100;
+    return projList.map(p => {
+      const pct = (p.avgProd / maxProd) * 100;
+      const scoreRow = this.store.playerScores().find(s => s.color.id === p.color.id);
+      const settlements = scoreRow?.settlementsCount ?? 0;
+      const cities = scoreRow?.citiesCount ?? 0;
+
       return {
-        color: row.color,
-        val: row.avgProd,
+        color: p.color,
+        val: p.avgProd,
         pct,
+        settlements,
+        cities,
       };
     });
   });
