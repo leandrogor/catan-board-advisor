@@ -1,4 +1,14 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import {
+  Component,
+  inject,
+  computed,
+  signal,
+  effect,
+  ElementRef,
+  viewChild,
+  afterNextRender,
+  Injector,
+} from '@angular/core';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { PlayerColor } from '../../models/player-color.model';
@@ -30,9 +40,63 @@ interface ProductionPoint {
 export class GameStatsPanelComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
+  private readonly injector = inject(Injector);
 
   protected readonly activeTab = signal<'progress' | 'projection'>('progress');
   protected readonly zoomedChart = signal<'vp' | 'prod' | null>(null);
+
+  // New zoom and usability signals
+  protected readonly isZoomMode = signal<boolean>(false);
+  protected readonly scrollLeft = signal<number>(0);
+  protected readonly containerWidth = signal<number>(0);
+  protected readonly highlightedPlayerId = signal<string | null>(null);
+  protected readonly svgWidth = signal<number>(700);
+  protected readonly svgHeight = signal<number>(300);
+
+  // ViewChild reference to zoomContainer
+  protected readonly zoomContainer = viewChild<ElementRef<HTMLDivElement>>('zoomContainer');
+
+  constructor() {
+    effect(() => {
+      const isZoom = this.isZoomMode();
+      const chart = this.zoomedChart();
+      const containerEl = this.zoomContainer()?.nativeElement;
+
+      if (chart && containerEl) {
+        afterNextRender(
+          () => {
+            if (isZoom) {
+              containerEl.scrollLeft = containerEl.scrollWidth;
+            } else {
+              containerEl.scrollLeft = 0;
+            }
+            this.scrollLeft.set(containerEl.scrollLeft);
+            this.containerWidth.set(containerEl.clientWidth);
+          },
+          { injector: this.injector },
+        );
+      }
+    });
+
+    effect(onCleanup => {
+      const containerEl = this.zoomContainer()?.nativeElement;
+      if (containerEl) {
+        const observer = new ResizeObserver(entries => {
+          for (const entry of entries) {
+            requestAnimationFrame(() => {
+              this.svgWidth.set(entry.contentRect.width);
+              this.svgHeight.set(entry.contentRect.height);
+            });
+          }
+        });
+        observer.observe(containerEl);
+
+        onCleanup(() => {
+          observer.disconnect();
+        });
+      }
+    });
+  }
 
   protected colorName(color: PlayerColor): string {
     const t = this.i18n.t();
@@ -313,6 +377,26 @@ export class GameStatsPanelComponent {
   }
 
   /**
+   * Zoomed SVG total width in pixels when in zoom mode.
+   */
+  protected readonly zoomedSvgWidth = computed(() => {
+    const history = this.store.gameHistory();
+    const totalTurnos = history.length;
+    if (totalTurnos <= 1) return 700;
+    return 120 + (totalTurnos - 1) * 50;
+  });
+
+  /**
+   * Zoomed horizontal axis end coordinate.
+   */
+  protected readonly zoomXEnd = computed(() => {
+    if (this.isZoomMode()) {
+      return this.zoomedSvgWidth() - 60;
+    }
+    return this.svgWidth() - 60;
+  });
+
+  /**
    * Zoomed VP lines and paths
    */
   protected readonly zoomVpPaths = computed(() => {
@@ -323,13 +407,23 @@ export class GameStatsPanelComponent {
     const total = history.length;
     const allScores = history.flatMap(e => Object.values(e.scores));
     const maxScore = Math.max(10, ...allScores);
+    const isZoom = this.isZoomMode();
+    const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
+    const H = this.svgHeight();
 
     return colors.map(color => {
       const points = history.map((entry, idx) => {
-        const x = total <= 1 ? 350 : 60 + (idx / (total - 1)) * 620;
+        let x: number;
+        if (isZoom) {
+          x = 60 + idx * 50;
+        } else if (total <= 1) {
+          x = W / 2;
+        } else {
+          x = 60 + (idx / (total - 1)) * (W - 120);
+        }
         const score = entry.scores[color.id] ?? 2;
-        const y = 250 - ((score - 2) / (maxScore - 2)) * 210;
-        return { x, y, score };
+        const y = H - 35 - ((score - 2) / (maxScore - 2)) * (H - 120);
+        return { x, y, score, idx };
       });
 
       const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -353,13 +447,23 @@ export class GameStatsPanelComponent {
     const total = history.length;
     const allYields = history.flatMap(e => Object.values(e.avgProd));
     const maxYield = Math.max(0.5, ...allYields);
+    const isZoom = this.isZoomMode();
+    const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
+    const H = this.svgHeight();
 
     return colors.map(color => {
       const points = history.map((entry, idx) => {
-        const x = total <= 1 ? 350 : 60 + (idx / (total - 1)) * 620;
+        let x: number;
+        if (isZoom) {
+          x = 60 + idx * 50;
+        } else if (total <= 1) {
+          x = W / 2;
+        } else {
+          x = 60 + (idx / (total - 1)) * (W - 120);
+        }
         const val = entry.avgProd[color.id] ?? 0;
-        const y = 250 - (val / maxYield) * 210;
-        return { x, y, val };
+        const y = H - 35 - (val / maxYield) * (H - 120);
+        return { x, y, val, idx };
       });
 
       const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -381,9 +485,10 @@ export class GameStatsPanelComponent {
     if (history.length === 0) return [];
     const allScores = history.flatMap(e => Object.values(e.scores));
     const maxScore = Math.max(10, ...allScores);
+    const H = this.svgHeight();
 
     return lines.map(line => {
-      const y = 250 - ((line.score - 2) / (maxScore - 2)) * 210;
+      const y = H - 35 - ((line.score - 2) / (maxScore - 2)) * (H - 120);
       return { score: line.score, y };
     });
   });
@@ -397,9 +502,10 @@ export class GameStatsPanelComponent {
     if (history.length === 0) return [];
     const allYields = history.flatMap(e => Object.values(e.avgProd));
     const maxYield = Math.max(0.5, ...allYields);
+    const H = this.svgHeight();
 
     return lines.map(line => {
-      const y = 250 - (line.val / maxYield) * 210;
+      const y = H - 35 - (line.val / maxYield) * (H - 120);
       return { val: line.val, y };
     });
   });
@@ -414,10 +520,18 @@ export class GameStatsPanelComponent {
     const total = history.length;
     const ticks: { label: string; x: number }[] = [];
     const startText = this.i18n.lang() === 'es' ? 'Inicio' : 'Start';
+    const isZoom = this.isZoomMode();
+    const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
 
-    if (total <= 10) {
+    if (isZoom) {
       history.forEach((_, idx) => {
-        const x = 60 + (idx / (total - 1)) * 620;
+        const x = 60 + idx * 50;
+        const label = idx === 0 ? startText : `#${idx}`;
+        ticks.push({ label, x });
+      });
+    } else if (total <= 10) {
+      history.forEach((_, idx) => {
+        const x = 60 + (idx / (total - 1)) * (W - 120);
         const label = idx === 0 ? startText : `#${idx}`;
         ticks.push({ label, x });
       });
@@ -431,13 +545,39 @@ export class GameStatsPanelComponent {
       ];
       const uniqueIndices = Array.from(new Set(indices)).sort((a, b) => a - b);
       uniqueIndices.forEach(idx => {
-        const x = 60 + (idx / (total - 1)) * 620;
+        const x = 60 + (idx / (total - 1)) * (W - 120);
         const label = idx === 0 ? startText : `#${idx}`;
         ticks.push({ label, x });
       });
     }
     return ticks;
   });
+
+  private scrollTicking = false;
+
+  protected onScroll(event: Event): void {
+    const container = event.target as HTMLElement;
+    if (!this.scrollTicking) {
+      this.scrollTicking = true;
+      requestAnimationFrame(() => {
+        this.scrollLeft.set(container.scrollLeft);
+        this.containerWidth.set(container.clientWidth);
+        this.scrollTicking = false;
+      });
+    }
+  }
+
+  protected toggleZoomMode(): void {
+    this.isZoomMode.update(z => !z);
+  }
+
+  protected toggleHighlightPlayer(playerId: string): void {
+    if (this.highlightedPlayerId() === playerId) {
+      this.highlightedPlayerId.set(null);
+    } else {
+      this.highlightedPlayerId.set(playerId);
+    }
+  }
 
   protected close(): void {
     this.store.gameStatsPanelOpen.set(false);

@@ -24,11 +24,39 @@ svg path {
   transition:
     d 0.5s ease,
     stroke-dasharray 0.5s ease,
-    stroke-dashoffset 0.5s ease;
+    stroke-dashoffset 0.5s ease,
+    opacity 0.3s ease,
+    stroke-width 0.3s ease;
 }
 
 svg circle {
+  transform-origin: center;
+  transform-box: fill-box;
   transition:
     cx 0.5s ease,
-    cy 0.5s ease;
+    cy 0.5s ease,
+    opacity 0.3s ease,
+    r 0.3s ease,
+    transform 0.3s ease;
+}
+
+.zoom-container {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(71, 85, 105, 0.4) transparent;
+  
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(71, 85, 105, 0.4);
+    border-radius: 9999px;
+    
+    &:hover {
+      background-color: rgba(71, 85, 105, 0.6);
+    }
+  }
 }

@@ -2,6 +2,22 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { GameStatsPanelComponent } from './game-stats-panel.component';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
+import { GameHistoryEntry } from '../../models/game-history.model';
+
+function createMockEntry(entryId: string): GameHistoryEntry {
+  return {
+    entryId,
+    playerColorId: '',
+    description: '',
+    scores: {},
+    avgProd: {},
+    placements: [],
+    roads: [],
+    devCardsPurchased: {},
+    devCardsPlayed: [],
+    timestamp: 0,
+  };
+}
 
 describe('GameStatsPanelComponent', () => {
   let component: GameStatsPanelComponent;
@@ -137,5 +153,70 @@ describe('GameStatsPanelComponent', () => {
     const blueProj = projections.find(p => p.color.id === 'blue');
     expect(blueProj).toBeTruthy();
     expect(blueProj?.speedClass).toBe('slow'); // 0.15 < 0.7
+  });
+
+  describe('Usability and Zoom Improvements', () => {
+    it('should initialize with default states', () => {
+      expect(component['isZoomMode']()).toBeFalse();
+      expect(component['highlightedPlayerId']()).toBeNull();
+      expect(component['scrollLeft']()).toBe(0);
+      expect(component['containerWidth']()).toBe(0);
+    });
+
+    it('should toggle isZoomMode', () => {
+      component['toggleZoomMode']();
+      expect(component['isZoomMode']()).toBeTrue();
+      component['toggleZoomMode']();
+      expect(component['isZoomMode']()).toBeFalse();
+    });
+
+    it('should toggle highlightedPlayerId', () => {
+      component['toggleHighlightPlayer']('red');
+      expect(component['highlightedPlayerId']()).toBe('red');
+
+      component['toggleHighlightPlayer']('red');
+      expect(component['highlightedPlayerId']()).toBeNull();
+
+      component['toggleHighlightPlayer']('blue');
+      expect(component['highlightedPlayerId']()).toBe('blue');
+    });
+
+    it('should calculate zoomedSvgWidth correctly', () => {
+      // Empty history
+      store.gameHistory.set([]);
+      expect(component['zoomedSvgWidth']()).toBe(700);
+
+      // 1 item
+      store.gameHistory.set([createMockEntry('start')]);
+      expect(component['zoomedSvgWidth']()).toBe(700);
+
+      // 5 items -> 120 + 4 * 50 = 320
+      store.gameHistory.set([
+        createMockEntry('start'),
+        createMockEntry('1'),
+        createMockEntry('2'),
+        createMockEntry('3'),
+        createMockEntry('4'),
+      ]);
+      expect(component['zoomedSvgWidth']()).toBe(320);
+    });
+
+    it('should calculate zoomXEnd correctly depending on zoom mode', () => {
+      store.gameHistory.set([
+        createMockEntry('start'),
+        createMockEntry('1'),
+        createMockEntry('2'),
+        createMockEntry('3'),
+        createMockEntry('4'),
+      ]);
+
+      // Default: full mode
+      expect(component['isZoomMode']()).toBeFalse();
+      expect(component['zoomXEnd']()).toBe(640);
+
+      // Zoom mode
+      component['isZoomMode'].set(true);
+      expect(component['zoomXEnd']()).toBe(320 - 60); // 260
+    });
   });
 });
