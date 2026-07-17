@@ -44,7 +44,7 @@ svg circle {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: rgba(71, 85, 105, 0.4) transparent;
-  
+
   &::-webkit-scrollbar {
     height: 6px;
   }
@@ -54,7 +54,7 @@ svg circle {
   &::-webkit-scrollbar-thumb {
     background-color: rgba(71, 85, 105, 0.4);
     border-radius: 9999px;
-    
+
     &:hover {
       background-color: rgba(71, 85, 105, 0.6);
     }

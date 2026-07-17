@@ -1,20 +1,37 @@
 {
   "name": "Catan Board Advisor",
-  "short_name": "CatanAdv",
-  "description": "Optimal settlement placement advisor for Catan 5-6 Player Extension",
-  "start_url": "/catan-board-advisor/",
-  "scope": "/catan-board-advisor/",
+  "short_name": "Catan Advisor",
+  "description": "Catan settlement advisor & tracker. Optimize with Monte Carlo!",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#f59e0b",
   "background_color": "#0f172a",
   "icons": [
-    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
