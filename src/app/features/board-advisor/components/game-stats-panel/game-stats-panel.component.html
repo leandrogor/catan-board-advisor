@@ -39,7 +39,7 @@
           [class.text-slate-500]="activeTab() !== 'progress'"
           [class.dark:text-slate-400]="activeTab() !== 'progress'"
           [class.hover:text-slate-700]="activeTab() !== 'progress'"
-          (click)="activeTab.set('progress')"
+          (click)="activeTab.set('progress'); clearTooltip()"
         >
           📈 {{ i18n.t().statsTabProgress }}
         </button>
@@ -54,7 +54,7 @@
           [class.text-slate-500]="activeTab() !== 'projection'"
           [class.dark:text-slate-400]="activeTab() !== 'projection'"
           [class.hover:text-slate-700]="activeTab() !== 'projection'"
-          (click)="activeTab.set('projection')"
+          (click)="activeTab.set('projection'); clearTooltip()"
         >
           🔮 {{ i18n.t().statsTabProjection }}
         </button>
@@ -88,7 +88,7 @@
                   <button
                     type="button"
                     class="text-xs text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer bg-transparent border-0 p-1 flex items-center"
-                    (click)="zoomedChart.set('vp')"
+                    (click)="zoomedChart.set('vp'); clearTooltip()"
                     title="Zoom Chart"
                   >
                     🔍
@@ -119,7 +119,7 @@
                   }
                 </div>
 
-                <div class="relative w-full aspect-2/1 min-h-42.5 flex-1">
+                <div class="relative w-full aspect-2/1 min-h-42.5 flex-1" (click)="clearTooltip()">
                   <!-- VP Line Chart SVG -->
                   <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
                     <defs>
@@ -229,11 +229,10 @@
                               ? 1.0
                               : 0.25
                           "
-                        >
-                          <title>
-                            {{ colorName(path.color) }}: {{ pt.score }} VP ({{ pt.desc }})
-                          </title>
-                        </circle>
+                          (click)="showTooltip($event, 'vp', false, pt, true)"
+                          (mouseenter)="onMouseEnterPoint($event, 'vp', false, pt)"
+                          (mouseleave)="onMouseLeavePoint()"
+                        ></circle>
                       }
                     }
                   </svg>
@@ -253,7 +252,7 @@
                   <button
                     type="button"
                     class="text-xs text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer bg-transparent border-0 p-1 flex items-center"
-                    (click)="zoomedChart.set('prod')"
+                    (click)="zoomedChart.set('prod'); clearTooltip()"
                     title="Zoom Chart"
                   >
                     🔍
@@ -284,7 +283,7 @@
                   }
                 </div>
 
-                <div class="relative w-full aspect-2/1 min-h-42.5 flex-1">
+                <div class="relative w-full aspect-2/1 min-h-42.5 flex-1" (click)="clearTooltip()">
                   <!-- Production Chart SVG -->
                   <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
                     <defs>
@@ -394,13 +393,10 @@
                               ? 1.0
                               : 0.25
                           "
-                        >
-                          <title>
-                            {{ colorName(path.color) }}: {{ formatProduction(pt.val) }} ({{
-                              pt.desc
-                            }})
-                          </title>
-                        </circle>
+                          (click)="showTooltip($event, 'prod', false, pt, true)"
+                          (mouseenter)="onMouseEnterPoint($event, 'prod', false, pt)"
+                          (mouseleave)="onMouseLeavePoint()"
+                        ></circle>
                       }
                     }
                   </svg>
@@ -611,7 +607,7 @@
                 [class.text-white]="zoomedChart() === 'vp'"
                 [class.bg-transparent]="zoomedChart() !== 'vp'"
                 [class.text-slate-400]="zoomedChart() !== 'vp'"
-                (click)="zoomedChart.set('vp')"
+                (click)="zoomedChart.set('vp'); clearTooltip()"
               >
                 VP
               </button>
@@ -622,7 +618,7 @@
                 [class.text-white]="zoomedChart() === 'prod'"
                 [class.bg-transparent]="zoomedChart() !== 'prod'"
                 [class.text-slate-400]="zoomedChart() !== 'prod'"
-                (click)="zoomedChart.set('prod')"
+                (click)="zoomedChart.set('prod'); clearTooltip()"
               >
                 Prod
               </button>
@@ -649,7 +645,7 @@
             <button
               type="button"
               class="text-slate-400 hover:text-slate-200 text-lg leading-none p-1 cursor-pointer bg-transparent border-0 transition-colors"
-              (click)="zoomedChart.set(null)"
+              (click)="zoomedChart.set(null); clearTooltip()"
               aria-label="Close Zoomed Chart"
             >
               ✕
@@ -710,7 +706,8 @@
           <div
             #zoomContainer
             (scroll)="onScroll($event)"
-            class="zoom-container w-full h-full overflow-y-hidden"
+            (click)="clearTooltip()"
+            class="zoom-container w-full h-full overflow-y-hidden relative"
             [class.overflow-x-auto]="isZoomMode()"
             [class.scrollbar-thin]="isZoomMode()"
             [class.scroll-smooth]="isZoomMode()"
@@ -843,9 +840,10 @@
                           ? 1.0
                           : 0.25
                       "
-                    >
-                      <title>{{ colorName(path.color) }}: {{ pt.score }} VP</title>
-                    </circle>
+                      (click)="showTooltip($event, 'vp', true, pt, true)"
+                      (mouseenter)="onMouseEnterPoint($event, 'vp', true, pt)"
+                      (mouseleave)="onMouseLeavePoint()"
+                    ></circle>
                   }
                 }
               }
@@ -878,7 +876,8 @@
           <div
             #zoomContainer
             (scroll)="onScroll($event)"
-            class="zoom-container w-full h-full overflow-y-hidden"
+            (click)="clearTooltip()"
+            class="zoom-container w-full h-full overflow-y-hidden relative"
             [class.overflow-x-auto]="isZoomMode()"
             [class.scrollbar-thin]="isZoomMode()"
             [class.scroll-smooth]="isZoomMode()"
@@ -1011,9 +1010,10 @@
                           ? 1.0
                           : 0.25
                       "
-                    >
-                      <title>{{ colorName(path.color) }}: {{ formatProduction(pt.val) }}</title>
-                    </circle>
+                      (click)="showTooltip($event, 'prod', true, pt, true)"
+                      (mouseenter)="onMouseEnterPoint($event, 'prod', true, pt)"
+                      (mouseleave)="onMouseLeavePoint()"
+                    ></circle>
                   }
                 }
               }
@@ -1022,5 +1022,65 @@
         }
       </div>
     </div>
+  </div>
+}
+
+<!-- Unified Screen Viewport-relative Tooltip Overlay -->
+@if (activeTooltip(); as tooltip) {
+  <div
+    class="fixed z-9999 bg-slate-900/95 backdrop-blur-xs border border-slate-800 rounded-lg p-2 shadow-xl text-xs text-slate-200 pointer-events-auto"
+    [style.left.px]="tooltip.clientX"
+    [style.top.px]="tooltip.clientY"
+    style="transform: translate(-50%, -100%) translateY(-10px); min-width: 145px; max-width: 220px"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Tooltip Header -->
+    <div
+      class="flex items-center justify-between border-b border-slate-800 pb-1 mb-1 font-bold text-[10px] text-slate-500"
+    >
+      <span>{{ tooltip.title }}</span>
+      <button
+        (click)="clearTooltip()"
+        class="text-slate-500 hover:text-slate-355 bg-transparent border-0 cursor-pointer p-0.5 leading-none"
+      >
+        ✕
+      </button>
+    </div>
+    <!-- Description -->
+    <div
+      class="text-[9px] text-slate-400 mb-1 leading-tight italic wrap-break-word flex items-center gap-1.5"
+    >
+      @if (tooltip.actionPlayerHex) {
+        <span
+          class="w-1.5 h-1.5 rounded-full shrink-0 ring-1 ring-slate-800"
+          [style.background-color]="tooltip.actionPlayerHex"
+        ></span>
+      }
+      <span>{{ tooltip.description }}</span>
+    </div>
+    <!-- Legend of colors at this point -->
+    <div class="space-y-0.5">
+      @for (p of tooltip.players; track p.colorName) {
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5">
+            <span
+              class="w-2.5 h-2.5 rounded-full ring-1 ring-slate-900"
+              [style.background-color]="p.hex"
+            ></span>
+            <span class="font-semibold text-slate-300 text-[10px]">{{ p.colorName }}</span>
+          </div>
+          <span class="font-bold tabular-nums text-slate-100 text-[10px]">{{ p.valueText }}</span>
+        </div>
+      }
+    </div>
+    <!-- Downward Arrow (centered above point, offset arrow position) -->
+    <div
+      class="absolute bottom-0 -translate-x-1/2 translate-y-full w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-slate-800"
+      [style.left]="'calc(50% + ' + tooltip.arrowOffset + 'px)'"
+    ></div>
+    <div
+      class="absolute bottom-0 -translate-x-1/2 translate-y-1.25 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-slate-900"
+      [style.left]="'calc(50% + ' + tooltip.arrowOffset + 'px)'"
+    ></div>
   </div>
 }

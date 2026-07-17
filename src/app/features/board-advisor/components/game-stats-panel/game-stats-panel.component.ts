@@ -31,6 +31,23 @@ interface ProductionPoint {
   playerColorId: string;
 }
 
+interface TooltipData {
+  chartType: 'vp' | 'prod';
+  isZoomed: boolean;
+  turnIdx: number;
+  clientX: number;
+  clientY: number;
+  arrowOffset: number;
+  title: string;
+  description: string;
+  actionPlayerHex: string | null;
+  players: {
+    colorName: string;
+    hex: string;
+    valueText: string;
+  }[];
+}
+
 @Component({
   selector: 'app-game-stats-panel',
   templateUrl: './game-stats-panel.component.html',
@@ -44,6 +61,8 @@ export class GameStatsPanelComponent {
 
   protected readonly activeTab = signal<'progress' | 'projection'>('progress');
   protected readonly zoomedChart = signal<'vp' | 'prod' | null>(null);
+  protected readonly activeTooltip = signal<TooltipData | null>(null);
+  protected readonly isTooltipPinned = signal<boolean>(false);
 
   // New zoom and usability signals
   protected readonly isZoomMode = signal<boolean>(false);
@@ -426,7 +445,7 @@ export class GameStatsPanelComponent {
         }
         const score = entry.scores[color.id] ?? 2;
         const y = H - 35 - ((score - 2) / (maxScore - 2)) * rangeY;
-        return { x, y, score, idx };
+        return { x, y, score, idx, desc: entry.description, playerColorId: entry.playerColorId };
       });
 
       const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -468,7 +487,7 @@ export class GameStatsPanelComponent {
         }
         const val = entry.avgProd[color.id] ?? 0;
         const y = H - 35 - (val / maxYield) * rangeY;
-        return { x, y, val, idx };
+        return { x, y, val, idx, desc: entry.description, playerColorId: entry.playerColorId };
       });
 
       const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -566,6 +585,7 @@ export class GameStatsPanelComponent {
 
   protected onScroll(event: Event): void {
     const container = event.target as HTMLElement;
+    this.clearTooltip();
     if (!this.scrollTicking) {
       this.scrollTicking = true;
       requestAnimationFrame(() => {
@@ -577,6 +597,7 @@ export class GameStatsPanelComponent {
   }
 
   protected toggleZoomMode(): void {
+    this.clearTooltip();
     this.isZoomMode.update(z => !z);
   }
 
@@ -589,6 +610,103 @@ export class GameStatsPanelComponent {
   }
 
   protected close(): void {
+    this.clearTooltip();
     this.store.gameStatsPanelOpen.set(false);
+  }
+
+  protected showTooltip(
+    event: MouseEvent | TouchEvent,
+    chartType: 'vp' | 'prod',
+    isZoomed: boolean,
+    point: TimelinePoint | ProductionPoint,
+    pin = false,
+  ): void {
+    event.stopPropagation();
+    const turnIdx = point.idx;
+    const history = this.store.gameHistory();
+    const entry = history[turnIdx];
+    if (!entry) return;
+
+    const startText = this.i18n.lang() === 'es' ? 'Inicio' : 'Start';
+    const turnLabel = turnIdx === 0 ? startText : `#${turnIdx}`;
+    const titleText = `${this.i18n.t().statsMoveNum} ${turnLabel}`;
+
+    const players: { colorName: string; hex: string; valueText: string }[] = [];
+    const colors = this.store.playerColors();
+
+    if (chartType === 'vp') {
+      const targetScore = (point as TimelinePoint).score;
+      colors.forEach(color => {
+        const score = entry.scores[color.id] ?? 2;
+        if (score === targetScore) {
+          players.push({
+            colorName: this.colorName(color),
+            hex: color.hex,
+            valueText: `${score} VP`,
+          });
+        }
+      });
+    } else {
+      const targetVal = (point as ProductionPoint).val;
+      colors.forEach(color => {
+        const val = entry.avgProd[color.id] ?? 0;
+        if (Math.abs(val - targetVal) < 1e-6) {
+          players.push({
+            colorName: this.colorName(color),
+            hex: color.hex,
+            valueText: this.formatProduction(val),
+          });
+        }
+      });
+    }
+
+    const actionPlayer = colors.find(c => c.id === entry.playerColorId);
+    const actionPlayerHex = actionPlayer ? actionPlayer.hex : null;
+
+    const targetElement = event.currentTarget as SVGElement;
+    if (targetElement) {
+      const rect = targetElement.getBoundingClientRect();
+      const clientX = rect.left + rect.width / 2;
+      const clientY = rect.top;
+
+      const clampedX = Math.max(90, Math.min(window.innerWidth - 90, clientX));
+      const arrowOffset = clientX - clampedX;
+
+      this.isTooltipPinned.set(pin);
+      this.activeTooltip.set({
+        chartType,
+        isZoomed,
+        turnIdx,
+        clientX: clampedX,
+        clientY,
+        arrowOffset,
+        title: titleText,
+        description: entry.description,
+        actionPlayerHex,
+        players,
+      });
+    }
+  }
+
+  protected onMouseEnterPoint(
+    event: MouseEvent,
+    chartType: 'vp' | 'prod',
+    isZoomed: boolean,
+    point: TimelinePoint | ProductionPoint,
+  ): void {
+    if (!this.isTooltipPinned()) {
+      this.showTooltip(event, chartType, isZoomed, point, false);
+    }
+  }
+
+  protected onMouseLeavePoint(): void {
+    if (!this.isTooltipPinned()) {
+      this.clearTooltip();
+    }
+  }
+
+  protected clearTooltip(): void {
+    this.activeTooltip.set(null);
+    this.isTooltipPinned.set(false);
   }
 }
