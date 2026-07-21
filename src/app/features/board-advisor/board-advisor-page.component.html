@@ -41,7 +41,7 @@
         </p>
 
         <div
-          class="hidden lg:flex items-center justify-center gap-2 flex-wrap px-3 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700"
+          class="hidden lg:flex items-center justify-center gap-2 flex-wrap px-3 py-2.5 rounded-xl bg-[#faf8f3]/80 dark:bg-slate-900/80 border border-[#e4dccb] dark:border-slate-700"
         >
           <button
             class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -104,7 +104,7 @@
         @if (!store.panelVisible() && store.selectedVertexId()) {
           <div class="flex justify-end w-full lg:hidden">
             <button
-              class="flex items-center justify-center w-10 h-10 rounded-full bg-white/85 dark:bg-slate-800/85 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 shadow-xl backdrop-blur-xs transition-all duration-200 active:scale-95 cursor-pointer text-lg"
+              class="flex items-center justify-center w-10 h-10 rounded-full bg-[#faf8f3]/85 dark:bg-slate-800/85 text-slate-800 dark:text-white border border-[#e4dccb] dark:border-slate-700 shadow-xl backdrop-blur-xs transition-all duration-200 active:scale-95 cursor-pointer text-lg"
               (click)="store.panelVisible.set(true)"
               [attr.aria-label]="i18n.t().showPanel"
             >
@@ -127,7 +127,7 @@
         }
 
         <div
-          class="hidden lg:flex items-center justify-center gap-2 flex-wrap px-3 py-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700"
+          class="hidden lg:flex items-center justify-center gap-2 flex-wrap px-3 py-2.5 rounded-xl bg-[#faf8f3]/80 dark:bg-slate-900/80 border border-[#e4dccb] dark:border-slate-700"
         >
           <button
             class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"

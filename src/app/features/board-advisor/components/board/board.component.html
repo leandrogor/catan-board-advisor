@@ -6,7 +6,7 @@
       style="touch-action: none; pointer-events: all"
     >
       <div
-        class="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-full px-6 py-4 shadow-2xl"
+        class="flex items-center gap-3 bg-[#faf8f3] dark:bg-slate-800 rounded-full px-6 py-4 shadow-2xl"
       >
         <span class="animate-spin text-2xl">⚙️</span>
         <span class="font-semibold text-slate-900 dark:text-slate-100 text-base">{{
@@ -168,8 +168,19 @@
         }
       }
 
-      <!-- 1. Placed Roads (persistent thick lines in occupied color) -->
+      <!-- 1. Placed Roads (persistent thick lines in occupied color with subtle neon aura) -->
       @for (road of placedRoadCoords(); track $index) {
+        <line
+          [attr.x1]="road.p1.x"
+          [attr.y1]="road.p1.y"
+          [attr.x2]="road.p2.x"
+          [attr.y2]="road.p2.y"
+          [attr.stroke]="road.glowColor"
+          stroke-width="9"
+          stroke-linecap="round"
+          class="opacity-60 dark:opacity-80"
+          style="pointer-events: none; filter: blur(1.5px)"
+        />
         <line
           [attr.x1]="road.p1.x"
           [attr.y1]="road.p1.y"
@@ -359,6 +370,21 @@
               stroke="var(--color-top-vertex)"
               stroke-width="3"
             />
+          }
+
+          <!-- Subtle neon glow aura for occupied vertex circle -->
+          @if (vertex.isOccupied) {
+            @let glow = getVertexGlowColor(vertex);
+            @if (glow) {
+              <circle
+                [attr.cx]="vertex.position.x"
+                [attr.cy]="vertex.position.y"
+                [attr.r]="getVertexRadius(vertex) + 2"
+                [attr.fill]="glow"
+                class="opacity-60 dark:opacity-80"
+                style="pointer-events: none; filter: blur(1.5px)"
+              />
+            }
           }
 
           <!-- Main vertex circle -->

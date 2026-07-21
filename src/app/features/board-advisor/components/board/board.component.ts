@@ -179,13 +179,18 @@ export class BoardComponent {
         const p1 = map.get(r.from);
         const p2 = map.get(r.to);
         const colorHex = colorHexMap.get(r.playerColorId) ?? 'var(--color-occupied, #6366f1)';
-        return { p1, p2, colorHex };
+        const glowColor = this.getPlayerGlowColor(r.playerColorId);
+        return { p1, p2, colorHex, glowColor };
       })
       .filter(
         (
           r,
-        ): r is { p1: { x: number; y: number }; p2: { x: number; y: number }; colorHex: string } =>
-          r.p1 !== undefined && r.p2 !== undefined,
+        ): r is {
+          p1: { x: number; y: number };
+          p2: { x: number; y: number };
+          colorHex: string;
+          glowColor: string;
+        } => r.p1 !== undefined && r.p2 !== undefined,
       );
   });
 
@@ -423,6 +428,32 @@ export class BoardComponent {
     }
     if (v.isBlocked) return 'var(--color-blocked)';
     return interpolateHeatmapColor(v.normalizedScore);
+  }
+
+  protected getPlayerGlowColor(colorId: string): string {
+    switch (colorId) {
+      case 'blue':
+        return '#3b82f6'; // Electric blue glow
+      case 'green':
+        return '#10b981'; // Emerald green glow
+      case 'red':
+        return '#ef4444'; // Bright crimson glow
+      case 'mustard':
+        return '#f59e0b'; // Gold glow
+      case 'chocolate':
+        return '#f97316'; // Orange/brown glow
+      case 'cream':
+        return '#fef08a'; // Soft cream glow
+      default:
+        return '#6366f1';
+    }
+  }
+
+  protected getVertexGlowColor(v: Vertex): string | null {
+    if (!v.isOccupied) return null;
+    const settlement = this.store.placedSettlements().find(s => s.vertexId === v.id);
+    if (!settlement) return null;
+    return this.getPlayerGlowColor(settlement.playerColorId);
   }
 
   protected getVertexOpacity(v: Vertex): number {

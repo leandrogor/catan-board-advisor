@@ -6,10 +6,10 @@
 }
 
 :root {
-  --hex-fill: #f8fafc;
-  --hex-stroke: #cbd5e1;
-  --hex-text: #1e293b;
-  --hex-number-default: #1e293b;
+  --hex-fill: #efe9dc;
+  --hex-stroke: #d5ccb8;
+  --hex-text: #2d2b28;
+  --hex-number-default: #2d2b28;
   --hex-number-hot: #dc2626;
   --hex-desert-fill: #d4a574;
   --score-low: #3b82f6;

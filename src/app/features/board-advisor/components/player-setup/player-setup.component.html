@@ -1,5 +1,5 @@
 <div
-  class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/70 p-4 space-y-3"
+  class="rounded-2xl border border-[#e4dccb] dark:border-slate-700 bg-[#faf8f3]/80 dark:bg-slate-900/70 p-4 space-y-3"
 >
   <div class="flex items-center justify-between gap-3">
     <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -106,7 +106,7 @@
             @let isFirst = idx === 0;
             @let isLast = idx === store.playerColors().length - 1;
             <div
-              class="absolute bottom-full mb-2 z-20 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 flex gap-1.5 flex-wrap w-38"
+              class="absolute bottom-full mb-2 z-20 bg-[#faf8f3] dark:bg-slate-800 rounded-xl shadow-xl border border-[#e4dccb] dark:border-slate-700 p-2 flex gap-1.5 flex-wrap w-38"
               [class]="
                 isFirst ? 'left-0' : isLast ? 'right-0 left-auto' : 'left-1/2 -translate-x-1/2'
               "

@@ -4,7 +4,7 @@
     style="animation: slideInUp 0.3s ease"
   >
     <div
-      class="mx-auto max-w-2xl bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl border border-slate-200 dark:border-slate-700"
+      class="mx-auto max-w-2xl bg-[#faf8f3] dark:bg-slate-800 rounded-t-2xl shadow-2xl border border-slate-200 dark:border-slate-700"
     >
       <!-- Header -->
       <div
@@ -417,7 +417,7 @@
               >
                 @for (log of gameLog(); track log.entry.entryId; let idx = $index) {
                   <div
-                    class="px-4 py-3 flex items-start justify-between gap-3 text-xs bg-white dark:bg-slate-900 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
+                    class="px-4 py-3 flex items-start justify-between gap-3 text-xs bg-[#faf8f3] dark:bg-slate-900 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
                   >
                     <div class="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 flex-1">
                       @if (log.playerColor) {
@@ -575,15 +575,15 @@
 <!-- ZOOM OVERLAY MODAL -->
 @if (zoomedChart(); as type) {
   <div
-    class="fixed inset-0 z-50 bg-slate-100 dark:bg-slate-950 md:bg-slate-100/90 dark:md:bg-slate-950/90 md:backdrop-blur-xs flex items-center justify-center p-0 md:p-6"
+    class="fixed inset-0 z-50 bg-[#f7f4eb] dark:bg-slate-950 md:bg-[#f7f4eb]/90 dark:md:bg-slate-950/90 md:backdrop-blur-xs flex items-center justify-center p-0 md:p-6"
     style="animation: fadeIn 0.25s ease"
   >
     <div
-      class="w-full h-full md:h-[85vh] md:max-w-4xl bg-white dark:bg-slate-950 border-0 md:border border-slate-200 dark:border-slate-800 rounded-none md:rounded-3xl shadow-2xl relative flex flex-col overflow-hidden"
+      class="w-full h-full md:h-[85vh] md:max-w-4xl bg-[#faf8f3] dark:bg-slate-950 border-0 md:border border-[#e4dccb] dark:border-slate-800 rounded-none md:rounded-3xl shadow-2xl relative flex flex-col overflow-hidden"
     >
       <!-- Controls & Legend Section (flow-based block) -->
       <div
-        class="relative w-full flex flex-col gap-2.5 px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-3 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-900/60 z-30"
+        class="relative w-full flex flex-col gap-2.5 px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-3 bg-[#faf8f3] dark:bg-slate-950 border-b border-[#e4dccb] dark:border-slate-900/60 z-30"
       >
         <!-- Top row: Title, Zoom switch, Close button -->
         <div class="flex items-center justify-between">
@@ -689,7 +689,7 @@
         @if (type === 'vp') {
           <!-- Y-Axis Sticky Overlay -->
           <div
-            class="absolute left-0 top-0 bottom-0 w-14 z-20 pointer-events-none backdrop-blur-md bg-white/80 dark:bg-slate-950/80 border-r border-slate-100 dark:border-slate-900/60 flex flex-col justify-center"
+            class="absolute left-0 top-0 bottom-0 w-14 z-20 pointer-events-none backdrop-blur-md bg-[#faf8f3]/85 dark:bg-slate-950/80 border-r border-[#e4dccb] dark:border-slate-900/60 flex flex-col justify-center"
           >
             <svg
               class="w-full h-full"
@@ -742,8 +742,8 @@
                 </filter>
               </defs>
 
-              <!-- Solid dark background -->
-              <rect width="100%" height="100%" class="fill-white dark:fill-slate-950" />
+              <!-- Solid background -->
+              <rect width="100%" height="100%" class="fill-[#faf8f3] dark:fill-slate-950" />
 
               <!-- Vertical Grid Lines from zoomXAxisTicks -->
               @for (tick of zoomXAxisTicks(); track tick.label) {
@@ -859,7 +859,7 @@
         } @else {
           <!-- Y-Axis Sticky Overlay -->
           <div
-            class="absolute left-0 top-0 bottom-0 w-14 z-20 pointer-events-none backdrop-blur-md bg-white/80 dark:bg-slate-950/80 border-r border-slate-100 dark:border-slate-900/60 flex flex-col justify-center"
+            class="absolute left-0 top-0 bottom-0 w-14 z-20 pointer-events-none backdrop-blur-md bg-[#faf8f3]/85 dark:bg-slate-950/80 border-r border-[#e4dccb] dark:border-slate-900/60 flex flex-col justify-center"
           >
             <svg
               class="w-full h-full"
@@ -912,8 +912,8 @@
                 </filter>
               </defs>
 
-              <!-- Solid dark background -->
-              <rect width="100%" height="100%" class="fill-white dark:fill-slate-950" />
+              <!-- Solid background -->
+              <rect width="100%" height="100%" class="fill-[#faf8f3] dark:fill-slate-950" />
 
               <!-- Vertical Grid Lines from zoomXAxisTicks -->
               @for (tick of zoomXAxisTicks(); track tick.label) {
@@ -1035,7 +1035,7 @@
 <!-- Unified Screen Viewport-relative Tooltip Overlay -->
 @if (activeTooltip(); as tooltip) {
   <div
-    class="fixed z-9999 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border border-slate-200 dark:border-slate-800 rounded-lg p-2 shadow-xl text-xs text-slate-800 dark:text-slate-200 pointer-events-auto"
+    class="fixed z-9999 bg-[#faf8f3]/95 dark:bg-slate-900/95 backdrop-blur-xs border border-[#e4dccb] dark:border-slate-800 rounded-lg p-2 shadow-xl text-xs text-slate-800 dark:text-slate-200 pointer-events-auto"
     [style.left.px]="tooltip.clientX"
     [style.top.px]="tooltip.clientY"
     style="transform: translate(-50%, -100%) translateY(-10px); min-width: 145px; max-width: 220px"
@@ -1090,7 +1090,7 @@
       [style.left]="'calc(50% + ' + tooltip.arrowOffset + 'px)'"
     ></div>
     <div
-      class="absolute bottom-0 -translate-x-1/2 translate-y-1.25 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-white dark:border-t-slate-900"
+      class="absolute bottom-0 -translate-x-1/2 translate-y-1.25 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-[#faf8f3] dark:border-t-slate-900"
       [style.left]="'calc(50% + ' + tooltip.arrowOffset + 'px)'"
     ></div>
   </div>

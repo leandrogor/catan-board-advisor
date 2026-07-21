@@ -176,7 +176,7 @@
             <div class="relative">
               <button
                 type="button"
-                class="w-8 h-8 rounded-full border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-slate-800 flex items-center justify-center text-sm shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all select-none z-20"
+                class="w-8 h-8 rounded-full border border-indigo-300 dark:border-indigo-700 bg-[#faf8f3] dark:bg-slate-800 flex items-center justify-center text-sm shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all select-none z-20"
                 (click)="onBuildButtonClick(row.color.id, $event)"
                 [attr.aria-label]="'Select building option for ' + colorName(row.color)"
               >
@@ -185,7 +185,7 @@
 
               @if (isPickerActive && buildPickerOpen()) {
                 <div
-                  class="absolute right-0 bottom-full mb-2 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 flex flex-col gap-1 w-52"
+                  class="absolute right-0 bottom-full mb-2 z-50 bg-[#faf8f3] dark:bg-slate-800 rounded-xl shadow-xl border border-[#e4dccb] dark:border-slate-700 p-2 flex flex-col gap-1 w-52"
                   role="menu"
                   [attr.aria-label]="'Actions for ' + colorName(row.color)"
                 >
