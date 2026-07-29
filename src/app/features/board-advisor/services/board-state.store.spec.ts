@@ -643,4 +643,48 @@ describe('BoardStateStore - Longest Road', () => {
       }
     });
   });
+
+  describe('Custom Player Names', () => {
+    it('should set and retrieve custom player names, falling back to color name if unconfigured', () => {
+      expect(store.getPlayerName('red')).toBeDefined();
+      store.setPlayerName('red', 'Juan');
+      expect(store.getPlayerName('red')).toBe('Juan');
+    });
+
+    it('should persist playerNames in snapshot export and import', () => {
+      store.setPlayerName('red', 'Juan');
+      store.setPlayerName('blue', 'Maria');
+
+      const snapshot = {
+        version: 1,
+        playerCount: 3,
+        playerColors: store.playerColors(),
+        myPlayerColorId: store.myPlayerColorId(),
+        playerNames: store.playerNames(),
+        boardVariant: store.boardVariant(),
+        desertState: store.desertState(),
+        placedSettlements: [],
+        placedRoads: [],
+        currentTurnIndex: 0,
+        boardRotationDeg: 0,
+        appPhase: 'setup',
+        gameActivePlayerId: null,
+        longestRoadOwnerId: null,
+        largestArmyOwnerId: null,
+        useReducedDeck: false,
+        devCardsPurchased: {},
+        devCardsPlayed: [],
+        gameHistory: [],
+        simulationResult: null,
+      };
+
+      store.playerNames.set({});
+      expect(store.getPlayerName('red')).not.toBe('Juan');
+
+      const success = store.importSnapshot(snapshot);
+      expect(success).toBe(true);
+      expect(store.getPlayerName('red')).toBe('Juan');
+      expect(store.getPlayerName('blue')).toBe('Maria');
+    });
+  });
 });

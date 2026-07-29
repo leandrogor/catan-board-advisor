@@ -15,16 +15,16 @@ export class PlayerSetupComponent {
   protected readonly openPickerSlot = signal<number | null>(null);
 
   protected colorName(color: PlayerColor): string {
-    const t = this.i18n.t();
-    const map: Record<PlayerColor['id'], string> = {
-      red: t.colorRed,
-      blue: t.colorBlue,
-      mustard: t.colorMustard,
-      cream: t.colorCream,
-      green: t.colorGreen,
-      chocolate: t.colorChocolate,
-    };
-    return map[color.id];
+    return this.store.getPlayerName(color.id);
+  }
+
+  protected getPlayerCustomName(colorId: string): string {
+    return this.store.playerNames()[colorId] || '';
+  }
+
+  protected onNameInput(colorId: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.store.setPlayerName(colorId, input.value);
   }
 
   protected isColorUsed(color: PlayerColor, slotIndex: number): boolean {

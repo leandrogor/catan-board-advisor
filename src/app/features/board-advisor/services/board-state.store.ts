@@ -64,6 +64,7 @@ export class BoardStateStore {
   readonly playerCount = signal<PlayerCount>(3);
   readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 3));
   readonly myPlayerColorId = signal<PlayerColor['id'] | null>(null);
+  readonly playerNames = signal<Record<string, string>>({});
 
   /** Which physical board is in use: 'base' for 3-4 players, 'ext' for 5-6. */
   readonly boardVariant = computed<BoardVariant>(() => (this.playerCount() <= 4 ? 'base' : 'ext'));
@@ -1978,6 +1979,30 @@ export class BoardStateStore {
     }
   }
 
+  setPlayerName(colorId: string, name: string): void {
+    this.playerNames.update(prev => ({
+      ...prev,
+      [colorId]: name,
+    }));
+  }
+
+  getPlayerName(colorId: string): string {
+    const custom = this.playerNames()[colorId]?.trim();
+    if (custom) return custom;
+    const color = PLAYER_COLORS.find(c => c.id === colorId);
+    if (!color) return colorId;
+    const t = this.translationService.t();
+    const map: Record<PlayerColor['id'], string> = {
+      red: t.colorRed,
+      blue: t.colorBlue,
+      mustard: t.colorMustard,
+      cream: t.colorCream,
+      green: t.colorGreen,
+      chocolate: t.colorChocolate,
+    };
+    return map[color.id] ?? color.id;
+  }
+
   // ── Snapshot export / import ──────────────────────────────────────────────
 
   /**
@@ -1991,6 +2016,7 @@ export class BoardStateStore {
       playerCount: this.playerCount(),
       playerColors: this.playerColors(),
       myPlayerColorId: this.myPlayerColorId(),
+      playerNames: this.playerNames(),
       boardVariant: this.boardVariant(),
       desertState: this.desertState(),
       placedSettlements: this.placedSettlements(),
@@ -2051,13 +2077,16 @@ export class BoardStateStore {
         this.playerCount.set(count as PlayerCount);
       }
 
-      // ── 2. Player colors ───────────────────────────────────────────────
+      // ── 2. Player colors & names ───────────────────────────────────────
       if (Array.isArray(s['playerColors']) && s['playerColors'].length > 0) {
         this.playerColors.set(s['playerColors'] as PlayerColor[]);
       }
       this.myPlayerColorId.set(
         (s['myPlayerColorId'] as PlayerColor['id'] | null | undefined) ?? null,
       );
+      if (s['playerNames'] && typeof s['playerNames'] === 'object') {
+        this.playerNames.set(s['playerNames'] as Record<string, string>);
+      }
 
       // ── 3. Hex size (must match the board variant just set) ────────────
       const variant = this.boardVariant();

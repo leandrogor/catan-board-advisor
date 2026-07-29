@@ -119,16 +119,7 @@ export class GameStatsPanelComponent {
   }
 
   protected colorName(color: PlayerColor): string {
-    const t = this.i18n.t();
-    const map: Record<PlayerColor['id'], string> = {
-      red: t.colorRed,
-      blue: t.colorBlue,
-      mustard: t.colorMustard,
-      cream: t.colorCream,
-      green: t.colorGreen,
-      chocolate: t.colorChocolate,
-    };
-    return map[color.id] ?? color.id;
+    return this.store.getPlayerName(color.id);
   }
 
   protected formatProduction(val: number): string {

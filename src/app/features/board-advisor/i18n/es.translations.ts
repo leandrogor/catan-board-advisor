@@ -101,6 +101,9 @@ export const ES: Translations = {
   pointsLabel: 'pt',
   occupiedByOpponent: (colorName: string): string => `Ocupado por ${colorName}`,
   totalExpectedProd: 'Total de recursos esperados por tirada',
+  city: 'Ciudad',
+  settlement: 'Asentamiento',
+  editNameHint: 'Hacer clic para editar nombre',
   // Snapshot
   saveSnapshot: '💾 Guardar Snapshot',
   loadSnapshot: '📂 Cargar Snapshot',

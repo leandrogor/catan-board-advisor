@@ -95,6 +95,9 @@ export interface Translations {
   pointsLabel: string;
   occupiedByOpponent: (colorName: string) => string;
   totalExpectedProd: string;
+  city: string;
+  settlement: string;
+  editNameHint: string;
   // Snapshot
   saveSnapshot: string;
   loadSnapshot: string;
@@ -245,6 +248,9 @@ export const EN: Translations = {
   pointsLabel: 'pts',
   occupiedByOpponent: (colorName: string): string => `Occupied by ${colorName}`,
   totalExpectedProd: 'Total expected resources per roll',
+  city: 'City',
+  settlement: 'Settlement',
+  editNameHint: 'Click to edit player name',
   // Snapshot
   saveSnapshot: '💾 Save Snapshot',
   loadSnapshot: '📂 Load Snapshot',

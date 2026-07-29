@@ -69,41 +69,45 @@
               class="inline-block w-3.5 h-3.5 rounded-full shadow-sm ring-1 ring-white dark:ring-slate-600 shrink-0"
               [style.background-color]="row.color.hex"
             ></span>
-            <span
-              class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1 flex-wrap"
-            >
-              {{ colorName(row.color) }}
-              <span class="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case">
-                @{{ getTurnOrder(row.color.id) }}
-              </span>
-              @if (store.myPlayerColorId() === row.color.id) {
-                <span
-                  class="text-[8px] font-extrabold uppercase bg-indigo-600 dark:bg-indigo-500 text-white px-1 py-0.5 rounded-xs"
-                >
-                  {{ i18n.t().isMeLabel }}
-                </span>
-              }
-              @if (row.hasLongestRoad || row.hasLargestArmy) {
-                <span class="inline-flex items-center gap-1 shrink-0 animate-pulse">
-                  @if (row.hasLongestRoad) {
-                    <span
-                      class="text-[8px] font-extrabold uppercase bg-amber-500 dark:bg-amber-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0"
-                      title="Holds the Longest Road (+2 VP)"
-                    >
-                      👑 {{ i18n.t().longestRoadBadge }}
-                    </span>
-                  }
-                  @if (row.hasLargestArmy) {
-                    <span
-                      class="text-[8px] font-extrabold uppercase bg-rose-500 dark:bg-rose-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0"
-                      title="Holds the Largest Army (+2 VP)"
-                    >
-                      🛡️ {{ i18n.t().largestArmyBadge }}
-                    </span>
-                  }
-                </span>
-              }
+            <input
+              type="text"
+              [value]="colorName(row.color)"
+              (input)="onNameInput(row.color.id, $event)"
+              (click)="$event.stopPropagation()"
+              class="text-sm font-bold text-slate-800 dark:text-slate-200 bg-transparent hover:bg-white/40 dark:hover:bg-slate-800/40 border border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none rounded-md px-1 py-0.5 transition-all max-w-30"
+              [title]="i18n.t().editNameHint"
+              [attr.aria-label]="i18n.t().editNameHint"
+            />
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium normal-case">
+              @{{ getTurnOrder(row.color.id) }}
             </span>
+            @if (store.myPlayerColorId() === row.color.id) {
+              <span
+                class="text-[8px] font-extrabold uppercase bg-indigo-600 dark:bg-indigo-500 text-white px-1 py-0.5 rounded-xs"
+              >
+                {{ i18n.t().isMeLabel }}
+              </span>
+            }
+            @if (row.hasLongestRoad || row.hasLargestArmy) {
+              <span class="inline-flex items-center gap-1 shrink-0 animate-pulse">
+                @if (row.hasLongestRoad) {
+                  <span
+                    class="text-[8px] font-extrabold uppercase bg-amber-500 dark:bg-amber-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0"
+                    title="Holds the Longest Road (+2 VP)"
+                  >
+                    👑 {{ i18n.t().longestRoadBadge }}
+                  </span>
+                }
+                @if (row.hasLargestArmy) {
+                  <span
+                    class="text-[8px] font-extrabold uppercase bg-rose-500 dark:bg-rose-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0"
+                    title="Holds the Largest Army (+2 VP)"
+                  >
+                    🛡️ {{ i18n.t().largestArmyBadge }}
+                  </span>
+                }
+              </span>
+            }
           </div>
 
           <!-- Pieces Stock & Production details -->

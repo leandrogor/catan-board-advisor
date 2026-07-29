@@ -88,6 +88,15 @@
             ></div>
           </button>
 
+          <input
+            type="text"
+            [value]="getPlayerCustomName(color.id)"
+            (input)="onNameInput(color.id, $event)"
+            class="mt-1 w-16 text-center text-[11px] font-semibold px-1 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            [placeholder]="colorName(color)"
+            [attr.aria-label]="i18n.t().editNameHint"
+          />
+
           <button
             (click)="store.setMyPlayerColorId(color.id)"
             class="mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all duration-150 cursor-pointer select-none"

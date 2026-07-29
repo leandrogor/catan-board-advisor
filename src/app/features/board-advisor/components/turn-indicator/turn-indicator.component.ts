@@ -25,15 +25,6 @@ export class TurnIndicatorComponent {
   });
 
   private resolveColorName(player: PlayerColor): string {
-    const t = this.i18n.t();
-    const map: Record<PlayerColor['id'], string> = {
-      red: t.colorRed,
-      blue: t.colorBlue,
-      mustard: t.colorMustard,
-      cream: t.colorCream,
-      green: t.colorGreen,
-      chocolate: t.colorChocolate,
-    };
-    return map[player.id];
+    return this.store.getPlayerName(player.id);
   }
 }
