@@ -93,20 +93,18 @@ export class BoardComponent {
   protected readonly displayVertices = computed(() => {
     const vertices = this.store.rankedVertices();
     if (this.store.appPhase() === 'game') {
-      const suggestedIds = this.suggestedTargetIds();
-      return vertices.filter(
-        v => v.isOccupied || v.id === this.store.selectedVertexId() || suggestedIds.has(v.id),
-      );
+      return vertices.filter(v => !v.isBlocked);
     }
     const showZeros = this.store.showZeroScores();
-    if (showZeros) return vertices;
+    if (showZeros) return vertices.filter(v => !v.isBlocked || v.isOccupied);
 
     const threshold = this.thresholdRank();
     return vertices.filter(
       v =>
-        v.isOccupied ||
-        v.id === this.store.selectedVertexId() ||
-        (v.rank !== null && v.rank <= threshold),
+        !v.isBlocked &&
+        (v.isOccupied ||
+          v.id === this.store.selectedVertexId() ||
+          (v.rank !== null && v.rank <= threshold)),
     );
   });
 
@@ -458,6 +456,14 @@ export class BoardComponent {
 
   protected getVertexOpacity(v: Vertex): number {
     if (v.isBlocked) return 0.35;
+    if (
+      this.store.appPhase() === 'game' &&
+      !v.isOccupied &&
+      v.id !== this.store.selectedVertexId() &&
+      !this.suggestedTargetIds().has(v.id)
+    ) {
+      return 0.35;
+    }
     return 1;
   }
 
@@ -485,7 +491,6 @@ export class BoardComponent {
 
   protected onVertexClick(v: Vertex): void {
     if (this.store.appPhase() === 'game' && this.store.activeBuildTool()) return;
-    if (v.isBlocked) return;
 
     const wasSelectingRoad = this.store.isSelectingRoad();
     const wasSelected = this.store.selectedVertexId();
