@@ -109,4 +109,9 @@ export class VertexDetailPanelComponent {
     }
     return score.toFixed(3);
   }
+
+  protected getOwnerName(colorId?: string): string {
+    if (!colorId) return '';
+    return this.store.getPlayerName(colorId);
+  }
 }

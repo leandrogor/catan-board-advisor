@@ -112,7 +112,7 @@
                     <span
                       class="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-1.5 py-0.5 rounded-sm font-semibold"
                     >
-                      +1 Road
+                      +1 {{ i18n.t().buildRoad }}
                     </span>
                   }
                   <span>
@@ -146,40 +146,27 @@
           <!-- Game Phase Actions -->
           @if (vertex.isOccupied) {
             @let s = settlementAtVertex();
-            @if (s?.playerColorId === store.currentPlayerColor()?.id) {
-              <!-- Owned by active player - safety remove fallback -->
-              <button
-                class="w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-all bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 cursor-pointer"
-                (click)="store.removeSettlement(vertex.id)"
-              >
-                ❌
-                {{
-                  s?.type === 'city'
-                    ? i18n
-                        .t()
-                        .removeSettlement.replace('Settlement', 'City')
-                        .replace('Asentamiento', 'Ciudad')
-                    : i18n.t().removeSettlement
-                }}
-              </button>
-            } @else {
-              <!-- Owned by opponent -->
-              <p
-                class="text-center py-2.5 px-4 rounded-lg bg-slate-100 dark:bg-slate-900 text-sm font-medium text-slate-500 dark:text-slate-400"
-              >
-                🔒 {{ i18n.t().occupiedByOpponent(s ? s.playerColorId : 'opponent') }}
-              </p>
-            }
+            <div class="py-2.5 px-4 rounded-lg bg-slate-100 dark:bg-slate-900 text-center">
+              <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                {{ s?.type === 'city' ? '🏰 ' + i18n.t().city : '🏠 ' + i18n.t().settlement }}
+              </span>
+              <span class="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 font-medium">
+                🔒 {{ i18n.t().occupiedByOpponent(getOwnerName(s?.playerColorId)) }}
+              </span>
+            </div>
           }
         } @else {
           <!-- Setup/Results Phase Actions -->
           @if (vertex.isOccupied) {
-            <button
-              class="w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 cursor-pointer"
-              (click)="store.removeSettlement(vertex.id)"
-            >
-              {{ i18n.t().removeSettlement }}
-            </button>
+            @let s = settlementAtVertex();
+            <div class="py-2.5 px-4 rounded-lg bg-slate-100 dark:bg-slate-900 text-center">
+              <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                🏠 {{ i18n.t().settlement }}
+              </span>
+              <span class="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 font-medium">
+                🔒 {{ i18n.t().occupiedByOpponent(getOwnerName(s?.playerColorId)) }}
+              </span>
+            </div>
           } @else if (!vertex.isBlocked && !store.isSetupComplete()) {
             <button
               class="w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 cursor-pointer"
