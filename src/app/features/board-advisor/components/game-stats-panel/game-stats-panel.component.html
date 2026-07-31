@@ -434,7 +434,7 @@
                       <span
                         class="text-slate-500 dark:text-slate-400 wrap-break-word whitespace-normal"
                       >
-                        {{ log.entry.description }}
+                        {{ log.description }}
                       </span>
                     </div>
                     <span
@@ -636,15 +636,7 @@
               class="px-3 py-1 rounded-lg text-[10px] font-bold border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
               (click)="toggleZoomMode()"
             >
-              {{
-                isZoomMode()
-                  ? i18n.lang() === 'es'
-                    ? 'Ver Completo'
-                    : 'View Full'
-                  : i18n.lang() === 'es'
-                    ? 'Modo Zoom'
-                    : 'Zoom Mode'
-              }}
+              {{ isZoomMode() ? i18n.t().statsViewFull : i18n.t().statsZoomMode }}
             </button>
 
             <!-- Close Button -->

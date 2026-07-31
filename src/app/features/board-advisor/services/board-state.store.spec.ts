@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { BoardStateStore } from './board-state.store';
 import { PlacedRoad } from '../models/road-option.model';
+import { TranslationService } from '../../../core/services/translation.service';
 
 describe('BoardStateStore - Longest Road', () => {
   let store: BoardStateStore;
@@ -433,11 +434,10 @@ describe('BoardStateStore - Longest Road', () => {
 
       // 2. Export state to a mock snapshot JSON object
       const snapshot = {
-        version: 1,
+        version: 2,
         playerCount: store.playerCount(),
         playerColors: store.playerColors(),
         myPlayerColorId: store.myPlayerColorId(),
-        boardVariant: store.boardVariant(),
         desertState: store.desertState(),
         placedSettlements: store.placedSettlements(),
         placedRoads: store.placedRoads(),
@@ -656,12 +656,11 @@ describe('BoardStateStore - Longest Road', () => {
       store.setPlayerName('blue', 'Maria');
 
       const snapshot = {
-        version: 1,
+        version: 2,
         playerCount: 3,
         playerColors: store.playerColors(),
         myPlayerColorId: store.myPlayerColorId(),
         playerNames: store.playerNames(),
-        boardVariant: store.boardVariant(),
         desertState: store.desertState(),
         placedSettlements: [],
         placedRoads: [],
@@ -685,6 +684,132 @@ describe('BoardStateStore - Longest Road', () => {
       expect(success).toBe(true);
       expect(store.getPlayerName('red')).toBe('Juan');
       expect(store.getPlayerName('blue')).toBe('Maria');
+    });
+
+    it('should format history descriptions dynamically based on current language', () => {
+      const translationService = TestBed.inject(TranslationService);
+      translationService.lang.set('es');
+      store.startGamePhase();
+      const firstVertex = store.scoredVertices()[0];
+      store.buildSettlement(firstVertex.id);
+
+      const history = store.gameHistory();
+      expect(history).toHaveSize(2);
+
+      // In Spanish:
+      const descEs = store.formatHistoryDescription(history[1], history[0]);
+      expect(descEs).toContain('poblado');
+
+      // Switch language to English dynamically:
+      translationService.lang.set('en');
+      const descEn = store.formatHistoryDescription(history[1], history[0]);
+      expect(descEn).toContain('settlement');
+    });
+
+    it('should restore undoStack and redoStack when importing version 2 snapshot', () => {
+      store.startGamePhase();
+      const firstVertex = store.scoredVertices()[0];
+      store.buildSettlement(firstVertex.id);
+
+      expect(store.undoStack().length).toBeGreaterThan(0);
+
+      // Perform undo to populate redoStack
+      store.undo();
+      expect(store.redoStack()).toHaveSize(1);
+
+      const mockSnapshot = {
+        version: 2,
+        playerCount: store.playerCount(),
+        playerColors: store.playerColors(),
+        myPlayerColorId: store.myPlayerColorId(),
+        playerNames: store.playerNames(),
+        desertState: store.desertState(),
+        placedSettlements: store.placedSettlements(),
+        placedRoads: store.placedRoads(),
+        undoStack: store.undoStack(),
+        redoStack: store.redoStack(),
+        desertUndoStack: store.desertUndoStack(),
+        desertRedoStack: store.desertRedoStack(),
+        currentTurnIndex: store.currentTurnIndex(),
+        boardRotationDeg: store.boardRotationDeg(),
+        appPhase: store.appPhase(),
+        gameActivePlayerId: store.gameActivePlayerId(),
+        longestRoadOwnerId: store.longestRoadOwnerId(),
+        largestArmyOwnerId: store.largestArmyOwnerId(),
+        useReducedDeck: store.useReducedDeck(),
+        devCardsPurchased: store.devCardsPurchased(),
+        devCardsPlayed: store.devCardsPlayed(),
+        gameHistory: store.gameHistory(),
+        simulationResult: null,
+      };
+
+      // Reset store
+      store.resetToSetup();
+      expect(store.undoStack()).toHaveSize(0);
+      expect(store.redoStack()).toHaveSize(0);
+
+      // Import snapshot
+      const imported = store.importSnapshot(mockSnapshot);
+      expect(imported).toBe(true);
+      expect(store.redoStack()).toHaveSize(1);
+
+      // Reapply redo after snapshot load
+      store.redo();
+      expect(store.placedSettlements()).toHaveSize(1);
+    });
+
+    it('should cancel active road selection and transient state when undo or redo is called', () => {
+      store.startGamePhase();
+      const firstVertex = store.scoredVertices()[0];
+      store.buildSettlement(firstVertex.id);
+
+      // Start selecting a road
+      store.startSelectingRoad(firstVertex.id);
+      expect(store.isSelectingRoad()).toBe(true);
+      expect(store.pendingSettlementVertexId()).toBe(firstVertex.id);
+
+      // Call undo
+      store.undo();
+      expect(store.isSelectingRoad()).toBe(false);
+      expect(store.pendingSettlementVertexId()).toBeNull();
+      expect(store.activeBuildTool()).toBeNull();
+    });
+
+    it('should keep gameHistory in sync when undoing grouped actions within the same turn', () => {
+      const translationService = TestBed.inject(TranslationService);
+      translationService.lang.set('es');
+      store.startGamePhase();
+
+      const vertices = store.scoredVertices();
+      const v1 = vertices[0];
+      const v2 = vertices.find(x => v1.adjacentVertexIds.includes(x.id))!;
+
+      // Player Red builds settlement
+      store.buildSettlement(v1.id);
+      let history = store.gameHistory();
+      expect(history).toHaveSize(2);
+      expect(store.formatHistoryDescription(history[1], history[0])).toContain('poblado');
+
+      // Player Red builds road (grouped in same turn entry)
+      store.buildRoad(v1.id, v2.id);
+      history = store.gameHistory();
+      expect(history).toHaveSize(2); // grouped!
+      expect(store.formatHistoryDescription(history[1], history[0])).toContain('camino');
+
+      // Undo road build: history length remains 2, but description should revert to settlement only
+      store.undo();
+      history = store.gameHistory();
+      expect(history).toHaveSize(2);
+      const descAfterUndo = store.formatHistoryDescription(history[1], history[0]);
+      expect(descAfterUndo).toContain('poblado');
+      expect(descAfterUndo).not.toContain('camino');
+      expect(store.placedRoads()).toHaveSize(0);
+
+      // Undo settlement build: history length reverts to 1
+      store.undo();
+      history = store.gameHistory();
+      expect(history).toHaveSize(1);
+      expect(store.placedSettlements()).toHaveSize(0);
     });
   });
 });

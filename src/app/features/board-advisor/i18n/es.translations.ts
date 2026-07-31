@@ -154,4 +154,23 @@ export const ES: Translations = {
   statsAwardLongestRoadLost: '-Gran Ruta Vial',
   statsAwardLargestArmyGained: '+Mayor Ejército',
   statsAwardLargestArmyLost: '-Mayor Ejército',
+  statsInitialPhase: 'Fase Inicial',
+  statsStartLabel: 'Inicio',
+  statsGenericAction: 'Acción',
+  statsViewFull: 'Ver Completo',
+  statsZoomMode: 'Modo Zoom',
+  statsRoundsRange: (lower: number, upper: number): string => `${lower} - ${upper} rondas`,
+  statsLogSettlementsAdded: (count: number): string => `${count} poblado${count > 1 ? 's' : ''}`,
+  statsLogCitiesAdded: (count: number): string => `${count} ciudad${count > 1 ? 'es' : ''}`,
+  statsLogRoadsAdded: (count: number): string => `${count} camino${count > 1 ? 's' : ''}`,
+  statsLogDevCardsBought: (count: number): string =>
+    `${count} carta${count > 1 ? 's' : ''} comprada${count > 1 ? 's' : ''}`,
+  statsLogDevCardsPlayed: (count: number, cardNamesStr: string): string =>
+    `${count} carta${count > 1 ? 's' : ''} jugada${count > 1 ? 's' : ''}${cardNamesStr}`,
+  statsLogSettlementsRemoved: (count: number): string =>
+    `${count} poblado${Math.abs(count) > 1 ? 's' : ''}`,
+  statsLogCitiesRemoved: (count: number): string =>
+    `${count} ciudad${Math.abs(count) > 1 ? 'es' : ''}`,
+  statsLogRoadsRemoved: (count: number): string =>
+    `${count} camino${Math.abs(count) > 1 ? 's' : ''}`,
 };

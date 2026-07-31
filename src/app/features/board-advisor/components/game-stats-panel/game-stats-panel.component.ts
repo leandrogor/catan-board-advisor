@@ -134,6 +134,7 @@ export class GameStatsPanelComponent {
    * Generates grid coordinates for Victory Points line chart.
    */
   protected readonly vpPaths = computed(() => {
+    this.i18n.lang();
     const history = this.store.gameHistory();
     const colors = this.store.playerColors();
     if (history.length === 0) return [];
@@ -144,12 +145,11 @@ export class GameStatsPanelComponent {
 
     return colors.map(color => {
       const points: TimelinePoint[] = history.map((entry, idx) => {
-        // Horizontal mapping: 50px margin left, 410px span (total viewBox width 500)
         const x = total <= 1 ? 250 : 50 + (idx / (total - 1)) * 410;
-        // Vertical mapping: Y=170 is VP=2, Y=30 is maxScore.
         const score = entry.scores[color.id] ?? 2;
         const y = 170 - ((score - 2) / (maxScore - 2)) * 130;
-        return { x, y, score, idx, desc: entry.description, playerColorId: entry.playerColorId };
+        const desc = this.store.formatHistoryDescription(entry, history[idx - 1]);
+        return { x, y, score, idx, desc, playerColorId: entry.playerColorId };
       });
 
       const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -166,6 +166,7 @@ export class GameStatsPanelComponent {
    * Generates grid coordinates for expected production engine line chart.
    */
   protected readonly prodPaths = computed(() => {
+    this.i18n.lang();
     const history = this.store.gameHistory();
     const colors = this.store.playerColors();
     if (history.length === 0) return [];
@@ -178,9 +179,9 @@ export class GameStatsPanelComponent {
       const points: ProductionPoint[] = history.map((entry, idx) => {
         const x = total <= 1 ? 250 : 50 + (idx / (total - 1)) * 410;
         const val = entry.avgProd[color.id] ?? 0;
-        // Vertical mapping: Y=170 is Prod=0, Y=30 is maxYield.
         const y = 170 - (val / maxYield) * 130;
-        return { x, y, val, idx, desc: entry.description, playerColorId: entry.playerColorId };
+        const desc = this.store.formatHistoryDescription(entry, history[idx - 1]);
+        return { x, y, val, idx, desc, playerColorId: entry.playerColorId };
       });
 
       const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -242,7 +243,7 @@ export class GameStatsPanelComponent {
 
     const total = history.length;
     const ticks: { label: string; x: number }[] = [];
-    const startText = this.i18n.lang() === 'es' ? 'Inicio' : 'Start';
+    const startText = this.i18n.t().statsStartLabel;
 
     if (total <= 6) {
       history.forEach((_, idx) => {
@@ -266,19 +267,24 @@ export class GameStatsPanelComponent {
    * Reverse chronological event log of the active game.
    */
   protected readonly gameLog = computed(() => {
+    this.i18n.lang();
     const history = this.store.gameHistory();
     if (history.length <= 1) return [];
 
-    // Skip start entry, show newest first
-    const entries = history.slice(1);
-    entries.reverse();
-    return entries.map(entry => {
-      const playerColor = this.store.playerColors().find(c => c.id === entry.playerColorId);
-      return {
-        entry,
-        playerColor,
-      };
-    });
+    return history
+      .slice(1)
+      .map((entry, sliceIdx) => {
+        const actualIdx = sliceIdx + 1;
+        const prevEntry = history[actualIdx - 1];
+        const playerColor = this.store.playerColors().find(c => c.id === entry.playerColorId);
+        const description = this.store.formatHistoryDescription(entry, prevEntry);
+        return {
+          entry,
+          description,
+          playerColor,
+        };
+      })
+      .reverse();
   });
 
   /**
@@ -310,8 +316,7 @@ export class GameStatsPanelComponent {
         const lower = Math.max(1, minRounds);
         const upper = Math.max(lower + 1, maxRounds);
 
-        const isEs = this.i18n.lang() === 'es';
-        roundsRange = isEs ? `${lower} - ${upper} rondas` : `${lower} - ${upper} rounds`;
+        roundsRange = this.i18n.t().statsRoundsRange(lower, upper);
 
         if (rRound >= 3.0) {
           speedClass = 'fast';
@@ -538,7 +543,7 @@ export class GameStatsPanelComponent {
 
     const total = history.length;
     const ticks: { label: string; x: number }[] = [];
-    const startText = this.i18n.lang() === 'es' ? 'Inicio' : 'Start';
+    const startText = this.i18n.t().statsStartLabel;
     const isZoom = this.isZoomMode();
     const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
 
@@ -618,7 +623,7 @@ export class GameStatsPanelComponent {
     const entry = history[turnIdx];
     if (!entry) return;
 
-    const startText = this.i18n.lang() === 'es' ? 'Inicio' : 'Start';
+    const startText = this.i18n.t().statsStartLabel;
     const turnLabel = turnIdx === 0 ? startText : `#${turnIdx}`;
     const titleText = `${this.i18n.t().statsMoveNum} ${turnLabel}`;
 
@@ -672,7 +677,7 @@ export class GameStatsPanelComponent {
         clientY,
         arrowOffset,
         title: titleText,
-        description: entry.description,
+        description: this.store.formatHistoryDescription(entry, history[turnIdx - 1]),
         actionPlayerHex,
         players,
       });

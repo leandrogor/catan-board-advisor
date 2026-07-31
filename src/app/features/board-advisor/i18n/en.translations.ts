@@ -146,6 +146,20 @@ export interface Translations {
   statsAwardLongestRoadLost: string;
   statsAwardLargestArmyGained: string;
   statsAwardLargestArmyLost: string;
+  statsInitialPhase: string;
+  statsStartLabel: string;
+  statsGenericAction: string;
+  statsViewFull: string;
+  statsZoomMode: string;
+  statsRoundsRange: (lower: number, upper: number) => string;
+  statsLogSettlementsAdded: (count: number) => string;
+  statsLogCitiesAdded: (count: number) => string;
+  statsLogRoadsAdded: (count: number) => string;
+  statsLogDevCardsBought: (count: number) => string;
+  statsLogDevCardsPlayed: (count: number, cardNamesStr: string) => string;
+  statsLogSettlementsRemoved: (count: number) => string;
+  statsLogCitiesRemoved: (count: number) => string;
+  statsLogRoadsRemoved: (count: number) => string;
 }
 
 export const EN: Translations = {
@@ -301,4 +315,21 @@ export const EN: Translations = {
   statsAwardLongestRoadLost: '-Longest Road',
   statsAwardLargestArmyGained: '+Largest Army',
   statsAwardLargestArmyLost: '-Largest Army',
+  statsInitialPhase: 'Initial Phase',
+  statsStartLabel: 'Start',
+  statsGenericAction: 'Action',
+  statsViewFull: 'View Full',
+  statsZoomMode: 'Zoom Mode',
+  statsRoundsRange: (lower: number, upper: number): string => `${lower} - ${upper} rounds`,
+  statsLogSettlementsAdded: (count: number): string => `${count} settlement${count > 1 ? 's' : ''}`,
+  statsLogCitiesAdded: (count: number): string => `${count} cit${count > 1 ? 'ies' : 'y'}`,
+  statsLogRoadsAdded: (count: number): string => `${count} road${count > 1 ? 's' : ''}`,
+  statsLogDevCardsBought: (count: number): string => `${count} card${count > 1 ? 's' : ''} bought`,
+  statsLogDevCardsPlayed: (count: number, cardNamesStr: string): string =>
+    `${count} card${count > 1 ? 's' : ''} played${cardNamesStr}`,
+  statsLogSettlementsRemoved: (count: number): string =>
+    `${count} settlement${Math.abs(count) > 1 ? 's' : ''}`,
+  statsLogCitiesRemoved: (count: number): string =>
+    `${count} cit${Math.abs(count) > 1 ? 'ies' : 'y'}`,
+  statsLogRoadsRemoved: (count: number): string => `${count} road${Math.abs(count) > 1 ? 's' : ''}`,
 };

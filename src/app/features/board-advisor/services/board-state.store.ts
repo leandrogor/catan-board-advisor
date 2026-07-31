@@ -1010,6 +1010,26 @@ export class BoardStateStore {
     }, 100);
   }
 
+  formatHistoryDescription(entry: GameHistoryEntry, prevEntry?: GameHistoryEntry): string {
+    const t = this.translationService.t();
+    if (entry.entryId === 'start') {
+      return t.statsInitialPhase;
+    }
+    if (!prevEntry) {
+      return entry.description || t.statsGenericAction;
+    }
+    return this.generateEntryDescription(
+      prevEntry,
+      entry.placements,
+      entry.roads,
+      entry.devCardsPurchased,
+      entry.devCardsPlayed,
+      entry.longestRoadOwnerId ?? null,
+      entry.largestArmyOwnerId ?? null,
+      entry.playerColorId,
+    );
+  }
+
   private generateEntryDescription(
     prev: GameHistoryEntry,
     currPlacements: PlacedSettlement[],
@@ -1044,40 +1064,24 @@ export class BoardStateStore {
     const devCardPlayedDiff = currPlayedCount - prevPlayedCount;
 
     const parts: string[] = [];
-    const isEs = this.translationService.lang() === 'es';
+    const t = this.translationService.t();
 
     if (settleDiff > 0) {
-      const settlePlural = settleDiff > 1 ? 's' : '';
-      const settleDesc = isEs
-        ? `${settleDiff} poblado${settlePlural}`
-        : `${settleDiff} settlement${settlePlural}`;
-      parts.push(settleDesc);
+      parts.push(t.statsLogSettlementsAdded(settleDiff));
     }
     if (cityDiff > 0) {
-      const cityPluralEs = cityDiff > 1 ? 'es' : '';
-      const cityPluralEn = cityDiff > 1 ? 'ies' : 'y';
-      const cityDesc = isEs
-        ? `${cityDiff} ciudad${cityPluralEs}`
-        : `${cityDiff} cit${cityPluralEn}`;
-      parts.push(cityDesc);
+      parts.push(t.statsLogCitiesAdded(cityDiff));
     }
     if (roadDiff > 0) {
-      const roadPlural = roadDiff > 1 ? 's' : '';
-      const roadDesc = isEs ? `${roadDiff} camino${roadPlural}` : `${roadDiff} road${roadPlural}`;
-      parts.push(roadDesc);
+      parts.push(t.statsLogRoadsAdded(roadDiff));
     }
     if (devCardDiff > 0) {
-      const cardPlural = devCardDiff > 1 ? 's' : '';
-      const cardDesc = isEs
-        ? `${devCardDiff} carta${cardPlural} comprada${cardPlural}`
-        : `${devCardDiff} card${cardPlural} bought`;
-      parts.push(cardDesc);
+      parts.push(t.statsLogDevCardsBought(devCardDiff));
     }
     if (devCardPlayedDiff > 0) {
       const prevMyPlayed = prev.devCardsPlayed.filter(c => c.playerColorId === colorId);
       const currMyPlayed = currPlayed.filter(c => c.playerColorId === colorId);
       const newPlayedCards = currMyPlayed.slice(prevMyPlayed.length);
-      const t = this.translationService.t();
       const cardNameMap: Record<DevCardType, string> = {
         knight: t.devCardKnight,
         victoryPoint: t.devCardVictoryPoint,
@@ -1087,12 +1091,7 @@ export class BoardStateStore {
       };
       const cardNamesList = newPlayedCards.map(c => cardNameMap[c.type] || c.type);
       const cardNamesStr = cardNamesList.length > 0 ? ` (${cardNamesList.join(', ')})` : '';
-
-      const playPlural = devCardPlayedDiff > 1 ? 's' : '';
-      const playDesc = isEs
-        ? `${devCardPlayedDiff} carta${playPlural} jugada${playPlural}${cardNamesStr}`
-        : `${devCardPlayedDiff} card${playPlural} played${cardNamesStr}`;
-      parts.push(playDesc);
+      parts.push(t.statsLogDevCardsPlayed(devCardPlayedDiff, cardNamesStr));
     }
 
     // Award changes
@@ -1101,50 +1100,34 @@ export class BoardStateStore {
 
     if (prevLR !== currLongestRoadOwnerId) {
       if (currLongestRoadOwnerId === colorId) {
-        parts.push(this.translationService.t().statsAwardLongestRoadGained);
+        parts.push(t.statsAwardLongestRoadGained);
       } else if (prevLR === colorId) {
-        parts.push(this.translationService.t().statsAwardLongestRoadLost);
+        parts.push(t.statsAwardLongestRoadLost);
       }
     }
 
     if (prevLA !== currLargestArmyOwnerId) {
       if (currLargestArmyOwnerId === colorId) {
-        parts.push(this.translationService.t().statsAwardLargestArmyGained);
+        parts.push(t.statsAwardLargestArmyGained);
       } else if (prevLA === colorId) {
-        parts.push(this.translationService.t().statsAwardLargestArmyLost);
+        parts.push(t.statsAwardLargestArmyLost);
       }
     }
 
     // Removals
     const adjustedSettleDiff = settleDiff + Math.max(cityDiff, 0);
     if (adjustedSettleDiff < 0) {
-      const absSettle = Math.abs(adjustedSettleDiff);
-      const settleRemPlural = absSettle > 1 ? 's' : '';
-      const settleRemDesc = isEs
-        ? `${adjustedSettleDiff} poblado${settleRemPlural}`
-        : `${adjustedSettleDiff} settlement${settleRemPlural}`;
-      parts.push(settleRemDesc);
+      parts.push(t.statsLogSettlementsRemoved(adjustedSettleDiff));
     }
     if (cityDiff < 0) {
-      const absCity = Math.abs(cityDiff);
-      const cityRemPluralEs = absCity > 1 ? 'es' : '';
-      const cityRemPluralEn = absCity > 1 ? 'ies' : 'y';
-      const cityRemDesc = isEs
-        ? `${cityDiff} ciudad${cityRemPluralEs}`
-        : `${cityDiff} cit${cityRemPluralEn}`;
-      parts.push(cityRemDesc);
+      parts.push(t.statsLogCitiesRemoved(cityDiff));
     }
     if (roadDiff < 0) {
-      const absRoad = Math.abs(roadDiff);
-      const roadRemPlural = absRoad > 1 ? 's' : '';
-      const roadRemDesc = isEs
-        ? `${roadDiff} camino${roadRemPlural}`
-        : `${roadDiff} road${roadRemPlural}`;
-      parts.push(roadRemDesc);
+      parts.push(t.statsLogRoadsRemoved(roadDiff));
     }
 
     if (parts.length === 0) {
-      return isEs ? 'Acción' : 'Action';
+      return t.statsGenericAction;
     }
     return parts.join(', ');
   }
@@ -1280,7 +1263,7 @@ export class BoardStateStore {
         largestArmyOwnerId: this.largestArmyOwnerId(),
         devCardsPurchased: { ...this.devCardsPurchased() },
         devCardsPlayed: [...this.devCardsPlayed()],
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -1299,7 +1282,7 @@ export class BoardStateStore {
     const startEntry: GameHistoryEntry = {
       entryId: 'start',
       playerColorId: '',
-      description: this.translationService.lang() === 'es' ? 'Fase Inicial' : 'Initial Phase',
+      description: this.translationService.t().statsInitialPhase,
       scores: scoresMap,
       avgProd: prodMap,
       placements: [...this.placedSettlements()],
@@ -1331,7 +1314,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -1354,7 +1337,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -1380,7 +1363,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -1404,7 +1387,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -1430,7 +1413,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         longestRoadOwnerId: this.longestRoadOwnerId(),
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -1443,16 +1426,135 @@ export class BoardStateStore {
     }
   }
 
+  clearTransientSelectionState(): void {
+    this.isSelectingRoad.set(false);
+    this.pendingSettlementVertexId.set(null);
+    this.currentRoadOptions.set([]);
+    this.activeBuildTool.set(null);
+    this.selectedVertexId.set(null);
+    this.selectedHexId.set(null);
+    this.panelVisible.set(true);
+  }
+
+  private syncHistoryLogAfterUndoRedo(targetHistoryLength?: number): void {
+    if (this.appPhase() !== 'game') return;
+
+    const history = this.gameHistory();
+    if (history.length === 0) return;
+
+    const targetLen = targetHistoryLength ?? history.length;
+
+    if (history.length > targetLen) {
+      // UNDO: trim history array to targetLen
+      const sliced = history.slice(0, targetLen);
+      if (sliced.length > 1) {
+        const lastIdx = sliced.length - 1;
+        const currentPlacements = this.placedSettlements();
+        const currentRoads = this.placedRoads();
+        const currentPurchased = this.devCardsPurchased();
+        const currentPlayed = this.devCardsPlayed();
+        const currentLR = this.longestRoadOwnerId();
+        const currentLA = this.largestArmyOwnerId();
+
+        const scoresMap: Record<string, number> = {};
+        const prodMap: Record<string, number> = {};
+        for (const scoreRow of this.playerScores()) {
+          scoresMap[scoreRow.color.id] = scoreRow.score;
+          prodMap[scoreRow.color.id] = scoreRow.avgProd;
+        }
+
+        const prevEntry = sliced[lastIdx - 1] ?? sliced[0];
+        const desc = this.generateEntryDescription(
+          prevEntry,
+          currentPlacements,
+          currentRoads,
+          currentPurchased,
+          currentPlayed,
+          currentLR,
+          currentLA,
+          sliced[lastIdx].playerColorId,
+        );
+
+        sliced[lastIdx] = {
+          ...sliced[lastIdx],
+          description: desc,
+          scores: scoresMap,
+          avgProd: prodMap,
+          placements: [...currentPlacements],
+          roads: [...currentRoads],
+          devCardsPurchased: { ...currentPurchased },
+          devCardsPlayed: [...currentPlayed],
+          longestRoadOwnerId: currentLR,
+          largestArmyOwnerId: currentLA,
+        };
+      }
+      this.gameHistory.set(sliced);
+    } else if (history.length < targetLen) {
+      // REDO: re-append history entry for active player if missing
+      const activeColor = this.gameActivePlayerId();
+      if (activeColor) {
+        this.updateHistoryLog(activeColor);
+      }
+    } else if (history.length > 1) {
+      // Same length (undoing a grouped action within the same turn)
+      const lastIdx = history.length - 1;
+      const currentPlacements = this.placedSettlements();
+      const currentRoads = this.placedRoads();
+      const currentPurchased = this.devCardsPurchased();
+      const currentPlayed = this.devCardsPlayed();
+      const currentLR = this.longestRoadOwnerId();
+      const currentLA = this.largestArmyOwnerId();
+
+      const scoresMap: Record<string, number> = {};
+      const prodMap: Record<string, number> = {};
+      for (const scoreRow of this.playerScores()) {
+        scoresMap[scoreRow.color.id] = scoreRow.score;
+        prodMap[scoreRow.color.id] = scoreRow.avgProd;
+      }
+
+      const prevEntry = history[lastIdx - 1] ?? history[0];
+      const desc = this.generateEntryDescription(
+        prevEntry,
+        currentPlacements,
+        currentRoads,
+        currentPurchased,
+        currentPlayed,
+        currentLR,
+        currentLA,
+        history[lastIdx].playerColorId,
+      );
+
+      this.gameHistory.update(list => {
+        const copy = [...list];
+        copy[lastIdx] = {
+          ...copy[lastIdx],
+          description: desc,
+          scores: scoresMap,
+          avgProd: prodMap,
+          placements: [...currentPlacements],
+          roads: [...currentRoads],
+          devCardsPurchased: { ...currentPurchased },
+          devCardsPlayed: [...currentPlayed],
+          longestRoadOwnerId: currentLR,
+          largestArmyOwnerId: currentLA,
+        };
+        return copy;
+      });
+    }
+  }
+
   undo(): void {
     if (this.appPhase() === 'setup') {
       const stack = this.desertUndoStack();
       if (!stack.length) return;
+      this.clearTransientSelectionState();
       this.desertRedoStack.update(r => [...r, { ...this.desertState() }]);
       this.desertState.set(stack.at(-1)!);
       this.desertUndoStack.update(s => s.slice(0, -1));
     } else {
       const stack = this.undoStack();
       if (!stack.length) return;
+      this.clearTransientSelectionState();
       this.redoStack.update(r => [
         ...r,
         {
@@ -1465,7 +1567,7 @@ export class BoardStateStore {
           largestArmyOwnerId: this.largestArmyOwnerId(),
           devCardsPurchased: { ...this.devCardsPurchased() },
           devCardsPlayed: [...this.devCardsPlayed()],
-          gameHistory: [...this.gameHistory()],
+          historyLength: this.gameHistory().length,
         },
       ]);
       const last = stack.at(-1)!;
@@ -1486,13 +1588,8 @@ export class BoardStateStore {
       if (last.devCardsPlayed !== undefined) {
         this.devCardsPlayed.set([...last.devCardsPlayed]);
       }
-      if (last.gameHistory !== undefined) {
-        this.gameHistory.set([...last.gameHistory]);
-      } else {
-        this.gameHistory.set([]);
-      }
+      this.syncHistoryLogAfterUndoRedo(last.historyLength);
       this.undoStack.update(s => s.slice(0, -1));
-      this.selectedVertexId.set(null);
     }
   }
 
@@ -1500,12 +1597,14 @@ export class BoardStateStore {
     if (this.appPhase() === 'setup') {
       const stack = this.desertRedoStack();
       if (!stack.length) return;
+      this.clearTransientSelectionState();
       this.desertUndoStack.update(u => [...u, { ...this.desertState() }]);
       this.desertState.set(stack.at(-1)!);
       this.desertRedoStack.update(r => r.slice(0, -1));
     } else {
       const stack = this.redoStack();
       if (!stack.length) return;
+      this.clearTransientSelectionState();
       this.undoStack.update(u => [
         ...u,
         {
@@ -1518,7 +1617,7 @@ export class BoardStateStore {
           largestArmyOwnerId: this.largestArmyOwnerId(),
           devCardsPurchased: { ...this.devCardsPurchased() },
           devCardsPlayed: [...this.devCardsPlayed()],
-          gameHistory: [...this.gameHistory()],
+          historyLength: this.gameHistory().length,
         },
       ]);
       const last = stack.at(-1)!;
@@ -1539,13 +1638,8 @@ export class BoardStateStore {
       if (last.devCardsPlayed !== undefined) {
         this.devCardsPlayed.set([...last.devCardsPlayed]);
       }
-      if (last.gameHistory !== undefined) {
-        this.gameHistory.set([...last.gameHistory]);
-      } else {
-        this.gameHistory.set([]);
-      }
+      this.syncHistoryLogAfterUndoRedo(last.historyLength);
       this.redoStack.update(r => r.slice(0, -1));
-      this.selectedVertexId.set(null);
     }
   }
 
@@ -1624,7 +1718,7 @@ export class BoardStateStore {
         turnIndex: this.currentTurnIndex(),
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -1832,7 +1926,7 @@ export class BoardStateStore {
         largestArmyOwnerId: this.largestArmyOwnerId(),
         devCardsPurchased: { ...this.devCardsPurchased() },
         devCardsPlayed: [...this.devCardsPlayed()],
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -1870,7 +1964,7 @@ export class BoardStateStore {
         largestArmyOwnerId: this.largestArmyOwnerId(),
         devCardsPurchased: { ...this.devCardsPurchased() },
         devCardsPlayed: [...this.devCardsPlayed()],
-        gameHistory: [...this.gameHistory()],
+        historyLength: this.gameHistory().length,
       },
     ]);
     this.redoStack.set([]);
@@ -2012,15 +2106,18 @@ export class BoardStateStore {
   exportSnapshot(): void {
     const result = this.simulationResult();
     const snapshot = {
-      version: 1,
+      version: 2,
       playerCount: this.playerCount(),
       playerColors: this.playerColors(),
       myPlayerColorId: this.myPlayerColorId(),
       playerNames: this.playerNames(),
-      boardVariant: this.boardVariant(),
       desertState: this.desertState(),
       placedSettlements: this.placedSettlements(),
       placedRoads: this.placedRoads(),
+      undoStack: this.undoStack(),
+      redoStack: this.redoStack(),
+      desertUndoStack: this.desertUndoStack(),
+      desertRedoStack: this.desertRedoStack(),
       currentTurnIndex: this.currentTurnIndex(),
       boardRotationDeg: this.boardRotationDeg(),
       appPhase: this.appPhase(),
@@ -2054,21 +2151,11 @@ export class BoardStateStore {
   /**
    * Restores game state from a snapshot object parsed from a JSON file.
    * Returns true on success, false if the snapshot structure is invalid.
-   *
-   * Signal-setting order matters:
-   *   1. playerCount  → boardVariant (computed) updates
-   *   2. playerColors, myPlayerColorId
-   *   3. hexSize      → must be set AFTER boardVariant is stable
-   *   4. desertState  → hexes + allVertices recompute
-   *   5. placedSettlements, placedRoads, currentTurnIndex, boardRotationDeg
-   *   6. simulationResult → scoredVertices can now map vertex IDs → scores
-   *   7. gameActivePlayerId
-   *   8. appPhase     → set LAST so the UI re-renders with all data in place
    */
   importSnapshot(raw: unknown): boolean {
     if (!raw || typeof raw !== 'object') return false;
     const s = raw as Record<string, unknown>;
-    if (s['version'] !== 1) return false;
+    if (s['version'] !== 2) return false;
 
     try {
       // ── 1. Player count (determines board variant) ─────────────────────
@@ -2116,15 +2203,12 @@ export class BoardStateStore {
       }
 
       // ── 6. Simulation result ───────────────────────────────────────────
-      // resourceMap keys are vertex IDs (strings); these must match the IDs
-      // produced by the just-restored hex grid, so desertState must be set first.
       const rawResult = s['simulationResult'] as Record<string, unknown> | null | undefined;
       if (rawResult && typeof rawResult === 'object') {
         const resourceEntries = rawResult['resourceMap'] as [string, number][] | undefined;
         const rollEntries = rawResult['rollCountMap'] as [number, number][] | undefined;
 
         const resourceMap = new Map<string, number>(resourceEntries ?? []);
-        // rollCountMap keys serialise as strings via JSON – coerce back to number
         const rollCountMap = new Map<number, number>(
           (rollEntries ?? []).map(([k, v]) => [Number(k), v]),
         );
@@ -2140,29 +2224,16 @@ export class BoardStateStore {
         this._simulationResult.set(null);
       }
 
-      // ── 7. Game-phase active player ────────────────────────────────────
+      // ── 7. Game-phase active player & card awards ──────────────────────
       const activeId = s['gameActivePlayerId'];
       this.gameActivePlayerId.set(typeof activeId === 'string' ? activeId : null);
 
-      // ── 7.5. Longest road owner ────────────────────────────────────────
       const lrOwnerId = s['longestRoadOwnerId'];
-      if (typeof lrOwnerId === 'string') {
-        this.longestRoadOwnerId.set(lrOwnerId);
-      } else {
-        // Fallback for older snapshots
-        this.longestRoadOwnerId.set(null);
-        this.recalculateLongestRoadOwner();
-      }
+      this.longestRoadOwnerId.set(typeof lrOwnerId === 'string' ? lrOwnerId : null);
 
-      // ── 7.6. Largest army owner ────────────────────────────────────────
       const laOwnerId = s['largestArmyOwnerId'];
-      if (typeof laOwnerId === 'string') {
-        this.largestArmyOwnerId.set(laOwnerId);
-      } else {
-        this.largestArmyOwnerId.set(null);
-      }
+      this.largestArmyOwnerId.set(typeof laOwnerId === 'string' ? laOwnerId : null);
 
-      // ── 7.7. Development cards ─────────────────────────────────────────
       if (typeof s['useReducedDeck'] === 'boolean') {
         this.useReducedDeck.set(s['useReducedDeck']);
       } else {
@@ -2179,25 +2250,35 @@ export class BoardStateStore {
         this.devCardsPlayed.set([]);
       }
 
-      // ── 7.8. Game history ──────────────────────────────────────────────
       if (Array.isArray(s['gameHistory'])) {
         this.gameHistory.set(s['gameHistory'] as GameHistoryEntry[]);
       } else {
         this.gameHistory.set([]);
       }
 
-      // ── 8. Clear transient state ───────────────────────────────────────
-      this.undoStack.set([]);
-      this.redoStack.set([]);
-      this.desertUndoStack.set([]);
-      this.desertRedoStack.set([]);
-      this.selectedVertexId.set(null);
-      this.selectedHexId.set(null);
-      this.isSelectingRoad.set(false);
-      this.pendingSettlementVertexId.set(null);
-      this.currentRoadOptions.set([]);
-      this.activeBuildTool.set(null);
-      this.panelVisible.set(true);
+      // ── 8. Undo / Redo stacks ──────────────────────────────────────────
+      if (Array.isArray(s['undoStack'])) {
+        this.undoStack.set(s['undoStack'] as ActionSnapshot[]);
+      } else {
+        this.undoStack.set([]);
+      }
+      if (Array.isArray(s['redoStack'])) {
+        this.redoStack.set(s['redoStack'] as ActionSnapshot[]);
+      } else {
+        this.redoStack.set([]);
+      }
+      if (Array.isArray(s['desertUndoStack'])) {
+        this.desertUndoStack.set(s['desertUndoStack'] as DesertState[]);
+      } else {
+        this.desertUndoStack.set([]);
+      }
+      if (Array.isArray(s['desertRedoStack'])) {
+        this.desertRedoStack.set(s['desertRedoStack'] as DesertState[]);
+      } else {
+        this.desertRedoStack.set([]);
+      }
+
+      this.clearTransientSelectionState();
 
       // ── 9. Phase (LAST – triggers full UI re-render) ───────────────────
       const phase = s['appPhase'] as AppPhase | undefined;

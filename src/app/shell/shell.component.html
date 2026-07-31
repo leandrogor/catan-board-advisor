@@ -6,7 +6,7 @@
     (click)="i18n.toggle()"
     [attr.aria-label]="i18n.t().language"
   >
-    🌐 {{ i18n.lang() === 'en' ? 'EN' : 'ES' }}
+    🌐 {{ i18n.lang().toUpperCase() }}
   </button>
 
   <div class="text-center">

@@ -34,7 +34,7 @@ describe('hex-math.utils', () => {
 
       // A single hex has 6 vertices. Since hex-1 and hex-2 are virtually identical,
       // all their vertices should merge. So we expect exactly 6 deduplicated vertices.
-      expect(vertices.length).toBe(6);
+      expect(vertices).toHaveSize(6);
 
       // Each deduplicated vertex should be associated with both hex-1 and hex-2
       for (const v of vertices) {
@@ -70,7 +70,7 @@ describe('hex-math.utils', () => {
 
       // The two hexes are far apart, so none of their vertices should merge.
       // We expect 6 + 6 = 12 vertices.
-      expect(vertices.length).toBe(12);
+      expect(vertices).toHaveSize(12);
     });
   });
 });

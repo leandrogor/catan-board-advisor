@@ -31,5 +31,5 @@ export interface ActionSnapshot {
   largestArmyOwnerId?: string | null;
   devCardsPurchased?: Record<string, number>;
   devCardsPlayed?: import('./dev-card.model').PlayedDevCard[];
-  gameHistory?: import('./game-history.model').GameHistoryEntry[];
+  historyLength?: number;
 }
