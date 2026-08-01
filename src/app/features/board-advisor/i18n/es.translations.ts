@@ -1,6 +1,20 @@
 import { Translations } from './en.translations';
 
 export const ES: Translations = {
+  shortcuts: {
+    startSimulation: 'i',
+    loadSnapshot: 'c',
+    saveSnapshot: 'g',
+    settings: 'a',
+    darkMode: 'd',
+    rotateBoard: 'r',
+    focusFirstName: 'n',
+    selectMe: 'y',
+    devCards: 'c',
+    stats: 'e',
+    toggleProductionFormat: 'p',
+    toggleSetupNumbers: 'v',
+  },
   appTitle: 'Asesor de Tablero Catan',
   appSubtitleBase: 'Juego Base',
   appSubtitleExt: 'Extensión 5-6 Jugadores',

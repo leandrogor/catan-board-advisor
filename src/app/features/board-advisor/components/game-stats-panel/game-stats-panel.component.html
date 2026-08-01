@@ -1,10 +1,11 @@
 @if (store.gameStatsPanelOpen()) {
+  <div class="fixed inset-0 z-40 bg-transparent" (click)="close()"></div>
   <div
-    class="fixed bottom-0 left-0 right-0 z-30 transition-transform duration-300 ease-out"
+    class="fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-out pointer-events-none"
     style="animation: slideInUp 0.3s ease"
   >
     <div
-      class="mx-auto max-w-2xl bg-[#faf8f3] dark:bg-slate-800 rounded-t-2xl shadow-2xl border border-slate-200 dark:border-slate-700"
+      class="mx-auto max-w-2xl bg-[#faf8f3] dark:bg-slate-800 rounded-t-2xl shadow-2xl border border-slate-200 dark:border-slate-700 pointer-events-auto"
     >
       <!-- Header -->
       <div

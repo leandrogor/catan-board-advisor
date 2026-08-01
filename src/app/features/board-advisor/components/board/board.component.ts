@@ -496,13 +496,13 @@ export class BoardComponent {
     const wasSelected = this.store.selectedVertexId();
 
     if (wasSelectingRoad || wasSelected !== null) {
-      // cancel the current state exactly as in (a)
+      // Clear current transient road selection state
       this.store.isSelectingRoad.set(false);
       this.store.pendingSettlementVertexId.set(null);
       this.store.currentRoadOptions.set([]);
       this.store.selectedVertexId.set(null);
 
-      // then if it's a different vertex, open it
+      // If clicking a different vertex, select it
       if (wasSelected !== v.id) {
         this.store.selectVertex(v.id);
         this.scrollToVertex(v.id);

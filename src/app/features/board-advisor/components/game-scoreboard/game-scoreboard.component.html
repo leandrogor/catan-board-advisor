@@ -189,6 +189,10 @@
 
               @if (isPickerActive && buildPickerOpen()) {
                 <div
+                  class="fixed inset-0 z-30 bg-transparent"
+                  (click)="store.closePlayerBuildMenu()"
+                ></div>
+                <div
                   class="absolute right-0 bottom-full mb-2 z-50 bg-[#faf8f3] dark:bg-slate-800 rounded-xl shadow-xl border border-[#e4dccb] dark:border-slate-700 p-2 flex flex-col gap-1 w-52"
                   role="menu"
                   [attr.aria-label]="'Actions for ' + colorName(row.color)"

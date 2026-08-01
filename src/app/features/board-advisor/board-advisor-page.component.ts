@@ -12,6 +12,9 @@ import { GameStatsPanelComponent } from './components/game-stats-panel/game-stat
 import { BoardStateStore } from './services/board-state.store';
 import { TranslationService } from '../../core/services/translation.service';
 
+import { KeyboardShortcutsService } from '../../core/services/keyboard-shortcuts.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 @Component({
   selector: 'app-board-advisor-page',
   imports: [
@@ -32,8 +35,15 @@ import { TranslationService } from '../../core/services/translation.service';
 export class BoardAdvisorPageComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
+  protected readonly shortcuts = inject(KeyboardShortcutsService);
 
   @ViewChild('snapshotFileInput') private readonly snapshotFileInput!: ElementRef<HTMLInputElement>;
+
+  constructor() {
+    this.shortcuts.loadSnapshotRequested$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.triggerSnapshotImport());
+  }
 
   protected readonly settlementText = () =>
     this.i18n.t().settlementsPlaced(this.store.settledVertexIds().length);

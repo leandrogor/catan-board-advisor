@@ -1,4 +1,20 @@
+export interface ShortcutConfig {
+  startSimulation: string;
+  loadSnapshot: string;
+  saveSnapshot: string;
+  settings: string;
+  darkMode: string;
+  rotateBoard: string;
+  focusFirstName: string;
+  selectMe: string;
+  devCards: string;
+  stats: string;
+  toggleProductionFormat: string;
+  toggleSetupNumbers: string;
+}
+
 export interface Translations {
+  shortcuts: ShortcutConfig;
   appTitle: string;
   appSubtitleBase: string;
   appSubtitleExt: string;
@@ -163,6 +179,20 @@ export interface Translations {
 }
 
 export const EN: Translations = {
+  shortcuts: {
+    startSimulation: 's',
+    loadSnapshot: 'l',
+    saveSnapshot: 's',
+    settings: 'a',
+    darkMode: 'd',
+    rotateBoard: 'r',
+    focusFirstName: 'n',
+    selectMe: 'm',
+    devCards: 'c',
+    stats: 'g',
+    toggleProductionFormat: 'p',
+    toggleSetupNumbers: 'v',
+  },
   appTitle: 'Catan Board Advisor',
   appSubtitleBase: 'Base Game',
   appSubtitleExt: '5-6 Player Extension',

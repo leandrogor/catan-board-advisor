@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { PlayerColor } from '../../models/player-color.model';
@@ -28,9 +28,13 @@ export class GameScoreboardComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
 
-  protected readonly buildPickerOpen = signal<boolean>(false);
-  protected readonly activePickerPlayerId = signal<string | null>(null);
-  protected readonly showPlayCardMenu = signal<boolean>(false);
+  protected get activePickerPlayerId() {
+    return this.store.buildPickerPlayerId;
+  }
+  protected readonly buildPickerOpen = computed(() => this.store.buildPickerPlayerId() !== null);
+  protected get showPlayCardMenu() {
+    return this.store.showPlayCardMenu;
+  }
 
   protected readonly DEV_CARD_TYPES: {
     type: DevCardType;
@@ -127,45 +131,33 @@ export class GameScoreboardComponent {
     if (this.store.gameWinner()) return;
 
     if (this.activePickerPlayerId() === colorId && this.buildPickerOpen()) {
-      this.buildPickerOpen.set(false);
-      this.activePickerPlayerId.set(null);
-      this.showPlayCardMenu.set(false);
+      this.store.closePlayerBuildMenu();
     } else {
-      this.activePickerPlayerId.set(colorId);
-      this.buildPickerOpen.set(true);
-      this.showPlayCardMenu.set(false);
-      if (this.store.gameActivePlayerId() !== colorId) {
-        this.store.selectActivePlayerInGame(colorId);
-      }
+      this.store.openPlayerBuildMenu(colorId);
     }
   }
 
   protected selectTool(tool: 'road' | 'settlement' | 'city' | null, event: Event): void {
     event.stopPropagation();
     this.store.activeBuildTool.set(tool);
-    this.buildPickerOpen.set(false);
-    this.activePickerPlayerId.set(null);
-    this.showPlayCardMenu.set(false);
+    this.store.closePlayerBuildMenu();
   }
 
   protected onPurchaseDevCard(colorId: string, event: Event): void {
     event.stopPropagation();
     this.store.purchaseDevCard(colorId);
-    this.buildPickerOpen.set(false);
-    this.activePickerPlayerId.set(null);
+    this.store.closePlayerBuildMenu();
   }
 
   protected onPlayDevCard(colorId: string, type: DevCardType, event: Event): void {
     event.stopPropagation();
     this.store.playDevCard(colorId, type);
-    this.buildPickerOpen.set(false);
-    this.activePickerPlayerId.set(null);
-    this.showPlayCardMenu.set(false);
+    this.store.closePlayerBuildMenu();
   }
 
   protected togglePlayCardMenu(event: Event): void {
     event.stopPropagation();
-    this.showPlayCardMenu.update(v => !v);
+    this.store.togglePlayCardMenu();
   }
 
   protected openDevCardsPanel(event: Event): void {

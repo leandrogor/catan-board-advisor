@@ -98,6 +98,8 @@ export class BoardStateStore {
   readonly gameActivePlayerId = signal<string | null>(null);
   readonly activeBuildTool = signal<'road' | 'settlement' | 'city' | null>(null);
   readonly longestRoadOwnerId = signal<string | null>(null);
+  readonly buildPickerPlayerId = signal<string | null>(null);
+  readonly showPlayCardMenu = signal<boolean>(false);
 
   // ── Development Cards ──────────────────────────────────────────────────────
   /** When true, uses the 25-card base deck instead of the 34-card full deck. Only for ≤4 players. */
@@ -1247,6 +1249,8 @@ export class BoardStateStore {
     this.devCardsPanelOpen.set(false);
     this.gameHistory.set([]);
     this.gameStatsPanelOpen.set(false);
+    this.buildPickerPlayerId.set(null);
+    this.showPlayCardMenu.set(false);
     this.appPhase.set('setup');
   }
 
@@ -1301,6 +1305,24 @@ export class BoardStateStore {
     if (this.appPhase() !== 'game') return;
     this.gameActivePlayerId.set(playerColorId);
     this.activeBuildTool.set(null);
+  }
+
+  openPlayerBuildMenu(playerColorId: string): void {
+    if (this.gameWinner()) return;
+    this.buildPickerPlayerId.set(playerColorId);
+    this.showPlayCardMenu.set(false);
+    if (this.gameActivePlayerId() !== playerColorId) {
+      this.selectActivePlayerInGame(playerColorId);
+    }
+  }
+
+  closePlayerBuildMenu(): void {
+    this.buildPickerPlayerId.set(null);
+    this.showPlayCardMenu.set(false);
+  }
+
+  togglePlayCardMenu(): void {
+    this.showPlayCardMenu.update(v => !v);
   }
 
   placeSettlement(vertexId: string): void {
