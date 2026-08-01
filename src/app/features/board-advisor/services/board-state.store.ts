@@ -780,16 +780,6 @@ export class BoardStateStore {
       while (queue.length > 0) {
         const curr = queue.shift()!;
 
-        // Opponent settlements block road propagation.
-        // We only allow propagation through empty vertices or our own settlements/cities.
-        const currVertex = vertices.find(v => v.id === curr);
-        if (currVertex && currVertex.isOccupied && curr !== s.vertexId) {
-          const settlement = this.getSettlementAt(curr);
-          if (settlement?.playerColorId !== myColor) {
-            continue;
-          }
-        }
-
         const connected = myRoads.filter(r => r.from === curr || r.to === curr);
         for (const r of connected) {
           const next = r.from === curr ? r.to : r.from;
@@ -836,6 +826,7 @@ export class BoardStateStore {
           score: number;
         }[] = [];
         for (const vId of reachable) {
+          if (!this.isValidRoadStart(vId, myColor)) continue;
           const vVertex = vertices.find(v => v.id === vId);
           if (!vVertex) continue;
 
@@ -866,6 +857,7 @@ export class BoardStateStore {
           score: number;
         }[] = [];
         for (const vId of reachable) {
+          if (!this.isValidRoadStart(vId, myColor)) continue;
           const vVertex = vertices.find(v => v.id === vId);
           if (!vVertex) continue;
 
@@ -906,6 +898,7 @@ export class BoardStateStore {
           score: number;
         }[] = [];
         for (const vId of reachable) {
+          if (!this.isValidRoadStart(vId, myColor)) continue;
           const vVertex = vertices.find(v => v.id === vId);
           if (!vVertex) continue;
 

@@ -536,6 +536,73 @@ describe('BoardStateStore - Longest Road', () => {
       }
     });
 
+    it('should not suggest building roads starting from a vertex occupied by an opponent settlement', () => {
+      store.playerCount.set(3);
+      store.desertState.set({ variant: 'base', L1: { row: 2, col: 2 } });
+      store.hexSize.set(60);
+      store.appPhase.set('game');
+      store.myPlayerColorId.set('green');
+
+      const vertices = store.allVertices();
+      const v1 = vertices.find(v => v.adjacentVertexIds.length >= 2);
+      expect(v1).toBeDefined();
+      const v2Id = v1!.adjacentVertexIds[0];
+
+      // Green settlement at v1, green road v1 -> v2
+      // Blue settlement placed at v2
+      store.placedSettlements.set([
+        { vertexId: v1!.id, playerColorId: 'green', type: 'settlement' },
+        { vertexId: v2Id, playerColorId: 'blue', type: 'settlement' },
+      ]);
+      store.placedRoads.set([{ from: v1!.id, to: v2Id, playerColorId: 'green' }]);
+
+      const suggestions = store.myExpansionSuggestions();
+      // No suggestion should have a new road starting from v2Id
+      for (const sug of suggestions) {
+        const startsFromV2 = sug.newRoads.some(r => r.from === v2Id);
+        expect(startsFromV2).toBe(false);
+      }
+    });
+
+    it('should suggest settlement/road expansion on existing road ends beyond an opponent settlement', () => {
+      store.playerCount.set(3);
+      store.desertState.set({ variant: 'base', L1: { row: 2, col: 2 } });
+      store.hexSize.set(60);
+      store.appPhase.set('game');
+      store.myPlayerColorId.set('green');
+
+      const vertices = store.allVertices();
+      const v1 = vertices.find(v => v.adjacentVertexIds.length >= 2);
+      expect(v1).toBeDefined();
+      const v2Id = v1!.adjacentVertexIds[0];
+      const v2 = vertices.find(v => v.id === v2Id)!;
+      const v3Id = v2.adjacentVertexIds.find(id => id !== v1!.id)!;
+      const v3 = vertices.find(v => v.id === v3Id)!;
+      const v4Id = v3.adjacentVertexIds.find(id => id !== v2Id)!;
+
+      // Green settlement at v1, green roads v1 -> v2 and v2 -> v3
+      // Blue settlement placed at v2 (v3 is 1 edge from v2, so distance rule blocks settlement at v3)
+      // v4 is 2 edges from v2, so v4 is valid for settlement
+      store.placedSettlements.set([
+        { vertexId: v1!.id, playerColorId: 'green', type: 'settlement' },
+        { vertexId: v2Id, playerColorId: 'blue', type: 'settlement' },
+      ]);
+      store.placedRoads.set([
+        { from: v1!.id, to: v2Id, playerColorId: 'green' },
+        { from: v2Id, to: v3Id, playerColorId: 'green' },
+      ]);
+
+      const suggestions = store.myExpansionSuggestions();
+      // Green already built road up to v3Id beyond Blue's settlement.
+      // Advisor should suggest extending 1 road from v3Id to v4Id.
+      const sugForV4 = suggestions.find(s => s.targetVertexId === v4Id);
+      expect(sugForV4).toBeDefined();
+      if (sugForV4) {
+        expect(sugForV4.newRoads).toHaveSize(1);
+        expect(sugForV4.newRoads[0]).toEqual({ from: v3Id, to: v4Id });
+      }
+    });
+
     it('should suggest a 3-road extension if all 1-road and 2-road paths are blocked', () => {
       // 1. Setup board
       store.playerCount.set(3);
