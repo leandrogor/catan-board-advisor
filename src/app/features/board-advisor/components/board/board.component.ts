@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, HostListener } from '@angular/core';
+import { Component, inject, computed, signal, HostListener, NgZone } from '@angular/core';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { hexPolygonPoints, interpolateHeatmapColor } from '../../../../shared/utils/hex-math.utils';
@@ -31,6 +31,7 @@ export class BoardComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
   protected readonly themeService = inject(ThemeService);
+  protected readonly ngZone = inject(NgZone);
 
   protected readonly viewBox = computed(() => {
     const vb = this.store.viewBox();
@@ -222,16 +223,20 @@ export class BoardComponent {
     const suggestions = this.store.myExpansionSuggestions();
     const isDark = this.themeService.isDark();
 
-    return suggestions
-      .map(s => {
-        const pt = map.get(s.targetVertexId);
+    const result: { id: string; pt: { x: number; y: number }; colorHex: string; rank: 1 | 2 }[] =
+      [];
+    const seenIds = new Set<string>();
+
+    for (const s of suggestions) {
+      if (seenIds.has(s.targetVertexId)) continue;
+      seenIds.add(s.targetVertexId);
+      const pt = map.get(s.targetVertexId);
+      if (pt) {
         const sColorHex = getPlayerDisplayColor(s.playerColorId, isDark);
-        return { id: s.targetVertexId, pt, colorHex: sColorHex, rank: s.rank };
-      })
-      .filter(
-        (s): s is { id: string; pt: { x: number; y: number }; colorHex: string; rank: 1 | 2 } =>
-          s.pt !== undefined,
-      );
+        result.push({ id: s.targetVertexId, pt, colorHex: sColorHex, rank: s.rank });
+      }
+    }
+    return result;
   });
 
   protected readonly activeSelectionOptions = computed(() => {
@@ -283,6 +288,16 @@ export class BoardComponent {
         } => o.p2 !== undefined,
       );
   });
+
+  // ── Hold-to-Act state (Phase 2/3 Mobile 1s long-press) ─────────────────────
+  protected readonly holdingVertexId = signal<string | null>(null);
+  protected readonly holdProgress = signal<number>(0);
+  protected readonly holdActionType = signal<'city' | 'settlement' | null>(null);
+
+  private holdAnimFrame: number | null = null;
+  private holdStartTime = 0;
+  private holdPointerStartPos: { x: number; y: number } | null = null;
+  private isHoldCompleted = false;
 
   // ── Drag state (Phase 1 desert drag) ─────────────────────────────────────
   protected readonly draggingDesert = signal<'L1' | 'L2' | null>(null);
@@ -466,9 +481,243 @@ export class BoardComponent {
     return this.store.spiralLetterAssignment().get(posKey) ?? hex.letter;
   }
 
-  // ── Click handlers ────────────────────────────────────────────────────────
+  // ── Click & Hold handlers ──────────────────────────────────────────────────
+
+  protected getVertexTouchRadius(v: Vertex): number {
+    return Math.max(22, this.getVertexRadius(v) + 8);
+  }
+
+  protected getAvailableBuilderColors(
+    v: Vertex,
+  ): { colorId: string; colorHex: string; name: string }[] {
+    if (this.store.gameWinner()) return [];
+    if (v.isOccupied || v.isBlocked) return [];
+
+    if (!this.store.isSetupComplete()) {
+      const active = this.store.currentPlayerColor();
+      if (!active) return [];
+      return [
+        {
+          colorId: active.id,
+          colorHex: getPlayerDisplayColor(active.id, this.themeService.isDark()),
+          name: this.store.getPlayerName(active.id),
+        },
+      ];
+    }
+
+    const isDark = this.themeService.isDark();
+    const result: { colorId: string; colorHex: string; name: string }[] = [];
+
+    for (const p of this.store.playerColors()) {
+      if (this.store.hasRoadConnected(v.id, p.id)) {
+        const counts = this.store.getPlayerPieceCounts(p.id);
+        if (counts.settlements < 5) {
+          result.push({
+            colorId: p.id,
+            colorHex: getPlayerDisplayColor(p.id, isDark),
+            name: this.store.getPlayerName(p.id),
+          });
+        }
+      }
+    }
+    return result;
+  }
+
+  protected getHoldActionType(
+    v: Vertex,
+  ): {
+    action: 'city' | 'settlement';
+    colors: { colorId: string; colorHex: string; name: string }[];
+  } | null {
+    if (this.store.gameWinner()) return null;
+    if (this.store.isSelectingRoad()) return null;
+
+    if (v.isOccupied) {
+      const s = this.store.getSettlementAt(v.id);
+      if (s?.type === 'settlement') {
+        const counts = this.store.getPlayerPieceCounts(s.playerColorId);
+        if (counts.cities < 4) {
+          return {
+            action: 'city',
+            colors: [{ colorId: s.playerColorId, colorHex: '', name: '' }],
+          };
+        }
+      }
+      return null;
+    }
+
+    const builders = this.getAvailableBuilderColors(v);
+    if (builders.length > 0) {
+      return { action: 'settlement', colors: builders };
+    }
+    return null;
+  }
+
+  protected onVertexPointerDown(event: PointerEvent, v: Vertex): void {
+    const holdInfo = this.getHoldActionType(v);
+    if (!holdInfo) return;
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    const target = event.currentTarget as HTMLElement | SVGElement | null;
+    try {
+      (target as Element)?.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Ignore pointer capture errors on unsupported devices
+    }
+
+    this.isHoldCompleted = false;
+    this.holdingVertexId.set(v.id);
+    this.holdActionType.set(holdInfo.action);
+    this.holdProgress.set(0);
+    this.holdStartTime = performance.now();
+    this.holdPointerStartPos = { x: event.clientX, y: event.clientY };
+
+    const DURATION = 1000;
+    const animate = (now: number) => {
+      if (this.holdingVertexId() !== v.id) return;
+      const elapsed = now - this.holdStartTime;
+      const progress = Math.min(1, elapsed / DURATION);
+
+      this.ngZone.run(() => {
+        this.holdProgress.set(progress);
+      });
+
+      if (progress >= 1) {
+        this.isHoldCompleted = true;
+        this.ngZone.run(() => {
+          this.executeHoldAction(v.id, holdInfo.action, holdInfo.colors);
+          this.cancelHold();
+        });
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try {
+            navigator.vibrate(40);
+          } catch {
+            // Ignore haptic vibration errors on unsupported devices
+          }
+        }
+        return;
+      }
+      this.holdAnimFrame = requestAnimationFrame(animate);
+    };
+    this.holdAnimFrame = requestAnimationFrame(animate);
+  }
+
+  protected onVertexPointerMove(event: PointerEvent): void {
+    if (!this.holdingVertexId() || !this.holdPointerStartPos) return;
+    const dist = Math.hypot(
+      event.clientX - this.holdPointerStartPos.x,
+      event.clientY - this.holdPointerStartPos.y,
+    );
+    if (dist > 14) {
+      this.cancelHold();
+    }
+  }
+
+  protected onVertexPointerUp(): void {
+    this.cancelHold();
+  }
+
+  protected onVertexPointerCancel(): void {
+    this.cancelHold();
+  }
+
+  protected onVertexPointerLeave(): void {
+    this.cancelHold();
+  }
+
+  private cancelHold(): void {
+    if (this.holdAnimFrame !== null) {
+      cancelAnimationFrame(this.holdAnimFrame);
+      this.holdAnimFrame = null;
+    }
+    this.holdingVertexId.set(null);
+    this.holdProgress.set(0);
+    this.holdActionType.set(null);
+    this.holdPointerStartPos = null;
+  }
+
+  private executeHoldAction(
+    vertexId: string,
+    action: 'city' | 'settlement',
+    colors: { colorId: string; colorHex: string; name: string }[],
+  ): void {
+    if (action === 'city') {
+      this.store.upgradeToCity(vertexId);
+    } else if (action === 'settlement') {
+      if (colors.length === 1) {
+        const colorId = colors[0].colorId;
+        if (this.store.appPhase() === 'game') {
+          this.store.buildSettlement(vertexId, colorId);
+        } else if (!this.store.isSetupComplete()) {
+          this.store.startSelectingRoad(vertexId);
+        } else {
+          this.store.placeSettlement(vertexId, colorId);
+        }
+      } else if (colors.length > 1) {
+        this.openBuilderPicker(vertexId, colors);
+      }
+    }
+  }
+
+  private openBuilderPicker(
+    vertexId: string,
+    colors: { colorId: string; colorHex: string; name: string }[],
+  ): void {
+    const v = this.store.allVertices().find(vx => vx.id === vertexId);
+    const pos = v?.position ?? { x: 0, y: 0 };
+
+    const spacing = 38;
+    const options = colors.map((c, idx) => {
+      const offset = (idx - (colors.length - 1) / 2) * spacing;
+      return {
+        ...c,
+        position: { x: pos.x + offset, y: pos.y - 28 },
+      };
+    });
+
+    this.store.builderPickerVertexId.set(vertexId);
+    this.store.builderPickerOptions.set(options);
+  }
+
+  protected selectBuilderFromPicker(colorId: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.store.confirmBuilderPickerSelection(colorId);
+  }
+
+  protected closeBuilderPicker(): void {
+    this.store.closeBuilderPicker();
+  }
+
+  @HostListener('document:pointerdown', ['$event'])
+  onDocumentPointerDown(event: PointerEvent): void {
+    if (!this.store.builderPickerVertexId()) return;
+
+    const target = event.target as HTMLElement | SVGElement | null;
+    if (target?.closest('.builder-picker-layer')) {
+      return;
+    }
+
+    this.closeBuilderPicker();
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: Event): void {
+    if (this.store.builderPickerVertexId()) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.closeBuilderPicker();
+    }
+  }
 
   protected onVertexClick(v: Vertex): void {
+    if (this.isHoldCompleted) {
+      this.isHoldCompleted = false;
+      return;
+    }
     if (this.store.appPhase() === 'game' && this.store.activeBuildTool()) return;
 
     const wasSelectingRoad = this.store.isSelectingRoad();

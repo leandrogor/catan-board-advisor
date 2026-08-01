@@ -126,6 +126,10 @@ export class BoardStateStore {
   readonly longestRoadOwnerId = signal<string | null>(null);
   readonly buildPickerPlayerId = signal<string | null>(null);
   readonly showPlayCardMenu = signal<boolean>(false);
+  readonly builderPickerVertexId = signal<string | null>(null);
+  readonly builderPickerOptions = signal<
+    { colorId: string; colorHex: string; name: string; position: { x: number; y: number } }[]
+  >([]);
 
   // ── Development Cards ──────────────────────────────────────────────────────
   /** When true, uses the 25-card base deck instead of the 34-card full deck. Only for ≤4 players. */
@@ -393,6 +397,7 @@ export class BoardStateStore {
   });
 
   readonly validSettlementSpots = computed<string[]>(() => {
+    if (this.gameWinner()) return [];
     if (this.appPhase() !== 'game' || this.activeBuildTool() !== 'settlement') return [];
     const activeId = this.currentPlayerColor()?.id;
     if (!activeId) return [];
@@ -407,6 +412,7 @@ export class BoardStateStore {
   });
 
   readonly validCitySpots = computed<string[]>(() => {
+    if (this.gameWinner()) return [];
     if (this.appPhase() !== 'game' || this.activeBuildTool() !== 'city') return [];
     const activeId = this.currentPlayerColor()?.id;
     if (!activeId) return [];
@@ -422,6 +428,7 @@ export class BoardStateStore {
   readonly validRoadEdges = computed<
     { from: string; to: string; p1: { x: number; y: number }; p2: { x: number; y: number } }[]
   >(() => {
+    if (this.gameWinner()) return [];
     if (this.appPhase() !== 'game' || this.activeBuildTool() !== 'road') return [];
     const activeId = this.currentPlayerColor()?.id;
     if (!activeId) return [];
@@ -1275,7 +1282,13 @@ export class BoardStateStore {
     this.buildPickerPlayerId.set(null);
     this.projectionTargetPlayerId.set(this.myPlayerColorId() ? 'me' : 'none');
     this.showPlayCardMenu.set(false);
+    this.closeBuilderPicker();
     this.appPhase.set('setup');
+  }
+
+  closeBuilderPicker(): void {
+    this.builderPickerVertexId.set(null);
+    this.builderPickerOptions.set([]);
   }
 
   startGamePhase(): void {
@@ -1349,8 +1362,12 @@ export class BoardStateStore {
     this.showPlayCardMenu.update(v => !v);
   }
 
-  placeSettlement(vertexId: string): void {
-    const colorId = this.currentPlayerColor()?.id ?? 'red';
+  placeSettlement(vertexId: string, targetPlayerColorId?: string): void {
+    if (this.gameWinner()) return;
+    const roadOwner = this.placedRoads().find(
+      r => r.from === vertexId || r.to === vertexId,
+    )?.playerColorId;
+    const colorId = targetPlayerColorId ?? roadOwner ?? this.currentPlayerColor()?.id ?? 'red';
     this.undoStack.update(s => [
       ...s,
       {
@@ -1372,8 +1389,12 @@ export class BoardStateStore {
     this.selectedVertexId.set(null);
   }
 
-  buildSettlement(vertexId: string): void {
-    const colorId = this.currentPlayerColor()?.id ?? 'red';
+  buildSettlement(vertexId: string, targetPlayerColorId?: string): void {
+    if (this.gameWinner()) return;
+    const roadOwner = this.placedRoads().find(
+      r => r.from === vertexId || r.to === vertexId,
+    )?.playerColorId;
+    const colorId = targetPlayerColorId ?? roadOwner ?? this.currentPlayerColor()?.id ?? 'red';
     this.undoStack.update(s => [
       ...s,
       {
@@ -1398,6 +1419,7 @@ export class BoardStateStore {
   }
 
   upgradeToCity(vertexId: string): void {
+    if (this.gameWinner()) return;
     const colorId =
       this.placedSettlements().find(s => s.vertexId === vertexId)?.playerColorId ?? 'red';
     this.undoStack.update(s => [
@@ -1423,6 +1445,7 @@ export class BoardStateStore {
   }
 
   buildRoad(fromId: string, toId: string): void {
+    if (this.gameWinner()) return;
     const colorId = this.currentPlayerColor()?.id ?? 'red';
     this.undoStack.update(s => [
       ...s,
@@ -1480,6 +1503,20 @@ export class BoardStateStore {
     this.selectedVertexId.set(null);
     this.selectedHexId.set(null);
     this.panelVisible.set(true);
+    this.closeBuilderPicker();
+  }
+
+  confirmBuilderPickerSelection(colorId: string): void {
+    const vId = this.builderPickerVertexId();
+    if (!vId) return;
+    if (this.appPhase() === 'game') {
+      this.buildSettlement(vId, colorId);
+    } else if (!this.isSetupComplete()) {
+      this.startSelectingRoad(vId);
+    } else {
+      this.placeSettlement(vId, colorId);
+    }
+    this.closeBuilderPicker();
   }
 
   private syncHistoryLogAfterUndoRedo(targetHistoryLength?: number): void {

@@ -70,7 +70,25 @@ export class KeyboardShortcutsService {
       return;
     }
 
-    // ── 3. Escape Key Hierarchy ─────────────────────────────────────────
+    // ── 3. Builder Picker Active Shortcuts (Escape or 1, 2, 3...) ─────────
+    if (this.store.builderPickerVertexId()) {
+      if (key === 'escape') {
+        event.preventDefault();
+        this.store.closeBuilderPicker();
+        return;
+      }
+      if (!ctrlOrCmd && ['1', '2', '3', '4', '5', '6'].includes(key)) {
+        const idx = Number(key) - 1;
+        const options = this.store.builderPickerOptions();
+        if (options[idx]) {
+          event.preventDefault();
+          this.store.confirmBuilderPickerSelection(options[idx].colorId);
+          return;
+        }
+      }
+    }
+
+    // ── 4. Escape Key Hierarchy ─────────────────────────────────────────
     if (key === 'escape') {
       if (this.helpModalOpen()) {
         event.preventDefault();

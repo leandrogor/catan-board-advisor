@@ -142,38 +142,61 @@
           >
             {{ i18n.t().cancel }}
           </button>
-        } @else if (store.appPhase() === 'game') {
-          <!-- Game Phase Actions -->
-          @if (vertex.isOccupied) {
-            @let s = settlementAtVertex();
+        } @else if (vertex.isOccupied) {
+          @let s = settlementAtVertex();
+          @if (s?.type === 'settlement') {
+            <div class="space-y-2">
+              <div
+                class="py-2 px-3.5 rounded-lg bg-slate-100 dark:bg-slate-900 flex items-center justify-between text-xs"
+              >
+                <span class="font-semibold text-slate-800 dark:text-slate-200">
+                  🏠 {{ i18n.t().settlement }}
+                </span>
+                <span class="text-slate-500 dark:text-slate-400 font-medium">
+                  🔒 {{ i18n.t().occupiedByOpponent(getOwnerName(s?.playerColorId)) }}
+                </span>
+              </div>
+              @if (canUpgradeToCity()) {
+                <button
+                  class="w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-all bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                  (click)="onUpgradeToCityClick(vertex.id)"
+                >
+                  <span>🏰</span>
+                  <span>{{ i18n.t().upgradeToCity }}</span>
+                </button>
+              } @else {
+                <p class="text-xs text-amber-600 dark:text-amber-400 text-center font-medium py-1">
+                  {{ i18n.t().limitCities }}
+                </p>
+              }
+            </div>
+          } @else {
             <div class="py-2.5 px-4 rounded-lg bg-slate-100 dark:bg-slate-900 text-center">
               <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                {{ s?.type === 'city' ? '🏰 ' + i18n.t().city : '🏠 ' + i18n.t().settlement }}
+                🏰 {{ i18n.t().city }}
               </span>
               <span class="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 font-medium">
                 🔒 {{ i18n.t().occupiedByOpponent(getOwnerName(s?.playerColorId)) }}
               </span>
             </div>
           }
-        } @else {
-          <!-- Setup/Results Phase Actions -->
-          @if (vertex.isOccupied) {
-            @let s = settlementAtVertex();
-            <div class="py-2.5 px-4 rounded-lg bg-slate-100 dark:bg-slate-900 text-center">
-              <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                🏠 {{ i18n.t().settlement }}
-              </span>
-              <span class="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 font-medium">
-                🔒 {{ i18n.t().occupiedByOpponent(getOwnerName(s?.playerColorId)) }}
-              </span>
+        } @else if (!vertex.isBlocked) {
+          @if (availableBuilderColors().length > 0) {
+            <div class="space-y-2">
+              @for (builder of availableBuilderColors(); track builder.colorId) {
+                <button
+                  class="w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-all text-white shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                  [style.backgroundColor]="builder.colorHex"
+                  (click)="onBuildSettlementClick(vertex.id, builder.colorId)"
+                >
+                  <span>🏠</span>
+                  <span>{{
+                    !store.isSetupComplete() ? i18n.t().placeSettlement : i18n.t().buildSettlement
+                  }}</span>
+                  <span class="text-xs font-normal opacity-90">({{ builder.name }})</span>
+                </button>
+              }
             </div>
-          } @else if (!vertex.isBlocked && !store.isSetupComplete()) {
-            <button
-              class="w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 cursor-pointer"
-              (click)="store.startSelectingRoad(vertex.id)"
-            >
-              {{ i18n.t().placeSettlement }}
-            </button>
           }
         }
       </div>

@@ -42,13 +42,48 @@ export class VertexDetailPanelComponent {
   });
 
   protected readonly canUpgradeToCity = computed(() => {
+    if (this.store.gameWinner()) return false;
     const settlement = this.settlementAtVertex();
-    const activeId = this.store.currentPlayerColor()?.id;
-    if (!settlement || !activeId) return false;
-    if (settlement.playerColorId !== activeId) return false;
-    if (settlement.type === 'city') return false;
-    if (this.playerPieceCounts().cities >= 4) return false;
+    if (!settlement || settlement.type === 'city') return false;
+    const ownerId = settlement.playerColorId;
+    const counts = this.store.getPlayerPieceCounts(ownerId);
+    if (counts.cities >= 4) return false;
     return true;
+  });
+
+  protected readonly availableBuilderColors = computed<
+    { colorId: string; colorHex: string; name: string }[]
+  >(() => {
+    if (this.store.gameWinner()) return [];
+    const vertex = this.selectedVertex();
+    if (!vertex || vertex.isOccupied || vertex.isBlocked) return [];
+
+    if (!this.store.isSetupComplete()) {
+      const active = this.store.currentPlayerColor();
+      if (!active) return [];
+      return [
+        {
+          colorId: active.id,
+          colorHex: active.hex,
+          name: this.getOwnerName(active.id),
+        },
+      ];
+    }
+
+    const result: { colorId: string; colorHex: string; name: string }[] = [];
+    for (const p of this.store.playerColors()) {
+      if (this.store.hasRoadConnected(vertex.id, p.id)) {
+        const counts = this.store.getPlayerPieceCounts(p.id);
+        if (counts.settlements < 5) {
+          result.push({
+            colorId: p.id,
+            colorHex: p.hex,
+            name: this.getOwnerName(p.id),
+          });
+        }
+      }
+    }
+    return result;
   });
 
   protected readonly canBuildRoad = computed(() => {
@@ -113,5 +148,19 @@ export class VertexDetailPanelComponent {
   protected getOwnerName(colorId?: string): string {
     if (!colorId) return '';
     return this.store.getPlayerName(colorId);
+  }
+
+  protected onUpgradeToCityClick(vertexId: string): void {
+    this.store.upgradeToCity(vertexId);
+  }
+
+  protected onBuildSettlementClick(vertexId: string, playerColorId?: string): void {
+    if (this.store.appPhase() === 'game') {
+      this.store.buildSettlement(vertexId, playerColorId);
+    } else if (!this.store.isSetupComplete()) {
+      this.store.startSelectingRoad(vertexId);
+    } else {
+      this.store.placeSettlement(vertexId, playerColorId);
+    }
   }
 }
