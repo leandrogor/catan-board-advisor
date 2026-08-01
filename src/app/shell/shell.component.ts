@@ -5,10 +5,11 @@ import { ThemeService } from '../core/services/theme.service';
 import { BoardStateStore } from '../features/board-advisor/services/board-state.store';
 
 import { KeyboardShortcutsService } from '../core/services/keyboard-shortcuts.service';
+import { ShortcutsHelpModalComponent } from '../features/board-advisor/components/shortcuts-help-modal/shortcuts-help-modal.component';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ShortcutsHelpModalComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })

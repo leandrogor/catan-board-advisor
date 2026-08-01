@@ -11,6 +11,7 @@ export interface ShortcutConfig {
   stats: string;
   toggleProductionFormat: string;
   toggleSetupNumbers: string;
+  help: string;
 }
 
 export interface Translations {
@@ -176,6 +177,45 @@ export interface Translations {
   statsLogSettlementsRemoved: (count: number) => string;
   statsLogCitiesRemoved: (count: number) => string;
   statsLogRoadsRemoved: (count: number) => string;
+  shortcutsHelpTitle: string;
+  shortcutsGlobalSection: string;
+  shortcutsCloseHint: string;
+  shortcutsPhaseSetup: string;
+  shortcutsPhasePlacement: string;
+  shortcutsPhaseGame: string;
+  shortcutsItemPlayerCount: string;
+  shortcutsItemFocusFirstName: string;
+  shortcutsItemCycleNames: string;
+  shortcutsItemSelectMe: string;
+  shortcutsItemToggleSetupNumbers: string;
+  shortcutsItemStartSim: string;
+  shortcutsItemLoadSnapshot: string;
+  shortcutsItemUnfocusInput: string;
+  shortcutsItemSelectRankedVertex: string;
+  shortcutsItemConfirmSettlement: string;
+  shortcutsItemSelectRoadDir: string;
+  shortcutsItemCancelPlacement: string;
+  shortcutsItemOpenPlayerMenu: string;
+  shortcutsItemBuildRoad: string;
+  shortcutsItemBuildSettlement: string;
+  shortcutsItemBuildCity: string;
+  shortcutsItemBuyDevCard: string;
+  shortcutsItemOpenPlayCardSubmenu: string;
+  shortcutsItemPlayKnight: string;
+  shortcutsItemPlayVP: string;
+  shortcutsItemPlayMonopoly: string;
+  shortcutsItemPlayRoadBuilding: string;
+  shortcutsItemPlayYearOfPlenty: string;
+  shortcutsItemDevCardsPanel: string;
+  shortcutsItemStatsPanel: string;
+  shortcutsItemSaveSnapshot: string;
+  shortcutsItemCancelBuildTool: string;
+  shortcutsItemUndoRedo: string;
+  shortcutsItemRotateBoard: string;
+  shortcutsItemDarkMode: string;
+  shortcutsItemProductionFormat: string;
+  shortcutsItemSettingsDrawer: string;
+  shortcutsItemHelpModal: string;
 }
 
 export const EN: Translations = {
@@ -192,7 +232,47 @@ export const EN: Translations = {
     stats: 'g',
     toggleProductionFormat: 'p',
     toggleSetupNumbers: 'v',
+    help: 'h',
   },
+  shortcutsHelpTitle: 'Keyboard Shortcuts',
+  shortcutsGlobalSection: 'Global Shortcuts',
+  shortcutsCloseHint: 'Press Escape or click outside to close',
+  shortcutsPhaseSetup: 'Phase 1: Board Setup & Player Names',
+  shortcutsPhasePlacement: 'Phase 2: Settlement & Road Placement',
+  shortcutsPhaseGame: 'Phase 3: Active Game & Turn Actions',
+  shortcutsItemPlayerCount: 'Set player count',
+  shortcutsItemFocusFirstName: 'Focus 1st player name',
+  shortcutsItemCycleNames: 'Cycle player name fields',
+  shortcutsItemSelectMe: 'Set as My Color',
+  shortcutsItemToggleSetupNumbers: 'Toggle numbers vs. letters',
+  shortcutsItemStartSim: 'Start simulation',
+  shortcutsItemLoadSnapshot: 'Load snapshot',
+  shortcutsItemUnfocusInput: 'Unfocus name field',
+  shortcutsItemSelectRankedVertex: 'Select / cycle top rank #1-#9',
+  shortcutsItemConfirmSettlement: 'Confirm settlement / road #1',
+  shortcutsItemSelectRoadDir: 'Select road direction (#1, #2, #3)',
+  shortcutsItemCancelPlacement: 'Cancel road selection / deselect',
+  shortcutsItemOpenPlayerMenu: 'Open player menu (rank #1 to #6)',
+  shortcutsItemBuildRoad: 'Build Road',
+  shortcutsItemBuildSettlement: 'Build Settlement',
+  shortcutsItemBuildCity: 'Build City',
+  shortcutsItemBuyDevCard: 'Buy Dev Card',
+  shortcutsItemOpenPlayCardSubmenu: 'Open Play Card submenu',
+  shortcutsItemPlayKnight: 'Play Knight',
+  shortcutsItemPlayVP: 'Play Victory Point',
+  shortcutsItemPlayMonopoly: 'Play Monopoly',
+  shortcutsItemPlayRoadBuilding: 'Play Road Building',
+  shortcutsItemPlayYearOfPlenty: 'Play Year of Plenty',
+  shortcutsItemDevCardsPanel: 'Development cards panel',
+  shortcutsItemStatsPanel: 'Game statistics panel',
+  shortcutsItemSaveSnapshot: 'Save snapshot',
+  shortcutsItemCancelBuildTool: 'Cancel build tool / close menu',
+  shortcutsItemUndoRedo: 'Undo / Redo action',
+  shortcutsItemRotateBoard: 'Rotate board 90°',
+  shortcutsItemDarkMode: 'Toggle dark / light mode',
+  shortcutsItemProductionFormat: 'Toggle production format (% / decimal)',
+  shortcutsItemSettingsDrawer: 'Toggle settings drawer',
+  shortcutsItemHelpModal: 'Open keyboard shortcuts help',
   appTitle: 'Catan Board Advisor',
   appSubtitleBase: 'Base Game',
   appSubtitleExt: '5-6 Player Extension',

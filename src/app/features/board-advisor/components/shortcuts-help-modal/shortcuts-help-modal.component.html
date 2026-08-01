@@ -1,0 +1,100 @@
+@if (shortcuts.helpModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <!-- Transparent backdrop -->
+    <div class="fixed inset-0 bg-transparent" (click)="close()"></div>
+
+    <!-- Modal Card Container -->
+    <div
+      class="relative z-10 w-full max-w-3xl bg-[#faf8f3] dark:bg-slate-800 rounded-2xl shadow-2xl border border-[#e4dccb] dark:border-slate-700 p-5 md:p-6 space-y-4 max-h-[85vh] flex flex-col pointer-events-auto"
+      style="animation: fadeInScale 0.2s ease"
+    >
+      <!-- Header -->
+      <div
+        class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3 shrink-0"
+      >
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">⌨️</span>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">
+              {{ i18n.t().shortcutsHelpTitle }}
+            </h3>
+            <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
+              {{ phaseLabel() }}
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none p-1.5 cursor-pointer bg-transparent border-0 transition-colors"
+          (click)="close()"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Scrollable Content Layout (2 columns on desktop) -->
+      <div
+        class="overflow-y-auto space-y-5 md:space-y-0 md:grid md:grid-cols-2 md:gap-5 pr-1 text-xs flex-1"
+      >
+        <!-- Column 1: Phase Specific Shortcuts -->
+        <div class="space-y-2">
+          <h4
+            class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1 mb-2 sticky top-0 bg-[#faf8f3] dark:bg-slate-800 py-1 z-10"
+          >
+            <span>📍</span>
+            <span>{{ phaseLabel() }}</span>
+          </h4>
+          <div class="grid grid-cols-1 gap-1.5">
+            @for (item of phaseShortcuts(); track item.label) {
+              <div
+                class="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-100/70 dark:bg-slate-700/50 hover:bg-slate-200/60 dark:hover:bg-slate-700/80 transition-colors"
+              >
+                <span class="text-slate-700 dark:text-slate-300 font-medium min-w-0 truncate">
+                  {{ item.label }}
+                </span>
+                <kbd
+                  class="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400 shadow-xs shrink-0 text-right"
+                >
+                  {{ item.key }}
+                </kbd>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Column 2: Global Shortcuts -->
+        <div class="space-y-2">
+          <h4
+            class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-2 sticky top-0 bg-[#faf8f3] dark:bg-slate-800 py-1 z-10"
+          >
+            <span>🌐</span>
+            <span>{{ i18n.t().shortcutsGlobalSection }}</span>
+          </h4>
+          <div class="grid grid-cols-1 gap-1.5">
+            @for (item of globalShortcuts(); track item.label) {
+              <div
+                class="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-100/70 dark:bg-slate-700/50 hover:bg-slate-200/60 dark:hover:bg-slate-700/80 transition-colors"
+              >
+                <span class="text-slate-700 dark:text-slate-300 font-medium min-w-0 truncate">
+                  {{ item.label }}
+                </span>
+                <kbd
+                  class="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 font-mono text-[11px] font-bold text-indigo-600 dark:text-indigo-400 shadow-xs shrink-0 text-right"
+                >
+                  {{ item.key }}
+                </kbd>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer hint -->
+      <div
+        class="pt-3 border-t border-slate-200 dark:border-slate-700 text-center text-[11px] text-slate-400 shrink-0 font-medium"
+      >
+        💡 {{ i18n.t().shortcutsCloseHint }}
+      </div>
+    </div>
+  </div>
+}

@@ -12,6 +12,7 @@ export class KeyboardShortcutsService {
   private readonly theme = inject(ThemeService);
 
   readonly settingsOpen = signal(false);
+  readonly helpModalOpen = signal(false);
 
   /** Observable stream emitted when keyboard shortcut requests loading a snapshot. */
   readonly loadSnapshotRequested$ = new Subject<void>();
@@ -24,6 +25,10 @@ export class KeyboardShortcutsService {
 
   toggleSettings(): void {
     this.settingsOpen.update(open => !open);
+  }
+
+  toggleHelpModal(): void {
+    this.helpModalOpen.update(open => !open);
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
@@ -47,6 +52,11 @@ export class KeyboardShortcutsService {
 
     // ── 2. Escape Key Hierarchy ─────────────────────────────────────────
     if (key === 'escape') {
+      if (this.helpModalOpen()) {
+        event.preventDefault();
+        this.helpModalOpen.set(false);
+        return;
+      }
       if (this.store.devCardsPanelOpen()) {
         event.preventDefault();
         this.store.devCardsPanelOpen.set(false);
@@ -149,6 +159,13 @@ export class KeyboardShortcutsService {
     if (!ctrlOrCmd && key === shortcuts.toggleProductionFormat.toLowerCase()) {
       event.preventDefault();
       this.store.toggleScoreFormat();
+      return;
+    }
+
+    // Shortcuts Help Modal Toggle (? or H)
+    if (!ctrlOrCmd && (key === '?' || key === 'h' || key === shortcuts.help.toLowerCase())) {
+      event.preventDefault();
+      this.toggleHelpModal();
       return;
     }
 

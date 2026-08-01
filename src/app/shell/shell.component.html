@@ -25,6 +25,14 @@
       {{ theme.isDark() ? '☀️' : '🌙' }}
     </button>
     <button
+      class="hidden sm:inline-flex text-lg p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors items-center justify-center"
+      (click)="shortcuts.toggleHelpModal()"
+      [attr.aria-label]="i18n.t().shortcutsHelpTitle"
+      [title]="i18n.t().shortcutsHelpTitle + ' (? / H)'"
+    >
+      ⌨️
+    </button>
+    <button
       class="text-lg p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
       (click)="settingsOpen.set(!settingsOpen())"
       [attr.aria-label]="i18n.t().settings"
@@ -164,3 +172,5 @@
 <main class="flex-1 flex flex-col min-h-0">
   <router-outlet />
 </main>
+
+<app-shortcuts-help-modal />
