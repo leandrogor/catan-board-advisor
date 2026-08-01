@@ -1,11 +1,35 @@
 :host {
   display: block;
   width: 100%;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
+
+.board-wrapper,
+svg,
+text,
+tspan,
+g,
+path,
+polygon,
+circle {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
 .board-wrapper {
   transition: transform 0.35s ease;
   transform-origin: center center;
   overflow: visible;
+  touch-action: none;
   /* On desktop constrain height so it fits without scrolling */
 }
 .board-wrapper.setup-phase {

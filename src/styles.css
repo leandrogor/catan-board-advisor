@@ -58,3 +58,14 @@ body {
   stroke: #ffffff;
   opacity: 0.65;
 }
+
+/* Disable text selection, callout menus, and tap highlights on the board component */
+app-board,
+app-board * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}

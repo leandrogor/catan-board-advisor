@@ -523,9 +523,7 @@ export class BoardComponent {
     return result;
   }
 
-  protected getHoldActionType(
-    v: Vertex,
-  ): {
+  protected getHoldActionType(v: Vertex): {
     action: 'city' | 'settlement';
     colors: { colorId: string; colorHex: string; name: string }[];
   } | null {
@@ -702,6 +700,11 @@ export class BoardComponent {
     }
 
     this.closeBuilderPicker();
+  }
+
+  @HostListener('contextmenu', ['$event'])
+  onContextMenu(event: MouseEvent | PointerEvent): void {
+    event.preventDefault();
   }
 
   @HostListener('document:keydown.escape', ['$event'])
