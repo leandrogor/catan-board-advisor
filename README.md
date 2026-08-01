@@ -20,7 +20,12 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
 - **Pointer-Events Drag-and-Drop**: Drag deserts (`L1` and `L2` in extension, or the single desert in base) directly on the board. Token numbers and letters dynamically recalculate their spiral paths counter-clockwise.
 - **Monte Carlo Simulation Engine**: Computes $10000$ mini-games of player-count dependent rolls each (80 rolls for 3 players, 100 for 4 players, 125 for 5 players, and 150 for 6 players) in under $25\text{ms}$ (with a 100ms yield to guarantee UI render updates) to yield raw expected resource probabilities per vertex.
 - **Vertex Heatmap & Ranking**: Visualizes optimal intersections using HSL-based heatmaps, highlighting the best spot with pulsing rings, and displaying top ranking slots directly on the board.
+- **Vertex Yield Inspection & Distance-Rule Hiding**: Inspect expected yield on all board intersections while automatically hiding/dimming vertices blocked by Catan's 2-edge distance rule.
 - **Snake Draft Placement Order**: Simulates the standard setup order (e.g. $1 \to 2 \to 3 \to 4 \to 4 \to 3 \to 2 \to 1$). It tracks whose turn it is, alerts you when to pick, and ranks placements on a final leaderboard once complete.
+- **Keyboard Shortcuts & Help Cheat Sheet Modal**:
+  - Global keyboard shortcuts for fast gameplay: `?` / `h` (Cheat Sheet Modal), `s` (Settlement), `c` (City), `r` (Road), `d` (Dev Cards), `1`..`9` (Rank selection in draft), `Ctrl+Z` / `Ctrl+Y` (Undo/Redo), and `ESC` (Modal dismiss).
+- **Custom Player Names**:
+  - Set custom player names during setup or active game scoreboard. Names populate across board tooltips, rankings, turn indicators, and dev card summaries, and are saved in snapshots.
 - **Road Expansion Planner**: Evaluates and suggests the best expansion roads based on projected target settlement scores and distance cost (evaluated in unified transactions with undo/redo support).
 - **Active Game Mode (Phase 3)**:
   - Transition from board setup straight into live gameplay.
@@ -32,22 +37,22 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
   - DFS-based path analyzer tracking the longest continuous road network for each player.
   - Accounts for blocking rules where opponent settlements cut road connectivity.
   - Grants +2 Victory Points to the lead player with a network of at least 5 roads, obeying standard Catan tie-breaker rules.
-- **Development Cards Tracking & Draw Probabilities**:
+- **Development Cards Tracking & Estimated Potential**:
   - Track purchased (in-hand) and played development cards per player (Knight, Victory Point, Monopoly, Road Building, Year of Plenty).
   - Enforces deck capacities dynamically (34-card full deck by default, or 25-card base deck option). Enforces strict limits, preventing players from playing or buying cards exceeding deck totals.
-  - Interactive probability donut chart visualizing the exact chance of drawing each card type next based on unrevealed cards.
-  - Estimated potential calculation for opponent hands in play.
+  - Interactive probability donut chart and legend visualizing the chance of holding or drawing each card type based on remaining unrevealed cards (maintains per-player hand potential even when draw pile is exhausted).
 - **Largest Army Award**:
   - Awards +2 Victory Points to the first player to play 3 Knights, following standard Catan majority transfer and tie-breaker rules.
   - Synchronizes badge pulse animation with the Longest Road badge in the scoreboard for a unified visual effect.
-- **Snapshot Import/Export**:
-  - Save your active game state by exporting a `.json` snapshot file.
-  - Load snapshots instantly to resume configuration or gameplay sessions on any device.
+- **Snapshot Import/Export V2**:
+  - Save your active game state by exporting a `.json` snapshot file (v2 format).
+  - Restores complete undo/redo action stacks (`undoStack`/`redoStack`), history logs, custom player names, and board configurations.
 - **Phase-Aware Undo/Redo**: Full undo/redo transaction support for Phase 1 (desert configuration), Phase 2 (settlement placements & road selection), and Phase 3 (active gameplay actions).
-- **Settings Control Center**: Toggle between decimal rates and percentage rates, hide/show zero-probability scores, and enable auto-zoom behavior on active selections.
-- **Visual runway indicators & Neon High Contrast**:
-  - Animated glowing LED-style runway lights highlighting valid road building directions in the current player's color.
-  - Tailored color palette mappings matching dark player colors (like blue or chocolate) to bright neon versions in Dark Mode for perfect SVG contrast.
+- **Expanded Chart Zoom & Viewport-Relative Tooltips**:
+  - Interactive, viewport-aware tooltips with hover and pinning support across statistics charts.
+  - Expanded chart zoom modal featuring translated titles, theme support, keyboard navigation, and backdrop dismiss.
+- **Warm Parchment Theme & Visual Polish**:
+  - Warm parchment light mode theme (`#faf8f3`), subtle neon piece glows in Dark Mode, glassmorphism overlays, and transparent backdrop controls.
 - **Dark Mode & Multilingual**: Sleek dark/light modes and fully signal-based Spanish/English i18n support.
 - **Progressive Web App (PWA)**: Works offline, can be installed on home screens, and launches instantly.
 
@@ -57,6 +62,7 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
 
 - **Framework**: Zoneless Angular 21 (Zero Zone.js dependency, resulting in improved change detection performance).
 - **State Management**: Writable and Computed **Angular Signals** exclusively (Single store architecture).
+- **Services**: `KeyboardShortcutsService` for global event handling, `TranslationService` for signal i18n, `ThemeService` for light/dark mode.
 - **Styles**: SCSS + Tailwind CSS v4 (using `@tailwindcss/postcss`).
 - **Scaffolding**: Highly modularized architecture. Split components into separate `.component.html` and `.component.scss` files for optimal maintainability.
 - **Testing**: Unit tests powered by Karma and Jasmine.

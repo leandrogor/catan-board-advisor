@@ -1,7 +1,7 @@
 # PROJECT_SKILL.md — Catan Board Advisor
 
 > **Purpose**: Onboarding document for AI assistants working on this codebase.
-> **Last updated**: 2026-07-11 (Development Cards tracking, SVG donut probability chart, Largest Army card with Catan tie-breakers, synchronized pulse animations, reduced 25-card deck setup option, active game scoreboard integration, expected production and snapshots)
+> **Last updated**: 2026-08-01 (Keyboard shortcuts engine & cheat sheet modal, custom player names, game snapshot v2 with full action stacks, vertex yield inspection & distance-rule hiding, warm parchment light theme, viewport-aware chart tooltips, dev card probability calculation fix for empty draw piles)
 
 ---
 
@@ -84,7 +84,8 @@ catan-board-advisor/
 │       │
 │       ├── core/services/
 │       │   ├── translation.service.ts    # Signal-based i18n (EN/ES), localStorage
-│       │   └── theme.service.ts          # Dark/light theme, prefers-color-scheme, localStorage
+│       │   ├── theme.service.ts          # Dark/light theme, prefers-color-scheme, localStorage
+│       │   └── keyboard-shortcuts.service.ts # Global keydown handler, modal & shortcut dispatching
 │       │
 │       ├── shared/utils/
 │       │   └── hex-math.utils.ts         # ALL hex grid geometry & spiral layout (see §3)
@@ -113,7 +114,7 @@ catan-board-advisor/
 │           │   └── ext-catan-letter-values.data.ts # Extension board letter→number map (verified from physical game)
 │           │
 │           ├── i18n/
-│           │   ├── en.translations.ts              # Translations interface + EN constant (44 keys)
+│           │   ├── en.translations.ts              # Translations interface + EN constant
 │           │   └── es.translations.ts              # ES constant (imports Translations from en)
 │           │
 │           ├── services/
@@ -151,26 +152,31 @@ catan-board-advisor/
 │               │   ├── game-scoreboard.component.ts  # Game phase scoreboard and tool picker
 │               │   ├── game-scoreboard.component.html # Scoreboard rows, VPs, and build action triggers
 │               │   └── game-scoreboard.component.scss # Scoreboard specific visual styles
-│               └── dev-cards-panel/
-│                   ├── dev-cards-panel.component.ts  # Dev cards probability pie-chart and player tracker
-│                   ├── dev-cards-panel.component.html # Progress bars, legend, SVGs, per-player summaries
-│                   └── dev-cards-panel.component.scss # Component styles
+│               ├── dev-cards-panel/
+│               │   ├── dev-cards-panel.component.ts  # Dev cards probability pie-chart and player tracker
+│               │   ├── dev-cards-panel.component.html # Progress bars, legend, SVGs, per-player summaries
+│               │   └── dev-cards-panel.component.scss # Component styles
+│               └── shortcuts-help-modal/
+│                   ├── shortcuts-help-modal.component.ts  # Keyboard shortcuts cheat sheet modal
+│                   ├── shortcuts-help-modal.component.html # Keybinding list by category layout
+│                   └── shortcuts-help-modal.component.scss # Backdrop & modal styles
 ```
 
 ### File purpose quick reference
 
-| File                              | One-liner                                                                                             |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `hex-math.utils.ts`               | Pure functions: hex coordinates, vertices, deduplication, adjacency, viewBox, heatmap, spiral mapping |
-| `board-state.store.ts`            | Single source of truth: 15 signals + 8 computed. Phase-aware undo/redo stacks and actions.            |
-| `simulation.service.ts`           | Stateless: runs 10000 mini-games (custom rolls depending on players), returns SimulationResult        |
-| `board-layout.service.ts`         | Stateless: takes variant, desert positions + R, returns HexDefinition[]                               |
-| `board.component.*`               | SVG rendering: hexes, vertices, Pointer Events drag-and-drop, label upright rotation, scale           |
-| `vertex-detail-panel.component.*` | Detail drawer showing vertex score, ranking, adjacent tiles, and settlement toggle                    |
-| `hex-info-panel.component.*`      | Detail drawer showing hex letters, dice numbers, theoretical probability, roll frequency              |
-| `dev-cards-panel.component.*`     | Detail drawer showing dev card draw probabilities, legend, and per-player summary with hand potential |
-| `dev-card.model.ts`               | Types and configurations for full (34) and reduced (25) dev card decks                                |
-| `shell.component.*`               | App chrome: header (lang/theme/settings toggles) + settings drawer                                    |
+| File                               | One-liner                                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `hex-math.utils.ts`                | Pure functions: hex coordinates, vertices, deduplication, adjacency, viewBox, heatmap, spiral mapping         |
+| `board-state.store.ts`             | Single source of truth: 15+ signals + 10+ computed. Phase-aware undo/redo stacks, custom names & snapshot v2. |
+| `keyboard-shortcuts.service.ts`    | Global keyboard listener intercepting build actions, draft selection, undo/redo, and modal toggles.           |
+| `simulation.service.ts`            | Stateless: runs 10000 mini-games (custom rolls depending on players), returns SimulationResult                |
+| `board-layout.service.ts`          | Stateless: takes variant, desert positions + R, returns HexDefinition[]                                       |
+| `board.component.*`                | SVG rendering: hexes, vertices, Pointer Events drag-and-drop, label upright rotation, scale                   |
+| `vertex-detail-panel.component.*`  | Detail drawer showing vertex score, ranking, adjacent tiles, and settlement toggle                            |
+| `shortcuts-help-modal.component.*` | Cheat sheet modal displaying available keyboard shortcuts grouped by category                                 |
+| `dev-cards-panel.component.*`      | Detail drawer showing dev card probabilities, legend, and per-player hand estimated potential                 |
+| `dev-card.model.ts`                | Types and configurations for full (34) and reduced (25) dev card decks                                        |
+| `shell.component.*`                | App chrome: header (lang/theme/settings toggles) + settings drawer & shortcuts help trigger                   |
 
 ---
 
@@ -324,39 +330,39 @@ Deduplication maps vertices using Rounded coordinates to 1 decimal place: `"${Ma
 
 **Computed signals (derived):**
 
-| Signal                   | Depends on                                                             | Purpose                                                                                        |
-| ------------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `boardVariant`           | `playerCount`                                                          | Returns `'base'` if playerCount <= 4, else `'ext'`                                             |
-| `rollsPerGame`           | `playerCount`                                                          | Dynamically sets rolls per game (80 for 3, 100 for 4, 125 for 5, 150 for 6 players)            |
-| `hexes`                  | `desertState`, `hexSize`, `boardVariant`                               | Build hex grid via BoardLayoutService                                                          |
-| `spiralLetterAssignment` | `desertState`, `boardVariant`                                          | Maps row-col to current letter label based on spiral rules                                     |
-| `allVertices`            | `hexes`, `hexSize`                                                     | Deduplicate + build adjacency graph                                                            |
-| `settledVertexIds`       | `placedSettlements`                                                    | Maps placed settlements to string IDs                                                          |
-| `scoredVertices`         | `allVertices`, `simulationResult`, `placedSettles`                     | Apply simulation scores + settlement/blocked state                                             |
-| `rankedVertices`         | `scoredVertices`, `hexes`                                              | Re-ranks eligible vertices after settlements                                                   |
-| `topVertex`              | `rankedVertices`                                                       | Vertex with rank === 1                                                                         |
-| `viewBox`                | `hexes`, `hexSize`                                                     | SVG viewBox dimensions                                                                         |
-| `simulationResult`       | `_simulationResult` (readonly view)                                    | Public API                                                                                     |
-| `turnSequence`           | `playerColors`                                                         | Computes the snake draft order (e.g. $1 \to 2 \to 3 \to 4 \to 4 \to 3 \to 2 \to 1$)            |
-| `currentPlayerColor`     | `appPhase`, `currentTurnIndex`, `activePlayerId`                       | Active player during placements draft or active game tracker                                   |
-| `totalTurns`             | `playerCount`                                                          | Computes total turns in setup placement (playerCount * 2)                                      |
-| `isSetupComplete`        | `currentTurnIndex`, `totalTurns`                                       | Returns true once draft has completed                                                          |
-| `playerLongestRoads`     | `placedRoads`, `playerColors`, `placedSettlements`                     | Runs DFS per player, checking opponent settlement blocks                                       |
-| `longestRoadLengths`     | `playerLongestRoads`                                                   | Extract path lengths per player                                                                |
-| `longestRoadDetails`     | `longestRoadOwnerId`, `playerLongestRoads`                             | Owner details and full road segment coordinates for glow overlay                               |
-| `playerScores`           | `playerColors`, `placements`, `longestRoad`, `largestArmy`, `devCards` | Table of stats (settlements/cities/roads count, knights, hand size, VP, score, expected yield) |
-| `activeDeckConfig`       | `useReducedDeck`, `playerCount`                                        | Returns BASE_DECK or FULL_DECK based on selection and configuration                            |
-| `totalPlayedByType`      | `devCardsPlayed`                                                       | Maps each DevCardType to total times played                                                    |
-| `remainingByType`        | `activeDeckConfig`, `totalPlayedByType`                                | Subtracts played cards from deck size, guarded by Math.max(0, ...)                             |
-| `remainingTotal`         | `remainingByType`                                                      | Total cards remaining unaccounted for in the game                                              |
-| `drawProbabilities`      | `remainingByType`, `devCardsPurchased`                                 | Chance to draw each type next, excluding cards currently in hands                              |
-| `playerKnightsPlayed`    | `devCardsPlayed`                                                       | Maps playerColorId to knights played count                                                     |
-| `playerVPCards`          | `devCardsPlayed`                                                       | Maps playerColorId to victory point cards revealed                                             |
-| `playerDevCardsSummary`  | `devCardsPurchased`, `devCardsPlayed`                                  | Aggregated summary per player (inHand, played total, playedByType)                             |
-| `gameWinner`             | `playerScores`, `appPhase`                                             | Evaluates if a player reaches >= 10 Victory Points                                             |
-| `validSettlementSpots`   | `appPhase`, `activeBuildTool`, `scoredVertices`                        | Returns vertex IDs where active player can build settlements                                   |
-| `validCitySpots`         | `appPhase`, `activeBuildTool`, `placedSettles`                         | Returns vertex IDs where active player can upgrade a settlement to city                        |
-| `validRoadEdges`         | `appPhase`, `activeBuildTool`, `allVertices`                           | Valid edges `{ from, to, p1, p2 }` for active player to build roads                            |
+| Signal                   | Depends on                                                             | Purpose                                                                                         |
+| ------------------------ | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `boardVariant`           | `playerCount`                                                          | Returns `'base'` if playerCount <= 4, else `'ext'`                                              |
+| `rollsPerGame`           | `playerCount`                                                          | Dynamically sets rolls per game (80 for 3, 100 for 4, 125 for 5, 150 for 6 players)             |
+| `hexes`                  | `desertState`, `hexSize`, `boardVariant`                               | Build hex grid via BoardLayoutService                                                           |
+| `spiralLetterAssignment` | `desertState`, `boardVariant`                                          | Maps row-col to current letter label based on spiral rules                                      |
+| `allVertices`            | `hexes`, `hexSize`                                                     | Deduplicate + build adjacency graph                                                             |
+| `settledVertexIds`       | `placedSettlements`                                                    | Maps placed settlements to string IDs                                                           |
+| `scoredVertices`         | `allVertices`, `simulationResult`, `placedSettles`                     | Apply simulation scores + settlement/blocked state                                              |
+| `rankedVertices`         | `scoredVertices`, `hexes`                                              | Re-ranks eligible vertices after settlements                                                    |
+| `topVertex`              | `rankedVertices`                                                       | Vertex with rank === 1                                                                          |
+| `viewBox`                | `hexes`, `hexSize`                                                     | SVG viewBox dimensions                                                                          |
+| `simulationResult`       | `_simulationResult` (readonly view)                                    | Public API                                                                                      |
+| `turnSequence`           | `playerColors`                                                         | Computes the snake draft order (e.g. $1 \to 2 \to 3 \to 4 \to 4 \to 3 \to 2 \to 1$)             |
+| `currentPlayerColor`     | `appPhase`, `currentTurnIndex`, `activePlayerId`                       | Active player during placements draft or active game tracker                                    |
+| `totalTurns`             | `playerCount`                                                          | Computes total turns in setup placement (playerCount * 2)                                       |
+| `isSetupComplete`        | `currentTurnIndex`, `totalTurns`                                       | Returns true once draft has completed                                                           |
+| `playerLongestRoads`     | `placedRoads`, `playerColors`, `placedSettlements`                     | Runs DFS per player, checking opponent settlement blocks                                        |
+| `longestRoadLengths`     | `playerLongestRoads`                                                   | Extract path lengths per player                                                                 |
+| `longestRoadDetails`     | `longestRoadOwnerId`, `playerLongestRoads`                             | Owner details and full road segment coordinates for glow overlay                                |
+| `playerScores`           | `playerColors`, `placements`, `longestRoad`, `largestArmy`, `devCards` | Table of stats (settlements/cities/roads count, knights, hand size, VP, score, expected yield)  |
+| `activeDeckConfig`       | `useReducedDeck`, `playerCount`                                        | Returns BASE_DECK or FULL_DECK based on selection and configuration                             |
+| `totalPlayedByType`      | `devCardsPlayed`                                                       | Maps each DevCardType to total times played                                                     |
+| `remainingByType`        | `activeDeckConfig`, `totalPlayedByType`                                | Subtracts played cards from deck size, guarded by Math.max(0, ...)                              |
+| `remainingTotal`         | `remainingByType`                                                      | Total cards remaining unaccounted for in the game                                               |
+| `drawProbabilities`      | `remainingByType`                                                      | Probability distribution of each card type among remaining unrevealed cards (in pile and hands) |
+| `playerKnightsPlayed`    | `devCardsPlayed`                                                       | Maps playerColorId to knights played count                                                      |
+| `playerVPCards`          | `devCardsPlayed`                                                       | Maps playerColorId to victory point cards revealed                                              |
+| `playerDevCardsSummary`  | `devCardsPurchased`, `devCardsPlayed`                                  | Aggregated summary per player (inHand, played total, playedByType)                              |
+| `gameWinner`             | `playerScores`, `appPhase`                                             | Evaluates if a player reaches >= 10 Victory Points                                              |
+| `validSettlementSpots`   | `appPhase`, `activeBuildTool`, `scoredVertices`                        | Returns vertex IDs where active player can build settlements                                    |
+| `validCitySpots`         | `appPhase`, `activeBuildTool`, `placedSettles`                         | Returns vertex IDs where active player can upgrade a settlement to city                         |
+| `validRoadEdges`         | `appPhase`, `activeBuildTool`, `allVertices`                           | Valid edges `{ from, to, p1, p2 }` for active player to build roads                             |
 
 ### Snake Draft Placement Order
 
@@ -486,25 +492,53 @@ Calculated dynamically in `board-state.store.ts`:
   - If a player holds the card, another player must strictly _exceed_ (not match) their count to claim it.
   - If the owner is surpassed, but there is a tie for first place among challengers, the card returns to the bank.
 
-### Snapshot Import/Export Sequence
+### Snapshot Import/Export Sequence (Version 2)
 
-A JSON snapshot saves the entire setup/game history. The serialization format is version-controlled (`version: 1`).
+A JSON snapshot saves the entire setup/game state. The serialization format is version-controlled (`version: 2`).
+Snapshot `v2` preserves full `undoStack` and `redoStack` action states, custom player names, and history logs across sessions.
 To prevent state race conditions, importation follows a strict signal-setting order:
 
 1. `playerCount` (triggers computed `boardVariant` to calculate dimensions).
-2. `playerColors` and `myPlayerColorId` (resets player rosters).
+2. `playerColors` and custom player names (`setPlayerName`).
 3. `hexSize` (adaptive sizing calculated after `boardVariant` stabilizes).
 4. `desertState` (recomputes hex grid coordinates and vertices).
-5. Action lists: `placedSettlements`, `placedRoads`, `currentTurnIndex`, and `boardRotationDeg`.
+5. Action lists & stacks: `placedSettlements`, `placedRoads`, `currentTurnIndex`, `boardRotationDeg`, `undoStack`, and `redoStack`.
 6. `simulationResult` (re-attaches simulation numbers so vertices can resolve expected yields).
 7. Game active states: `gameActivePlayerId`, `longestRoadOwnerId`, and `largestArmyOwnerId`.
 8. Development card configs and logs: `useReducedDeck`, `devCardsPurchased`, and `devCardsPlayed`.
-9. Clears transient undo/redo stacks.
-10. `appPhase` (set LAST to trigger a full UI layout update).
+9. `appPhase` (set LAST to trigger a full UI layout update).
 
 ---
 
-## 9. Build & Development Commands
+## 9. Keyboard Shortcuts Engine (keyboard-shortcuts.service.ts)
+
+The application provides a global keyboard shortcuts system powered by `KeyboardShortcutsService` provided in `root`.
+
+### Features & Context Handling
+
+- **Context Isolation**: Direct key events are ignored when focus is inside text input fields (`HTMLInputElement`, `HTMLTextAreaElement`, or `isContentEditable`), except for specialized input navigation (e.g. `Enter` / `Tab` in custom player name fields).
+- **Cheat Sheet Modal (`ShortcutsHelpModalComponent`)**: Pressing `?` or `h` toggles the interactive cheat sheet modal listing all keybindings by category with full i18n support.
+- **Backdrop & Escape Controls**: Pressing `Escape` closes active drawers and modals (Help Cheat Sheet, Dev Cards Panel, Hex Info Panel, Vertex Detail Panel, Zoomed Chart).
+
+### Keybindings Quick Reference
+
+| Key / Combination        | Action / Target Context                                                |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `?` or `h`               | Open / Close Keyboard Shortcuts Cheat Sheet Modal                      |
+| `s`                      | Activate **Settlement** tool (Active Game Phase 3)                     |
+| `c`                      | Activate **City** tool (Active Game Phase 3)                           |
+| `r`                      | Activate **Road** tool (Active Game Phase 3)                           |
+| `d`                      | Toggle **Development Cards** Panel (Active Game Phase 3)               |
+| `1` .. `9`               | Select rank option (1st to 9th) during Snake Draft Placement (Phase 2) |
+| `Ctrl+Z` / `Cmd+Z`       | Undo last action (Phase 1 desert move, Phase 2 draft, Phase 3 build)   |
+| `Ctrl+Y` / `Cmd+Shift+Z` | Redo action                                                            |
+| `Ctrl+O`                 | Trigger Load Snapshot file dialog                                      |
+| `Ctrl+S`                 | Export current session state snapshot `.json`                          |
+| `Escape`                 | Close open modal, panel, or zoomed chart view                          |
+
+---
+
+## 10. Build & Development Commands
 
 ```bash
 # Install dependencies
