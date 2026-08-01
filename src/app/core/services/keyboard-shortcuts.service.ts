@@ -112,6 +112,11 @@ export class KeyboardShortcutsService {
         this.store.selectVertex(null);
         return;
       }
+      if (this.store.selectedHexId()) {
+        event.preventDefault();
+        this.store.selectHex(null);
+        return;
+      }
       if (this.settingsOpen()) {
         event.preventDefault();
         this.settingsOpen.set(false);

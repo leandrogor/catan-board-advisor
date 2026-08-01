@@ -62,4 +62,20 @@ describe('KeyboardShortcutsService', () => {
     window.dispatchEvent(event);
     expect(store.setPlayerCount).toHaveBeenCalledWith(4);
   });
+
+  it('should deselect hex on Escape key', () => {
+    spyOn(store, 'selectHex');
+    store.selectedHexId.set('hex-1');
+    const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    window.dispatchEvent(event);
+    expect(store.selectHex).toHaveBeenCalledWith(null);
+  });
+
+  it('should deselect vertex on Escape key', () => {
+    spyOn(store, 'selectVertex');
+    store.selectedVertexId.set('vertex-1');
+    const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    window.dispatchEvent(event);
+    expect(store.selectVertex).toHaveBeenCalledWith(null);
+  });
 });
