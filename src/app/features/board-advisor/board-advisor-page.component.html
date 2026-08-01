@@ -91,7 +91,7 @@
         <input
           #snapshotFileInput
           id="snapshot-file-input"
-          aria-label="Upload snapshot file"
+          [attr.aria-label]="i18n.t().uploadSnapshotFile"
           type="file"
           accept=".json"
           class="hidden"

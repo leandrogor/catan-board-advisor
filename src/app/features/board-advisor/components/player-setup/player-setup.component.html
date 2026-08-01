@@ -73,7 +73,7 @@
             class="relative flex flex-col items-center gap-0.5 group"
             [attr.id]="'player-chip-' + idx"
             (click)="togglePicker(idx)"
-            [attr.aria-label]="colorName(color) + ' player ' + (idx + 1)"
+            [attr.aria-label]="i18n.t().playerChipAriaLabel(colorName(color), idx + 1)"
           >
             <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-none">
               {{ idx + 1 }}
@@ -121,7 +121,7 @@
                 isFirst ? 'left-0' : isLast ? 'right-0 left-auto' : 'left-1/2 -translate-x-1/2'
               "
               role="menu"
-              [attr.aria-label]="'Pick color for player ' + (idx + 1)"
+              [attr.aria-label]="i18n.t().pickColorForPlayer(idx + 1)"
             >
               @for (pc of allColors; track pc.id) {
                 @let isCurrentSlot = pc.id === color.id;

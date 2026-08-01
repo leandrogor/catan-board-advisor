@@ -217,6 +217,37 @@ export interface Translations {
   shortcutsItemProductionFormat: string;
   shortcutsItemSettingsDrawer: string;
   shortcutsItemHelpModal: string;
+  // Snapshots
+  snapshotInvalidError: string;
+  snapshotReadJsonError: string;
+  snapshotReadFileError: string;
+  uploadSnapshotFile: string;
+  // Shortcuts submenus
+  shortcutsInMenu: (key: number) => string;
+  shortcutsInCards: (key: number) => string;
+  // Dev Cards Table
+  devCardsTableType: string;
+  devCardsTableTotal: string;
+  devCardsTablePlayed: string;
+  devCardsTableRemaining: string;
+  // Scoreboard titles & accessibility
+  longestRoadTitle: string;
+  largestArmyTitle: string;
+  settlementsPlacedTitle: string;
+  citiesBuiltTitle: string;
+  roadsBuiltTitle: string;
+  vpCardsTitle: string;
+  selectBuildingOptionFor: (name: string) => string;
+  actionsForPlayer: (name: string) => string;
+  gameOver: string;
+  openDevCardsPanel: string;
+  openGameStatsPanel: string;
+  // Accessibility labels
+  catanBoardAriaLabel: string;
+  statsCloseZoomedChart: string;
+  playerChipAriaLabel: (name: string, num: number) => string;
+  pickColorForPlayer: (num: number) => string;
+  maxLabel: string;
 }
 
 export const EN: Translations = {
@@ -444,4 +475,39 @@ export const EN: Translations = {
   statsLogCitiesRemoved: (count: number): string =>
     `${count} cit${Math.abs(count) > 1 ? 'ies' : 'y'}`,
   statsLogRoadsRemoved: (count: number): string => `${count} road${Math.abs(count) > 1 ? 's' : ''}`,
+  // Snapshots
+  snapshotInvalidError: '❌ File is not a valid Catan Board Advisor snapshot.',
+  snapshotReadJsonError: '❌ Failed to read JSON file.',
+  snapshotReadFileError: '❌ Failed to read file.',
+  uploadSnapshotFile: 'Upload snapshot file',
+
+  // Shortcuts submenus
+  shortcutsInMenu: (key: number): string => `${key} (in menu)`,
+  shortcutsInCards: (key: number): string => `${key} (in cards)`,
+
+  // Dev Cards Table
+  devCardsTableType: 'Type',
+  devCardsTableTotal: 'Total',
+  devCardsTablePlayed: 'Played',
+  devCardsTableRemaining: 'Left',
+
+  // Scoreboard titles & accessibility
+  longestRoadTitle: 'Holds the Longest Road (+2 VP)',
+  largestArmyTitle: 'Holds the Largest Army (+2 VP)',
+  settlementsPlacedTitle: 'Settlements placed',
+  citiesBuiltTitle: 'Cities built',
+  roadsBuiltTitle: 'Roads built (longest path length)',
+  vpCardsTitle: 'Victory Point cards',
+  selectBuildingOptionFor: (name: string): string => `Select building option for ${name}`,
+  actionsForPlayer: (name: string): string => `Actions for ${name}`,
+  gameOver: 'Game Over!',
+  openDevCardsPanel: 'Open Development Cards panel',
+  openGameStatsPanel: 'Open Game Statistics panel',
+
+  // Accessibility labels
+  catanBoardAriaLabel: 'Catan board',
+  statsCloseZoomedChart: 'Close Zoomed Chart',
+  playerChipAriaLabel: (name: string, num: number): string => `${name} player ${num}`,
+  pickColorForPlayer: (num: number): string => `Pick color for player ${num}`,
+  maxLabel: '(Max)',
 };

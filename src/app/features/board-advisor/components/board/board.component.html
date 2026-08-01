@@ -32,7 +32,7 @@
     [style]="rotationStyle()"
     xmlns="http://www.w3.org/2000/svg"
     role="img"
-    aria-label="Catan board"
+    [attr.aria-label]="i18n.t().catanBoardAriaLabel"
   >
     <!-- Hex polygons -->
     @for (hex of store.hexes(); track hex.id) {

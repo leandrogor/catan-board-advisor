@@ -77,14 +77,14 @@ export class BoardAdvisorPageComponent {
           const parsed = JSON.parse(text);
           const ok = this.store.importSnapshot(parsed);
           if (!ok) {
-            globalThis.alert('❌ El archivo no es un snapshot válido de Catan Board Advisor.');
+            globalThis.alert(this.i18n.t().snapshotInvalidError);
           }
         } catch {
-          globalThis.alert('❌ No se pudo leer el archivo JSON.');
+          globalThis.alert(this.i18n.t().snapshotReadJsonError);
         }
       })
       .catch(() => {
-        globalThis.alert('❌ No se pudo leer el archivo.');
+        globalThis.alert(this.i18n.t().snapshotReadFileError);
       });
   }
 }

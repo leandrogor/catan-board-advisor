@@ -228,4 +228,40 @@ export const ES: Translations = {
     `${count} ciudad${Math.abs(count) > 1 ? 'es' : ''}`,
   statsLogRoadsRemoved: (count: number): string =>
     `${count} camino${Math.abs(count) > 1 ? 's' : ''}`,
+  // Snapshots
+  snapshotInvalidError: '❌ El archivo no es un snapshot válido de Catan Board Advisor.',
+  snapshotReadJsonError: '❌ No se pudo leer el archivo JSON.',
+  snapshotReadFileError: '❌ No se pudo leer el archivo.',
+  uploadSnapshotFile: 'Cargar archivo de snapshot',
+
+  // Shortcuts submenus
+  shortcutsInMenu: (key: number): string => `${key} (en menú)`,
+  shortcutsInCards: (key: number): string => `${key} (en cartas)`,
+
+  // Dev Cards Table
+  devCardsTableType: 'Tipo',
+  devCardsTableTotal: 'Total',
+  devCardsTablePlayed: 'Jug.',
+  devCardsTableRemaining: 'Rest.',
+
+  // Scoreboard titles & accessibility
+  longestRoadTitle: 'Tiene la Gran Ruta Comercial (+2 PV)',
+  largestArmyTitle: 'Tiene el Gran Ejército (+2 PV)',
+  settlementsPlacedTitle: 'Poblados construidos',
+  citiesBuiltTitle: 'Ciudades construidas',
+  roadsBuiltTitle: 'Carreteras construidas (longitud de la ruta más larga)',
+  vpCardsTitle: 'Cartas de Puntos de Victoria',
+  selectBuildingOptionFor: (name: string): string =>
+    `Seleccionar opción de construcción para ${name}`,
+  actionsForPlayer: (name: string): string => `Acciones para ${name}`,
+  gameOver: '¡Partida Finalizada!',
+  openDevCardsPanel: 'Abrir panel de Cartas de Desarrollo',
+  openGameStatsPanel: 'Abrir panel de Estadísticas del Juego',
+
+  // Accessibility labels
+  catanBoardAriaLabel: 'Tablero de Catan',
+  statsCloseZoomedChart: 'Cerrar gráfico ampliado',
+  playerChipAriaLabel: (name: string, num: number): string => `${name} jugador ${num}`,
+  pickColorForPlayer: (num: number): string => `Elegir color para el jugador ${num}`,
+  maxLabel: '(Máx)',
 };

@@ -93,7 +93,7 @@
                 @if (row.hasLongestRoad) {
                   <span
                     class="text-[8px] font-extrabold uppercase bg-amber-500 dark:bg-amber-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0"
-                    title="Holds the Longest Road (+2 VP)"
+                    [title]="i18n.t().longestRoadTitle"
                   >
                     👑 {{ i18n.t().longestRoadBadge }}
                   </span>
@@ -101,7 +101,7 @@
                 @if (row.hasLargestArmy) {
                   <span
                     class="text-[8px] font-extrabold uppercase bg-rose-500 dark:bg-rose-600 text-white px-1.5 py-0.5 rounded-xs flex items-center gap-0.5 shadow-xs shrink-0"
-                    title="Holds the Largest Army (+2 VP)"
+                    [title]="i18n.t().largestArmyTitle"
                   >
                     🛡️ {{ i18n.t().largestArmyBadge }}
                   </span>
@@ -114,19 +114,19 @@
           <div
             class="flex items-center gap-2.5 mt-1 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap"
           >
-            <span class="flex items-center gap-0.5" title="Settlements placed">
+            <span class="flex items-center gap-0.5" [title]="i18n.t().settlementsPlacedTitle">
               🏠
               <span class="font-semibold" [class.text-amber-600]="row.settlementsCount === 5"
                 >{{ row.settlementsCount }}/5</span
               >
             </span>
-            <span class="flex items-center gap-0.5" title="Cities built">
+            <span class="flex items-center gap-0.5" [title]="i18n.t().citiesBuiltTitle">
               🏰
               <span class="font-semibold" [class.text-amber-600]="row.citiesCount === 4"
                 >{{ row.citiesCount }}/4</span
               >
             </span>
-            <span class="flex items-center gap-0.5" title="Roads built (longest path length)">
+            <span class="flex items-center gap-0.5" [title]="i18n.t().roadsBuiltTitle">
               🛣️
               <span class="font-semibold" [class.text-amber-600]="row.roadsCount === 15"
                 >{{ row.roadsCount }}/15</span
@@ -157,7 +157,7 @@
             @if (row.vpCards > 0) {
               <span
                 class="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-semibold"
-                title="Victory Point cards"
+                [title]="i18n.t().vpCardsTitle"
               >
                 🏆 +{{ row.vpCards }}VP
               </span>
@@ -182,7 +182,7 @@
                 type="button"
                 class="w-8 h-8 rounded-full border border-indigo-300 dark:border-indigo-700 bg-[#faf8f3] dark:bg-slate-800 flex items-center justify-center text-sm shadow-md hover:scale-110 active:scale-95 cursor-pointer transition-all select-none z-20"
                 (click)="onBuildButtonClick(row.color.id, $event)"
-                [attr.aria-label]="'Select building option for ' + colorName(row.color)"
+                [attr.aria-label]="i18n.t().selectBuildingOptionFor(colorName(row.color))"
               >
                 {{ isPickerActive ? getActiveToolEmoji() : '🔨' }}
               </button>
@@ -195,7 +195,7 @@
                 <div
                   class="absolute right-0 bottom-full mb-2 z-50 bg-[#faf8f3] dark:bg-slate-800 rounded-xl shadow-xl border border-[#e4dccb] dark:border-slate-700 p-2 flex flex-col gap-1 w-52"
                   role="menu"
-                  [attr.aria-label]="'Actions for ' + colorName(row.color)"
+                  [attr.aria-label]="i18n.t().actionsForPlayer(colorName(row.color))"
                 >
                   <!-- Build Actions -->
                   <button
@@ -207,7 +207,7 @@
                     <span>🛣️</span>
                     <span>{{ i18n.t().buildRoad }}</span>
                     @if (row.roadsCount >= 15) {
-                      <span class="text-[9px] text-red-500 ml-auto">(Max)</span>
+                      <span class="text-[9px] text-red-500 ml-auto">{{ i18n.t().maxLabel }}</span>
                     }
                   </button>
                   <button
@@ -219,7 +219,7 @@
                     <span>🏠</span>
                     <span>{{ i18n.t().buildSettlement }}</span>
                     @if (row.settlementsCount >= 5) {
-                      <span class="text-[9px] text-red-500 ml-auto">(Max)</span>
+                      <span class="text-[9px] text-red-500 ml-auto">{{ i18n.t().maxLabel }}</span>
                     }
                   </button>
                   <button
@@ -231,7 +231,7 @@
                     <span>🏰</span>
                     <span>{{ i18n.t().upgradeToCity }}</span>
                     @if (row.citiesCount >= 4) {
-                      <span class="text-[9px] text-red-500 ml-auto">(Max)</span>
+                      <span class="text-[9px] text-red-500 ml-auto">{{ i18n.t().maxLabel }}</span>
                     }
                   </button>
 
@@ -333,12 +333,7 @@
       <span
         class="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 leading-tight text-left"
       >
-        🏆
-        {{
-          store.currentPlayerColor()?.id === 'cream'
-            ? 'Partida Finalizada!'
-            : '¡Partida Finalizada!'
-        }}
+        🏆 {{ i18n.t().gameOver }}
       </span>
     }
 
@@ -349,7 +344,7 @@
           class="flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-2 text-[10px] font-bold rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 hover:bg-violet-200 dark:hover:bg-violet-800/40 transition-colors border border-violet-200 dark:border-violet-800 cursor-pointer min-w-0"
           (click)="openDevCardsPanel($event)"
           id="dev-cards-panel-btn"
-          aria-label="Open Development Cards panel"
+          [attr.aria-label]="i18n.t().openDevCardsPanel"
         >
           🃏
           <span class="truncate">{{ i18n.t().devCardsTitle }}</span>
@@ -361,7 +356,7 @@
         class="flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-2 text-[10px] font-bold rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800/40 transition-colors border border-indigo-200 dark:border-indigo-800 cursor-pointer min-w-0"
         (click)="openStatsPanel($event)"
         id="game-stats-panel-btn"
-        aria-label="Open Game Statistics panel"
+        [attr.aria-label]="i18n.t().openGameStatsPanel"
       >
         📊
         <span class="truncate">{{ i18n.t().statsTitle }}</span>
