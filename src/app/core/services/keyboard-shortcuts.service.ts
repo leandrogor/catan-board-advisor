@@ -50,7 +50,27 @@ export class KeyboardShortcutsService {
     const ctrlOrCmd = event.ctrlKey || event.metaKey;
     const shortcuts = this.i18n.t().shortcuts;
 
-    // ── 2. Escape Key Hierarchy ─────────────────────────────────────────
+    // ── 2. Zoomed Chart Modal Shortcuts (Escape, Tab, Enter) ─────────
+    if (this.store.zoomedChart() !== null) {
+      if (key === 'escape') {
+        event.preventDefault();
+        this.store.zoomedChart.set(null);
+        return;
+      }
+      if (key === 'tab') {
+        event.preventDefault();
+        this.store.zoomedChart.update(type => (type === 'vp' ? 'prod' : 'vp'));
+        return;
+      }
+      if (key === 'enter') {
+        event.preventDefault();
+        this.store.toggleChartZoomMode();
+        return;
+      }
+      return;
+    }
+
+    // ── 3. Escape Key Hierarchy ─────────────────────────────────────────
     if (key === 'escape') {
       if (this.helpModalOpen()) {
         event.preventDefault();

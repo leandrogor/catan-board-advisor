@@ -168,6 +168,7 @@ export interface Translations {
   statsGenericAction: string;
   statsViewFull: string;
   statsZoomMode: string;
+  statsZoomChartTitle: string;
   statsRoundsRange: (lower: number, upper: number) => string;
   statsLogSettlementsAdded: (count: number) => string;
   statsLogCitiesAdded: (count: number) => string;
@@ -430,6 +431,7 @@ export const EN: Translations = {
   statsGenericAction: 'Action',
   statsViewFull: 'View Full',
   statsZoomMode: 'Zoom Mode',
+  statsZoomChartTitle: 'Expand Chart',
   statsRoundsRange: (lower: number, upper: number): string => `${lower} - ${upper} rounds`,
   statsLogSettlementsAdded: (count: number): string => `${count} settlement${count > 1 ? 's' : ''}`,
   statsLogCitiesAdded: (count: number): string => `${count} cit${count > 1 ? 'ies' : 'y'}`,

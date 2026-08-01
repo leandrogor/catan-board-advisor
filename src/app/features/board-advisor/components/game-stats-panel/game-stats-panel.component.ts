@@ -60,12 +60,16 @@ export class GameStatsPanelComponent {
   private readonly injector = inject(Injector);
 
   protected readonly activeTab = signal<'progress' | 'projection'>('progress');
-  protected readonly zoomedChart = signal<'vp' | 'prod' | null>(null);
+  protected get zoomedChart() {
+    return this.store.zoomedChart;
+  }
   protected readonly activeTooltip = signal<TooltipData | null>(null);
   protected readonly isTooltipPinned = signal<boolean>(false);
 
   // New zoom and usability signals
-  protected readonly isZoomMode = signal<boolean>(false);
+  protected get isZoomMode() {
+    return this.store.isChartZoomMode;
+  }
   protected readonly scrollLeft = signal<number>(0);
   protected readonly containerWidth = signal<number>(0);
   protected readonly highlightedPlayerId = signal<string | null>(null);
@@ -594,7 +598,7 @@ export class GameStatsPanelComponent {
 
   protected toggleZoomMode(): void {
     this.clearTooltip();
-    this.isZoomMode.update(z => !z);
+    this.store.toggleChartZoomMode();
   }
 
   protected toggleHighlightPlayer(playerId: string): void {

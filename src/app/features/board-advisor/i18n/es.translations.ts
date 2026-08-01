@@ -213,6 +213,7 @@ export const ES: Translations = {
   statsGenericAction: 'Acción',
   statsViewFull: 'Ver Completo',
   statsZoomMode: 'Modo Zoom',
+  statsZoomChartTitle: 'Ampliar Gráfico',
   statsRoundsRange: (lower: number, upper: number): string => `${lower} - ${upper} rondas`,
   statsLogSettlementsAdded: (count: number): string => `${count} poblado${count > 1 ? 's' : ''}`,
   statsLogCitiesAdded: (count: number): string => `${count} ciudad${count > 1 ? 'es' : ''}`,

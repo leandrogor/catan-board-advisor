@@ -90,7 +90,7 @@
                     type="button"
                     class="text-xs text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer bg-transparent border-0 p-1 flex items-center"
                     (click)="zoomedChart.set('vp'); clearTooltip()"
-                    title="Zoom Chart"
+                    [title]="i18n.t().statsZoomChartTitle"
                   >
                     🔍
                   </button>
@@ -254,7 +254,7 @@
                     type="button"
                     class="text-xs text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer bg-transparent border-0 p-1 flex items-center"
                     (click)="zoomedChart.set('prod'); clearTooltip()"
-                    title="Zoom Chart"
+                    [title]="i18n.t().statsZoomChartTitle"
                   >
                     🔍
                   </button>
@@ -576,11 +576,15 @@
 <!-- ZOOM OVERLAY MODAL -->
 @if (zoomedChart(); as type) {
   <div
-    class="fixed inset-0 z-50 bg-[#f7f4eb] dark:bg-slate-950 md:bg-[#f7f4eb]/90 dark:md:bg-slate-950/90 md:backdrop-blur-xs flex items-center justify-center p-0 md:p-6"
+    class="fixed inset-0 z-50 bg-[#f7f4eb]/90 dark:bg-slate-950/90 backdrop-blur-xs"
+    (click)="zoomedChart.set(null); clearTooltip()"
+  ></div>
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6 pointer-events-none"
     style="animation: fadeIn 0.25s ease"
   >
     <div
-      class="w-full h-full md:h-[85vh] md:max-w-4xl bg-[#faf8f3] dark:bg-slate-950 border-0 md:border border-[#e4dccb] dark:border-slate-800 rounded-none md:rounded-3xl shadow-2xl relative flex flex-col overflow-hidden"
+      class="w-full h-full md:h-[85vh] md:max-w-4xl bg-[#faf8f3] dark:bg-slate-950 border-0 md:border border-[#e4dccb] dark:border-slate-800 rounded-none md:rounded-3xl shadow-2xl relative flex flex-col overflow-hidden pointer-events-auto"
     >
       <!-- Controls & Legend Section (flow-based block) -->
       <div

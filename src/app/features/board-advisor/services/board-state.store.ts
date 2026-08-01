@@ -48,6 +48,8 @@ export class BoardStateStore {
 
   readonly gameHistory = signal<GameHistoryEntry[]>([]);
   readonly gameStatsPanelOpen = signal<boolean>(false);
+  readonly zoomedChart = signal<'vp' | 'prod' | null>(null);
+  readonly isChartZoomMode = signal<boolean>(false);
 
   // ── Settings ────────────────────────────────────────────────────────────────
   readonly scoreFormat = signal<'decimal' | 'percentage'>(
@@ -1249,6 +1251,8 @@ export class BoardStateStore {
     this.devCardsPanelOpen.set(false);
     this.gameHistory.set([]);
     this.gameStatsPanelOpen.set(false);
+    this.zoomedChart.set(null);
+    this.isChartZoomMode.set(false);
     this.buildPickerPlayerId.set(null);
     this.showPlayCardMenu.set(false);
     this.appPhase.set('setup');
@@ -1925,6 +1929,10 @@ export class BoardStateStore {
 
   toggleReducedDeck(): void {
     this.useReducedDeck.update(v => !v);
+  }
+
+  toggleChartZoomMode(): void {
+    this.isChartZoomMode.update(v => !v);
   }
 
   /**
