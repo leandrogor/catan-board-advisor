@@ -42,6 +42,15 @@ export type AppPhase = 'setup' | 'results' | 'game';
 export type PlayerCount = 3 | 4 | 5 | 6;
 export type BoardRotationDeg = 0 | 90 | 180 | 270;
 
+export interface ExpansionSuggestion {
+  settlementVertexId: string;
+  targetVertexId: string;
+  newRoads: { from: string; to: string }[];
+  score: number;
+  rank: 1 | 2;
+  playerColorId: PlayerColor['id'];
+}
+
 @Injectable({ providedIn: 'root' })
 export class BoardStateStore {
   private readonly translationService = inject(TranslationService);
@@ -57,6 +66,12 @@ export class BoardStateStore {
   );
   readonly showZeroScores = signal<boolean>(localStorage.getItem('catan-show-zeros') !== 'false');
   readonly enableAutoZoom = signal<boolean>(localStorage.getItem('catan-auto-zoom') !== 'false');
+  readonly projectionTargetPlayerId = signal<string>(
+    localStorage.getItem('catan-projection-target') ?? 'me',
+  );
+  readonly showSecondBestProjection = signal<boolean>(
+    localStorage.getItem('catan-show-2nd-proj') === 'true',
+  );
 
   // ── Phase ───────────────────────────────────────────────────────────────────
   /** Current app phase: 'setup' shows letters+drag UI; 'results' shows heatmap. */
@@ -66,6 +81,15 @@ export class BoardStateStore {
   readonly playerCount = signal<PlayerCount>(3);
   readonly playerColors = signal<PlayerColor[]>(PLAYER_COLORS.slice(0, 3));
   readonly myPlayerColorId = signal<PlayerColor['id'] | null>(null);
+  readonly effectiveProjectionPlayerId = computed<PlayerColor['id'] | null>(() => {
+    const target = this.projectionTargetPlayerId();
+    if (target === 'none') return null;
+    if (target === 'me') return this.myPlayerColorId();
+    const activeColors = this.playerColors();
+    return activeColors.some(c => c.id === target)
+      ? (target as PlayerColor['id'])
+      : this.myPlayerColorId();
+  });
   readonly playerNames = signal<Record<string, string>>({});
 
   /** Which physical board is in use: 'base' for 3-4 players, 'ext' for 5-6. */
@@ -751,26 +775,21 @@ export class BoardStateStore {
     }
   }
 
-  readonly myExpansionSuggestions = computed(() => {
-    const myColor = this.myPlayerColorId();
+  readonly myExpansionSuggestions = computed<ExpansionSuggestion[]>(() => {
+    const targetColor = this.effectiveProjectionPlayerId();
     if (
-      !myColor ||
+      !targetColor ||
       (this.appPhase() !== 'results' && this.appPhase() !== 'game') ||
       this.gameWinner()
     ) {
       return [];
     }
 
-    const mySettlements = this.placedSettlements().filter(s => s.playerColorId === myColor);
-    const myRoads = this.placedRoads().filter(r => r.playerColorId === myColor);
+    const mySettlements = this.placedSettlements().filter(s => s.playerColorId === targetColor);
+    const myRoads = this.placedRoads().filter(r => r.playerColorId === targetColor);
     const vertices = this.scoredVertices();
 
-    const suggestions: {
-      settlementVertexId: string;
-      targetVertexId: string;
-      newRoads: { from: string; to: string }[];
-      score: number;
-    }[] = [];
+    const suggestions: ExpansionSuggestion[] = [];
 
     for (const s of mySettlements) {
       // Find all vertices reachable by this specific settlement s via myRoads
@@ -790,13 +809,7 @@ export class BoardStateStore {
         }
       }
 
-      let bestCandidate: {
-        targetVertexId: string;
-        newRoads: { from: string; to: string }[];
-        score: number;
-      } | null = null;
-
-      // --- Priority 0: 0-road extension (build directly on an already reachable vertex) ---
+      // --- Priority 0: 0-road extension ---
       const p0Candidates: {
         targetVertexId: string;
         newRoads: { from: string; to: string }[];
@@ -812,144 +825,152 @@ export class BoardStateStore {
           });
         }
       }
+      p0Candidates.sort((a, b) => b.score - a.score);
 
-      if (p0Candidates.length > 0) {
-        p0Candidates.sort((a, b) => b.score - a.score);
-        bestCandidate = p0Candidates[0];
-      }
+      // --- Priority 1: 1-road extension ---
+      const p1Candidates: {
+        targetVertexId: string;
+        newRoads: { from: string; to: string }[];
+        score: number;
+      }[] = [];
+      for (const vId of reachable) {
+        if (!this.isValidRoadStart(vId, targetColor)) continue;
+        const vVertex = vertices.find(v => v.id === vId);
+        if (!vVertex) continue;
 
-      // --- Priority 1: 1-road extension from reachable vertices (V -> T) ---
-      if (!bestCandidate) {
-        const p1Candidates: {
-          targetVertexId: string;
-          newRoads: { from: string; to: string }[];
-          score: number;
-        }[] = [];
-        for (const vId of reachable) {
-          if (!this.isValidRoadStart(vId, myColor)) continue;
-          const vVertex = vertices.find(v => v.id === vId);
-          if (!vVertex) continue;
-
-          for (const adjId of vVertex.adjacentVertexIds) {
-            if (reachable.has(adjId) || this.hasRoadOnEdge(vId, adjId)) continue;
-            const vAdj = vertices.find(v => v.id === adjId);
-            if (vAdj && !vAdj.isOccupied && !vAdj.isBlocked) {
-              p1Candidates.push({
-                targetVertexId: adjId,
-                newRoads: [{ from: vId, to: adjId }],
-                score: vAdj.rawScore,
-              });
-            }
+        for (const adjId of vVertex.adjacentVertexIds) {
+          if (reachable.has(adjId) || this.hasRoadOnEdge(vId, adjId)) continue;
+          const vAdj = vertices.find(v => v.id === adjId);
+          if (vAdj && !vAdj.isOccupied && !vAdj.isBlocked) {
+            p1Candidates.push({
+              targetVertexId: adjId,
+              newRoads: [{ from: vId, to: adjId }],
+              score: vAdj.rawScore,
+            });
           }
         }
-
-        if (p1Candidates.length > 0) {
-          p1Candidates.sort((a, b) => b.score - a.score);
-          bestCandidate = p1Candidates[0];
-        }
       }
+      p1Candidates.sort((a, b) => b.score - a.score);
 
-      // --- Priority 2: 2-road extension from reachable vertices (V -> T -> U) ---
-      if (!bestCandidate) {
-        const p2Candidates: {
-          targetVertexId: string;
-          newRoads: { from: string; to: string }[];
-          score: number;
-        }[] = [];
-        for (const vId of reachable) {
-          if (!this.isValidRoadStart(vId, myColor)) continue;
-          const vVertex = vertices.find(v => v.id === vId);
-          if (!vVertex) continue;
+      // --- Priority 2: 2-road extension ---
+      const p2Candidates: {
+        targetVertexId: string;
+        newRoads: { from: string; to: string }[];
+        score: number;
+      }[] = [];
+      for (const vId of reachable) {
+        if (!this.isValidRoadStart(vId, targetColor)) continue;
+        const vVertex = vertices.find(v => v.id === vId);
+        if (!vVertex) continue;
 
-          for (const tId of vVertex.adjacentVertexIds) {
-            if (reachable.has(tId) || this.hasRoadOnEdge(vId, tId)) continue;
-            const vT = vertices.find(v => v.id === tId);
-            // Can build road through T only if it is not occupied by an opponent
-            if (vT && !vT.isOccupied) {
-              for (const uId of vT.adjacentVertexIds) {
-                if (uId === vId || reachable.has(uId) || this.hasRoadOnEdge(tId, uId)) continue;
-                const vU = vertices.find(v => v.id === uId);
-                if (vU && !vU.isOccupied && !vU.isBlocked) {
-                  p2Candidates.push({
-                    targetVertexId: uId,
-                    newRoads: [
-                      { from: vId, to: tId },
-                      { from: tId, to: uId },
-                    ],
-                    score: vU.rawScore,
-                  });
-                }
+        for (const tId of vVertex.adjacentVertexIds) {
+          if (reachable.has(tId) || this.hasRoadOnEdge(vId, tId)) continue;
+          const vT = vertices.find(v => v.id === tId);
+          if (vT && !vT.isOccupied) {
+            for (const uId of vT.adjacentVertexIds) {
+              if (uId === vId || reachable.has(uId) || this.hasRoadOnEdge(tId, uId)) continue;
+              const vU = vertices.find(v => v.id === uId);
+              if (vU && !vU.isOccupied && !vU.isBlocked) {
+                p2Candidates.push({
+                  targetVertexId: uId,
+                  newRoads: [
+                    { from: vId, to: tId },
+                    { from: tId, to: uId },
+                  ],
+                  score: vU.rawScore,
+                });
               }
             }
           }
         }
-
-        if (p2Candidates.length > 0) {
-          p2Candidates.sort((a, b) => b.score - a.score);
-          bestCandidate = p2Candidates[0];
-        }
       }
+      p2Candidates.sort((a, b) => b.score - a.score);
 
-      // --- Priority 3: 3-road extension from reachable vertices (V -> T -> U -> W) ---
-      if (!bestCandidate) {
-        const p3Candidates: {
-          targetVertexId: string;
-          newRoads: { from: string; to: string }[];
-          score: number;
-        }[] = [];
-        for (const vId of reachable) {
-          if (!this.isValidRoadStart(vId, myColor)) continue;
-          const vVertex = vertices.find(v => v.id === vId);
-          if (!vVertex) continue;
+      // --- Priority 3: 3-road extension ---
+      const p3Candidates: {
+        targetVertexId: string;
+        newRoads: { from: string; to: string }[];
+        score: number;
+      }[] = [];
+      for (const vId of reachable) {
+        if (!this.isValidRoadStart(vId, targetColor)) continue;
+        const vVertex = vertices.find(v => v.id === vId);
+        if (!vVertex) continue;
 
-          for (const tId of vVertex.adjacentVertexIds) {
-            if (reachable.has(tId) || this.hasRoadOnEdge(vId, tId)) continue;
-            const vT = vertices.find(v => v.id === tId);
-            if (vT && !vT.isOccupied) {
-              for (const uId of vT.adjacentVertexIds) {
-                if (uId === vId || reachable.has(uId) || this.hasRoadOnEdge(tId, uId)) continue;
-                const vU = vertices.find(v => v.id === uId);
-                if (vU && !vU.isOccupied) {
-                  for (const wId of vU.adjacentVertexIds) {
-                    if (
-                      wId === tId ||
-                      wId === vId ||
-                      reachable.has(wId) ||
-                      this.hasRoadOnEdge(uId, wId)
-                    )
-                      continue;
-                    const vW = vertices.find(v => v.id === wId);
-                    if (vW && !vW.isOccupied && !vW.isBlocked) {
-                      p3Candidates.push({
-                        targetVertexId: wId,
-                        newRoads: [
-                          { from: vId, to: tId },
-                          { from: tId, to: uId },
-                          { from: uId, to: wId },
-                        ],
-                        score: vW.rawScore,
-                      });
-                    }
+        for (const tId of vVertex.adjacentVertexIds) {
+          if (reachable.has(tId) || this.hasRoadOnEdge(vId, tId)) continue;
+          const vT = vertices.find(v => v.id === tId);
+          if (vT && !vT.isOccupied) {
+            for (const uId of vT.adjacentVertexIds) {
+              if (uId === vId || reachable.has(uId) || this.hasRoadOnEdge(tId, uId)) continue;
+              const vU = vertices.find(v => v.id === uId);
+              if (vU && !vU.isOccupied) {
+                for (const wId of vU.adjacentVertexIds) {
+                  if (
+                    wId === tId ||
+                    wId === vId ||
+                    reachable.has(wId) ||
+                    this.hasRoadOnEdge(uId, wId)
+                  )
+                    continue;
+                  const vW = vertices.find(v => v.id === wId);
+                  if (vW && !vW.isOccupied && !vW.isBlocked) {
+                    p3Candidates.push({
+                      targetVertexId: wId,
+                      newRoads: [
+                        { from: vId, to: tId },
+                        { from: tId, to: uId },
+                        { from: uId, to: wId },
+                      ],
+                      score: vW.rawScore,
+                    });
                   }
                 }
               }
             }
           }
         }
+      }
+      p3Candidates.sort((a, b) => b.score - a.score);
 
-        if (p3Candidates.length > 0) {
-          p3Candidates.sort((a, b) => b.score - a.score);
-          bestCandidate = p3Candidates[0];
+      // Combine candidate tiers in priority order (P0 -> P1 -> P2 -> P3)
+      const candidateTiers = [p0Candidates, p1Candidates, p2Candidates, p3Candidates];
+      const allCandidates: {
+        targetVertexId: string;
+        newRoads: { from: string; to: string }[];
+        score: number;
+      }[] = [];
+
+      for (const tier of candidateTiers) {
+        for (const cand of tier) {
+          if (!allCandidates.some(c => c.targetVertexId === cand.targetVertexId)) {
+            allCandidates.push(cand);
+          }
         }
       }
 
-      if (bestCandidate) {
+      const showSecond = this.showSecondBestProjection();
+
+      if (allCandidates.length > 0) {
         suggestions.push({
           settlementVertexId: s.vertexId,
-          targetVertexId: bestCandidate.targetVertexId,
-          newRoads: bestCandidate.newRoads,
-          score: bestCandidate.score,
+          targetVertexId: allCandidates[0].targetVertexId,
+          newRoads: allCandidates[0].newRoads,
+          score: allCandidates[0].score,
+          rank: 1,
+          playerColorId: targetColor,
         });
+
+        if (showSecond && allCandidates.length > 1) {
+          suggestions.push({
+            settlementVertexId: s.vertexId,
+            targetVertexId: allCandidates[1].targetVertexId,
+            newRoads: allCandidates[1].newRoads,
+            score: allCandidates[1].score,
+            rank: 2,
+            playerColorId: targetColor,
+          });
+        }
       }
     }
 
@@ -972,9 +993,23 @@ export class BoardStateStore {
     effect(() => {
       localStorage.setItem('catan-auto-zoom', String(this.enableAutoZoom()));
     });
+    effect(() => {
+      localStorage.setItem('catan-projection-target', this.projectionTargetPlayerId());
+    });
+    effect(() => {
+      localStorage.setItem('catan-show-2nd-proj', String(this.showSecondBestProjection()));
+    });
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────
+
+  setProjectionTargetPlayerId(targetId: string): void {
+    this.projectionTargetPlayerId.set(targetId);
+  }
+
+  toggleShowSecondBestProjection(): void {
+    this.showSecondBestProjection.update(v => !v);
+  }
 
   /**
    * Starts the Monte Carlo simulation asynchronously.
@@ -1236,9 +1271,9 @@ export class BoardStateStore {
     this.devCardsPanelOpen.set(false);
     this.gameHistory.set([]);
     this.gameStatsPanelOpen.set(false);
-    this.zoomedChart.set(null);
     this.isChartZoomMode.set(false);
     this.buildPickerPlayerId.set(null);
+    this.projectionTargetPlayerId.set(this.myPlayerColorId() ? 'me' : 'none');
     this.showPlayCardMenu.set(false);
     this.appPhase.set('setup');
   }
@@ -2083,8 +2118,17 @@ export class BoardStateStore {
   setMyPlayerColorId(colorId: PlayerColor['id'] | null): void {
     if (this.myPlayerColorId() === colorId) {
       this.myPlayerColorId.set(null);
+      if (this.projectionTargetPlayerId() === 'me') {
+        this.projectionTargetPlayerId.set('none');
+      }
     } else {
       this.myPlayerColorId.set(colorId);
+      if (
+        colorId &&
+        (this.projectionTargetPlayerId() === 'none' || this.projectionTargetPlayerId() === 'me')
+      ) {
+        this.projectionTargetPlayerId.set('me');
+      }
     }
   }
 
@@ -2125,6 +2169,7 @@ export class BoardStateStore {
       playerCount: this.playerCount(),
       playerColors: this.playerColors(),
       myPlayerColorId: this.myPlayerColorId(),
+      projectionTargetPlayerId: this.projectionTargetPlayerId(),
       playerNames: this.playerNames(),
       desertState: this.desertState(),
       placedSettlements: this.placedSettlements(),
@@ -2183,9 +2228,14 @@ export class BoardStateStore {
       if (Array.isArray(s['playerColors']) && s['playerColors'].length > 0) {
         this.playerColors.set(s['playerColors'] as PlayerColor[]);
       }
-      this.myPlayerColorId.set(
-        (s['myPlayerColorId'] as PlayerColor['id'] | null | undefined) ?? null,
-      );
+      const importedMyColor =
+        (s['myPlayerColorId'] as PlayerColor['id'] | null | undefined) ?? null;
+      this.myPlayerColorId.set(importedMyColor);
+      if (typeof s['projectionTargetPlayerId'] === 'string') {
+        this.projectionTargetPlayerId.set(s['projectionTargetPlayerId'] as string);
+      } else {
+        this.projectionTargetPlayerId.set(importedMyColor ? 'me' : 'none');
+      }
       if (s['playerNames'] && typeof s['playerNames'] === 'object') {
         this.playerNames.set(s['playerNames'] as Record<string, string>);
       }

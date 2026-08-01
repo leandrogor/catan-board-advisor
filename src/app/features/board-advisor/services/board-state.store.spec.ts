@@ -711,6 +711,59 @@ describe('BoardStateStore - Longest Road', () => {
     });
   });
 
+  describe('Projection Target Settings', () => {
+    it('should default to "me" if designated, or "none" if myPlayerColorId is unassigned', () => {
+      store.myPlayerColorId.set('red');
+      expect(store.projectionTargetPlayerId()).toBe('me');
+      expect(store.effectiveProjectionPlayerId()).toBe('red');
+
+      store.setProjectionTargetPlayerId('blue');
+      expect(store.effectiveProjectionPlayerId()).toBe('blue');
+
+      store.setProjectionTargetPlayerId('none');
+      expect(store.effectiveProjectionPlayerId()).toBeNull();
+
+      // When myPlayerColorId is unassigned, resetToSetup defaults to 'none'
+      store.myPlayerColorId.set(null);
+      store.resetToSetup();
+      expect(store.projectionTargetPlayerId()).toBe('none');
+      expect(store.effectiveProjectionPlayerId()).toBeNull();
+    });
+
+    it('should set projectionTargetPlayerId to "me" if myPlayerColorId is in snapshot, or "none" if unassigned', () => {
+      const snapshotWithMe = { version: 2, playerCount: 3, myPlayerColorId: 'green' };
+      store.importSnapshot(snapshotWithMe);
+      expect(store.myPlayerColorId()).toBe('green');
+      expect(store.projectionTargetPlayerId()).toBe('me');
+
+      const snapshotWithoutMe = { version: 2, playerCount: 4, myPlayerColorId: null };
+      store.importSnapshot(snapshotWithoutMe);
+      expect(store.myPlayerColorId()).toBeNull();
+      expect(store.projectionTargetPlayerId()).toBe('none');
+    });
+
+    it('should calculate primary expansion suggestion for targeted player', () => {
+      store.playerCount.set(3);
+      store.desertState.set({ variant: 'base', L1: { row: 2, col: 2 } });
+      store.hexSize.set(60);
+      store.appPhase.set('game');
+      store.myPlayerColorId.set('green');
+      store.setProjectionTargetPlayerId('me');
+
+      const vertices = store.allVertices();
+      const v1 = vertices.find(v => v.adjacentVertexIds.length >= 2);
+      expect(v1).toBeDefined();
+
+      store.placedSettlements.set([
+        { vertexId: v1!.id, playerColorId: 'green', type: 'settlement' },
+      ]);
+
+      const suggestions = store.myExpansionSuggestions();
+      expect(suggestions.length).toBeGreaterThan(0);
+      expect(suggestions[0].playerColorId).toBe('green');
+    });
+  });
+
   describe('Custom Player Names', () => {
     it('should set and retrieve custom player names, falling back to color name if unconfigured', () => {
       expect(store.getPlayerName('red')).toBeDefined();

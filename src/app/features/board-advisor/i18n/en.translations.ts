@@ -50,6 +50,11 @@ export interface Translations {
   percentage: string;
   showZeroScores: string;
   autoZoom: string;
+  projectionTarget: string;
+  projectionTargetMe: string;
+  projectionTargetNone: string;
+  showSecondBestProjection: string;
+  secondBestProjectionHint: string;
   close: string;
   rowLabel: string;
   colLabel: string;
@@ -340,6 +345,11 @@ export const EN: Translations = {
   percentage: 'Percentage',
   showZeroScores: 'Show zero-score vertices',
   autoZoom: 'Auto-zoom on selection',
+  projectionTarget: 'Suggest projections for',
+  projectionTargetMe: "Player 'Me'",
+  projectionTargetNone: 'None (Disabled)',
+  showSecondBestProjection: 'Show 2nd best option',
+  secondBestProjectionHint: 'Display a secondary expansion option with subtle styling',
   close: 'Close',
   rowLabel: 'Row',
   colLabel: 'Col',

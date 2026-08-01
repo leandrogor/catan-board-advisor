@@ -193,19 +193,48 @@
         />
       }
 
-      <!-- Suggested Expansion Roads (dashed line in white/black) -->
+      <!-- Suggested Expansion Roads -->
       @for (sugRoad of suggestedRoadCoords(); track $index) {
-        <line
-          [attr.x1]="sugRoad.p1.x"
-          [attr.y1]="sugRoad.p1.y"
-          [attr.x2]="sugRoad.p2.x"
-          [attr.y2]="sugRoad.p2.y"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-dasharray="2,3"
-          class="projected-svg-element"
-          style="pointer-events: none"
-        />
+        @if (sugRoad.rank === 1) {
+          <!-- Underlay glow for primary projection path -->
+          <line
+            [attr.x1]="sugRoad.p1.x"
+            [attr.y1]="sugRoad.p1.y"
+            [attr.x2]="sugRoad.p2.x"
+            [attr.y2]="sugRoad.p2.y"
+            [attr.stroke]="sugRoad.colorHex"
+            stroke-width="5"
+            stroke-linecap="round"
+            opacity="0.3"
+            style="pointer-events: none"
+          />
+          <line
+            [attr.x1]="sugRoad.p1.x"
+            [attr.y1]="sugRoad.p1.y"
+            [attr.x2]="sugRoad.p2.x"
+            [attr.y2]="sugRoad.p2.y"
+            [attr.stroke]="sugRoad.colorHex"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-dasharray="5,4"
+            opacity="0.95"
+            style="pointer-events: none"
+          />
+        } @else {
+          <!-- Secondary subtle projection path -->
+          <line
+            [attr.x1]="sugRoad.p1.x"
+            [attr.y1]="sugRoad.p1.y"
+            [attr.x2]="sugRoad.p2.x"
+            [attr.y2]="sugRoad.p2.y"
+            stroke="#94a3b8"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-dasharray="1,5"
+            opacity="0.45"
+            style="pointer-events: none"
+          />
+        }
       }
 
       <!-- 2. Active Selection Road Options & Projection Dashes -->
@@ -335,19 +364,55 @@
 
     <!-- Vertex indicators (Phase 2 and Game phases) -->
     @if (store.appPhase() === 'results' || store.appPhase() === 'game') {
-      <!-- Suggested Target Vertices (Pulsing dashed ring in white/black) -->
+      <!-- Suggested Target Vertices -->
       @if (store.appPhase() === 'results' || store.appPhase() === 'game') {
-        @for (target of suggestedTargetCoords(); track target.id) {
-          <circle
-            [attr.cx]="target.pt.x"
-            [attr.cy]="target.pt.y"
-            [attr.r]="14"
-            fill="none"
-            stroke-width="1.5"
-            stroke-dasharray="2,3"
-            class="projected-svg-element animate-pulse"
-            style="pointer-events: none"
-          />
+        @for (target of suggestedTargetCoords(); track target.id + '_' + target.rank) {
+          <g style="pointer-events: none">
+            @if (target.rank === 1) {
+              <!-- Outer pulse ring for Rank 1 -->
+              <circle
+                [attr.cx]="target.pt.x"
+                [attr.cy]="target.pt.y"
+                [attr.r]="15"
+                fill="none"
+                [attr.stroke]="target.colorHex"
+                stroke-width="2"
+                stroke-dasharray="3,3"
+                opacity="0.9"
+                class="animate-pulse"
+              />
+              <!-- Center target marker for Rank 1 -->
+              <circle
+                [attr.cx]="target.pt.x"
+                [attr.cy]="target.pt.y"
+                [attr.r]="5"
+                [attr.fill]="target.colorHex"
+                stroke="#ffffff"
+                stroke-width="1.5"
+                opacity="0.95"
+              />
+            } @else {
+              <!-- Subtle ring for Rank 2 -->
+              <circle
+                [attr.cx]="target.pt.x"
+                [attr.cy]="target.pt.y"
+                [attr.r]="12"
+                fill="none"
+                stroke="#94a3b8"
+                stroke-width="1.2"
+                stroke-dasharray="1,4"
+                opacity="0.5"
+              />
+              <!-- Center target marker for Rank 2 -->
+              <circle
+                [attr.cx]="target.pt.x"
+                [attr.cy]="target.pt.y"
+                [attr.r]="3.5"
+                fill="#94a3b8"
+                opacity="0.65"
+              />
+            }
+          </g>
         }
       }
 

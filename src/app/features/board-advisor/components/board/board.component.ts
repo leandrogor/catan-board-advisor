@@ -5,7 +5,7 @@ import { hexPolygonPoints, interpolateHeatmapColor } from '../../../../shared/ut
 import { Vertex } from '../../models/vertex.model';
 import { HexDefinition } from '../../models/hex.model';
 import { RoadOption } from '../../models/road-option.model';
-import { PLAYER_COLORS } from '../../models/player-color.model';
+import { PLAYER_COLORS, getPlayerDisplayColor } from '../../models/player-color.model';
 import { ThemeService } from '../../../../core/services/theme.service';
 
 /** Ways to roll each dice value (out of 36 total combinations). */
@@ -195,24 +195,22 @@ export class BoardComponent {
   protected readonly suggestedRoadCoords = computed(() => {
     const map = this.vertexMap();
     const suggestions = this.store.myExpansionSuggestions();
-    const colorHexMap = new Map<string, string>(PLAYER_COLORS.map(c => [c.id, c.hex]));
-    const myColor = this.store.myPlayerColorId();
-    const colorHex = myColor
-      ? (colorHexMap.get(myColor) ?? 'var(--color-occupied, #6366f1)')
-      : 'var(--color-occupied, #6366f1)';
+    const isDark = this.themeService.isDark();
 
     const roads: {
       p1: { x: number; y: number };
       p2: { x: number; y: number };
       colorHex: string;
+      rank: 1 | 2;
     }[] = [];
     for (const s of suggestions) {
+      const sColorHex = getPlayerDisplayColor(s.playerColorId, isDark);
       for (const r of s.newRoads) {
         if (this.store.hasRoadOnEdge(r.from, r.to)) continue;
         const p1 = map.get(r.from);
         const p2 = map.get(r.to);
         if (p1 && p2) {
-          roads.push({ p1, p2, colorHex });
+          roads.push({ p1, p2, colorHex: sColorHex, rank: s.rank });
         }
       }
     }
@@ -222,19 +220,16 @@ export class BoardComponent {
   protected readonly suggestedTargetCoords = computed(() => {
     const map = this.vertexMap();
     const suggestions = this.store.myExpansionSuggestions();
-    const colorHexMap = new Map<string, string>(PLAYER_COLORS.map(c => [c.id, c.hex]));
-    const myColor = this.store.myPlayerColorId();
-    const colorHex = myColor
-      ? (colorHexMap.get(myColor) ?? 'var(--color-occupied, #6366f1)')
-      : 'var(--color-occupied, #6366f1)';
+    const isDark = this.themeService.isDark();
 
     return suggestions
       .map(s => {
         const pt = map.get(s.targetVertexId);
-        return { id: s.targetVertexId, pt, colorHex };
+        const sColorHex = getPlayerDisplayColor(s.playerColorId, isDark);
+        return { id: s.targetVertexId, pt, colorHex: sColorHex, rank: s.rank };
       })
       .filter(
-        (s): s is { id: string; pt: { x: number; y: number }; colorHex: string } =>
+        (s): s is { id: string; pt: { x: number; y: number }; colorHex: string; rank: 1 | 2 } =>
           s.pt !== undefined,
       );
   });
@@ -375,23 +370,7 @@ export class BoardComponent {
   }
 
   protected getRunwayColor(colorId: string): string {
-    const isDark = this.themeService.isDark();
-    if (!isDark) {
-      return PLAYER_COLORS.find(c => c.id === colorId)?.hex ?? '#ffffff';
-    }
-
-    switch (colorId) {
-      case 'blue':
-        return '#3b82f6'; // Bright blue
-      case 'green':
-        return '#10b981'; // Bright emerald green
-      case 'chocolate':
-        return '#f97316'; // Bright orange/brown
-      case 'red':
-        return '#ef4444'; // Bright red
-      default:
-        return PLAYER_COLORS.find(c => c.id === colorId)?.hex ?? '#ffffff';
-    }
+    return getPlayerDisplayColor(colorId, this.themeService.isDark());
   }
 
   /** A4: Font size proportional to dice probability (scaled to range [0.55, 1.0] × base). */
