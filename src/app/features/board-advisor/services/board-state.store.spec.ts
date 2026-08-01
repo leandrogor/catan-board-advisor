@@ -812,4 +812,51 @@ describe('BoardStateStore - Longest Road', () => {
       expect(store.placedSettlements()).toHaveSize(0);
     });
   });
+
+  describe('Dev Cards Probabilities and Estimated Potential', () => {
+    it('should compute card probabilities when all cards are purchased into players hands (0 in pile)', () => {
+      // 1 Knight played
+      store.devCardsPlayed.set([{ playerColorId: 'red', type: 'knight' }]);
+      // 33 cards in hand (all remaining cards bought)
+      store.devCardsPurchased.set({ red: 32, blue: 1 });
+
+      const remainingTotal = store.remainingTotal();
+      expect(remainingTotal).toBe(33);
+
+      const totalInHand = Object.values(store.devCardsPurchased()).reduce((s, n) => s + n, 0);
+      expect(totalInHand).toBe(33);
+
+      // Draw pile has 0 cards left
+      expect(remainingTotal - totalInHand).toBe(0);
+
+      // Probabilities should NOT be 0 for all card types
+      const probs = store.drawProbabilities();
+      expect(probs.knight).toBeCloseTo(19 / 33, 4);
+      expect(probs.victoryPoint).toBeCloseTo(5 / 33, 4);
+      expect(probs.monopoly).toBeCloseTo(3 / 33, 4);
+      expect(probs.roadBuilding).toBeCloseTo(3 / 33, 4);
+      expect(probs.yearOfPlenty).toBeCloseTo(3 / 33, 4);
+    });
+
+    it('should return 0 probabilities when all cards in the game are played', () => {
+      // 34 cards played (20 knights, 5 VP, 3 monopoly, 3 road building, 3 year of plenty)
+      store.devCardsPlayed.set([
+        ...Array(20).fill({ playerColorId: 'red', type: 'knight' }),
+        ...Array(5).fill({ playerColorId: 'red', type: 'victoryPoint' }),
+        ...Array(3).fill({ playerColorId: 'blue', type: 'monopoly' }),
+        ...Array(3).fill({ playerColorId: 'blue', type: 'roadBuilding' }),
+        ...Array(3).fill({ playerColorId: 'mustard', type: 'yearOfPlenty' }),
+      ]);
+      store.devCardsPurchased.set({});
+
+      expect(store.remainingTotal()).toBe(0);
+
+      const probs = store.drawProbabilities();
+      expect(probs.knight).toBe(0);
+      expect(probs.victoryPoint).toBe(0);
+      expect(probs.monopoly).toBe(0);
+      expect(probs.roadBuilding).toBe(0);
+      expect(probs.yearOfPlenty).toBe(0);
+    });
+  });
 });

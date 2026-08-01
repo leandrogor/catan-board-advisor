@@ -229,23 +229,12 @@ export class BoardStateStore {
   });
 
   /**
-   * Draw probability for each card type.
-   * Based on remaining cards in deck EXCLUDING cards in players' hands.
-   * i.e., remainingByType minus cards purchased but not yet played.
+   * Probability distribution for each card type among remaining unrevealed cards
+   * (cards in deck + cards in players' hands).
    */
   readonly drawProbabilities = computed<Record<DevCardType, number>>(() => {
     const remaining = this.remainingByType();
-    // Total cards held in players' hands (purchased but not revealed)
-    const purchased = this.devCardsPurchased();
-    const totalInHand = Object.values(purchased).reduce((sum, n) => sum + n, 0);
-    // Cards available in the draw pile
-    const totalInPile = this.remainingTotal() - totalInHand;
-    if (totalInPile <= 0) {
-      return { knight: 0, victoryPoint: 0, monopoly: 0, roadBuilding: 0, yearOfPlenty: 0 };
-    }
-    // For probability calculation, we can only infer the pile composition:
-    // since we don't know which specific cards are in hands vs pile,
-    // we distribute remaining cards proportionally.
+    const total = this.remainingTotal();
     const result: Record<DevCardType, number> = {
       knight: 0,
       victoryPoint: 0,
@@ -253,8 +242,11 @@ export class BoardStateStore {
       roadBuilding: 0,
       yearOfPlenty: 0,
     };
+    if (total <= 0) {
+      return result;
+    }
     for (const type of DEV_CARD_TYPES) {
-      result[type] = totalInPile > 0 ? remaining[type] / this.remainingTotal() : 0;
+      result[type] = remaining[type] / total;
     }
     return result;
   });
