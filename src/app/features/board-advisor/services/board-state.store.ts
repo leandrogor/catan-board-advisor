@@ -16,7 +16,7 @@ import {
   BASE_DECK,
   DEV_CARD_TYPES,
 } from '../models/dev-card.model';
-import { PlayerColor, PLAYER_COLORS } from '../models/player-color.model';
+import { PlayerColor, PLAYER_COLORS, getPlayerDisplayColor } from '../models/player-color.model';
 import { BoardVariant } from '../models/board-variant.model';
 import {
   DesertState,
@@ -127,6 +127,7 @@ export class BoardStateStore {
   readonly buildPickerPlayerId = signal<string | null>(null);
   readonly showPlayCardMenu = signal<boolean>(false);
   readonly builderPickerVertexId = signal<string | null>(null);
+  readonly builderPickerEdge = signal<{ from: string; to: string } | null>(null);
   readonly builderPickerOptions = signal<
     { colorId: string; colorHex: string; name: string; position: { x: number; y: number } }[]
   >([]);
@@ -630,6 +631,30 @@ export class BoardStateStore {
     );
   }
 
+  getAvailableRoadBuildersForEdge(
+    v1: string,
+    v2: string,
+  ): { colorId: string; colorHex: string; name: string }[] {
+    if (this.gameWinner()) return [];
+    if (this.hasRoadOnEdge(v1, v2)) return [];
+
+    const result: { colorId: string; colorHex: string; name: string }[] = [];
+
+    for (const p of this.playerColors()) {
+      const counts = this.getPlayerPieceCounts(p.id);
+      if (counts.roads >= 15) continue;
+
+      if (this.isValidRoadStart(v1, p.id) || this.isValidRoadStart(v2, p.id)) {
+        result.push({
+          colorId: p.id,
+          colorHex: getPlayerDisplayColor(p.id, true),
+          name: this.getPlayerName(p.id),
+        });
+      }
+    }
+    return result;
+  }
+
   getPlayerPieceCounts(playerColorId: string) {
     const list = this.placedSettlements().filter(s => s.playerColorId === playerColorId);
     const settlements = list.filter(s => s.type === 'settlement' || !s.type).length;
@@ -1074,8 +1099,6 @@ export class BoardStateStore {
     const prevMyPlacements = prev.placements.filter(p => p.playerColorId === colorId);
     const currMyPlacements = currPlacements.filter(p => p.playerColorId === colorId);
 
-    const prevSettlements = prevMyPlacements.filter(p => p.type === 'settlement' || !p.type).length;
-    const currSettlements = currMyPlacements.filter(p => p.type === 'settlement' || !p.type).length;
     const prevCities = prevMyPlacements.filter(p => p.type === 'city').length;
     const currCities = currMyPlacements.filter(p => p.type === 'city').length;
 
@@ -1088,7 +1111,10 @@ export class BoardStateStore {
     const prevPlayedCount = prev.devCardsPlayed.filter(c => c.playerColorId === colorId).length;
     const currPlayedCount = currPlayed.filter(c => c.playerColorId === colorId).length;
 
-    const settleDiff = currSettlements - prevSettlements;
+    const prevTotalBuildings = prevMyPlacements.length;
+    const currTotalBuildings = currMyPlacements.length;
+
+    const newSettlementsBuilt = currTotalBuildings - prevTotalBuildings;
     const cityDiff = currCities - prevCities;
     const roadDiff = currRoadsCount - prevRoadsCount;
     const devCardDiff = currPurchasedCount - prevPurchasedCount;
@@ -1097,8 +1123,8 @@ export class BoardStateStore {
     const parts: string[] = [];
     const t = this.translationService.t();
 
-    if (settleDiff > 0) {
-      parts.push(t.statsLogSettlementsAdded(settleDiff));
+    if (newSettlementsBuilt > 0) {
+      parts.push(t.statsLogSettlementsAdded(newSettlementsBuilt));
     }
     if (cityDiff > 0) {
       parts.push(t.statsLogCitiesAdded(cityDiff));
@@ -1146,9 +1172,8 @@ export class BoardStateStore {
     }
 
     // Removals
-    const adjustedSettleDiff = settleDiff + Math.max(cityDiff, 0);
-    if (adjustedSettleDiff < 0) {
-      parts.push(t.statsLogSettlementsRemoved(adjustedSettleDiff));
+    if (newSettlementsBuilt < 0) {
+      parts.push(t.statsLogSettlementsRemoved(newSettlementsBuilt));
     }
     if (cityDiff < 0) {
       parts.push(t.statsLogCitiesRemoved(cityDiff));
@@ -1288,6 +1313,7 @@ export class BoardStateStore {
 
   closeBuilderPicker(): void {
     this.builderPickerVertexId.set(null);
+    this.builderPickerEdge.set(null);
     this.builderPickerOptions.set([]);
   }
 
@@ -1444,9 +1470,33 @@ export class BoardStateStore {
     this.updateHistoryLog(colorId);
   }
 
-  buildRoad(fromId: string, toId: string): void {
+  buildRoad(fromId: string, toId: string, targetPlayerColorId?: string): void {
     if (this.gameWinner()) return;
-    const colorId = this.currentPlayerColor()?.id ?? 'red';
+
+    let colorId = targetPlayerColorId;
+    if (!colorId) {
+      const builders = this.getAvailableRoadBuildersForEdge(fromId, toId);
+      if (builders.length === 1) {
+        colorId = builders[0].colorId;
+      } else if (builders.length > 1) {
+        const activeId = this.currentPlayerColor()?.id;
+        const activeBuilder = activeId ? builders.find(b => b.colorId === activeId) : null;
+        colorId = activeBuilder?.colorId ?? builders[0].colorId;
+      } else {
+        const connectedSettlement = this.placedSettlements().find(
+          s => s.vertexId === fromId || s.vertexId === toId,
+        );
+        const connectedRoad = this.placedRoads().find(
+          r => r.from === fromId || r.to === fromId || r.from === toId || r.to === toId,
+        );
+        colorId =
+          connectedSettlement?.playerColorId ??
+          connectedRoad?.playerColorId ??
+          this.currentPlayerColor()?.id ??
+          'red';
+      }
+    }
+
     this.undoStack.update(s => [
       ...s,
       {
@@ -1507,6 +1557,13 @@ export class BoardStateStore {
   }
 
   confirmBuilderPickerSelection(colorId: string): void {
+    const edge = this.builderPickerEdge();
+    if (edge) {
+      this.buildRoad(edge.from, edge.to, colorId);
+      this.closeBuilderPicker();
+      return;
+    }
+
     const vId = this.builderPickerVertexId();
     if (!vId) return;
     if (this.appPhase() === 'game') {

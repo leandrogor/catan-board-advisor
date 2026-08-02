@@ -71,7 +71,7 @@ export class KeyboardShortcutsService {
     }
 
     // ── 3. Builder Picker Active Shortcuts (Escape or 1, 2, 3...) ─────────
-    if (this.store.builderPickerVertexId()) {
+    if (this.store.builderPickerOptions().length > 0) {
       if (key === 'escape') {
         event.preventDefault();
         this.store.closeBuilderPicker();

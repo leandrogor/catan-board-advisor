@@ -86,12 +86,32 @@ export class VertexDetailPanelComponent {
     return result;
   });
 
-  protected readonly canBuildRoad = computed(() => {
+  protected readonly availableRoadDirections = computed<
+    { toVertexId: string; builderName: string; builderColorHex: string; builderColorId: string }[]
+  >(() => {
+    if (this.store.gameWinner()) return [];
     const vertex = this.selectedVertex();
-    const activeId = this.store.currentPlayerColor()?.id;
-    if (!vertex || !activeId) return false;
-    if (this.playerPieceCounts().roads >= 15) return false;
-    return this.store.isValidRoadStart(vertex.id, activeId);
+    if (!vertex) return [];
+
+    const result: {
+      toVertexId: string;
+      builderName: string;
+      builderColorHex: string;
+      builderColorId: string;
+    }[] = [];
+
+    for (const adjId of vertex.adjacentVertexIds) {
+      const builders = this.store.getAvailableRoadBuildersForEdge(vertex.id, adjId);
+      for (const b of builders) {
+        result.push({
+          toVertexId: adjId,
+          builderName: b.name,
+          builderColorHex: b.colorHex,
+          builderColorId: b.colorId,
+        });
+      }
+    }
+    return result;
   });
 
   protected readonly roadOptions = computed(() => {
@@ -99,6 +119,10 @@ export class VertexDetailPanelComponent {
     if (!vertex) return [];
     return this.store.computeRoadOptionsForVertex(vertex.id);
   });
+
+  protected onBuildRoadDirectionClick(fromId: string, toId: string, builderColorId?: string): void {
+    this.store.buildRoad(fromId, toId, builderColorId);
+  }
 
   protected readonly adjacentHexes = computed<HexDefinition[]>(() => {
     const vertex = this.selectedVertex();

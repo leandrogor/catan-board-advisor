@@ -610,13 +610,17 @@
       }
     }
 
-    <!-- Floating Builder Color Bubbles (when multiple players can build at vertex) -->
-    @if (store.builderPickerVertexId()) {
+    <!-- Floating Builder Color Bubbles (when multiple players can build at vertex or edge) -->
+    @if (store.builderPickerOptions().length > 0) {
       <g class="builder-picker-layer">
         @for (opt of store.builderPickerOptions(); track opt.colorId; let idx = $index) {
           <g
             [attr.transform]="'translate(' + opt.position.x + ', ' + opt.position.y + ')'"
             class="cursor-pointer group"
+            (pointerdown)="$event.stopPropagation()"
+            (pointerup)="$event.stopPropagation()"
+            (touchstart)="$event.stopPropagation()"
+            (touchend)="$event.stopPropagation()"
             (click)="selectBuilderFromPicker(opt.colorId, $event)"
             role="button"
             [attr.aria-label]="'Build for ' + opt.name"
@@ -761,6 +765,50 @@
             />
           </g>
         }
+      }
+    }
+
+    <!-- Game Phase Interactive Road Edges Layer (Hold-to-Act & Quick Edge Building) -->
+    @if (store.appPhase() === 'game' && !store.activeBuildTool() && !store.gameWinner()) {
+      @for (edge of interactiveRoadEdges(); track edge.from + '_' + edge.to) {
+        <g class="cursor-pointer group">
+          <!-- Hold progress indicator lines along edge (supports single direction and dual-converging) -->
+          @if (holdingEdgeKey() === edge.from + '_' + edge.to) {
+            @for (seg of getHoldLineSegments(edge, edgeHoldProgress()); track seg.colorHex) {
+              <line
+                [attr.x1]="seg.x1"
+                [attr.y1]="seg.y1"
+                [attr.x2]="seg.x2"
+                [attr.y2]="seg.y2"
+                [attr.stroke]="seg.colorHex"
+                stroke-width="5"
+                stroke-linecap="round"
+                style="pointer-events: none"
+              />
+            }
+          }
+          <!-- Invisible touch target overlay centered in middle of road (trimmed to leave vertices clear) -->
+          <line
+            [attr.x1]="edge.p1Trimmed.x"
+            [attr.y1]="edge.p1Trimmed.y"
+            [attr.x2]="edge.p2Trimmed.x"
+            [attr.y2]="edge.p2Trimmed.y"
+            stroke="transparent"
+            stroke-width="24"
+            stroke-linecap="round"
+            style="touch-action: none; cursor: pointer"
+            role="button"
+            tabindex="0"
+            (contextmenu)="$event.preventDefault()"
+            (selectstart)="$event.preventDefault()"
+            (pointerdown)="onEdgePointerDown($event, edge)"
+            (pointermove)="onVertexPointerMove($event)"
+            (pointerup)="onVertexPointerUp()"
+            (pointercancel)="onVertexPointerCancel()"
+            (pointerleave)="onVertexPointerLeave()"
+            (click)="onRoadEdgeClick(edge.from, edge.to)"
+          />
+        </g>
       }
     }
   </svg>

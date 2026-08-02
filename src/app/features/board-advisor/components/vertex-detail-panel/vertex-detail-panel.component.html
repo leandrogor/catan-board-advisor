@@ -199,6 +199,27 @@
             </div>
           }
         }
+
+        @if (availableRoadDirections().length > 0 && store.appPhase() === 'game') {
+          <div class="space-y-2 mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+            @for (
+              roadOpt of availableRoadDirections();
+              track roadOpt.toVertexId + '_' + roadOpt.builderColorId
+            ) {
+              <button
+                class="w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-all text-white shadow-md hover:shadow-lg active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                [style.backgroundColor]="roadOpt.builderColorHex"
+                (click)="
+                  onBuildRoadDirectionClick(vertex.id, roadOpt.toVertexId, roadOpt.builderColorId)
+                "
+              >
+                <span>🛣️</span>
+                <span>{{ i18n.t().buildRoad }}</span>
+                <span class="text-xs font-normal opacity-90">({{ roadOpt.builderName }})</span>
+              </button>
+            }
+          </div>
+        }
       </div>
     </div>
   </div>

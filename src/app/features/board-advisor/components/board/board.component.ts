@@ -291,8 +291,193 @@ export class BoardComponent {
 
   // ── Hold-to-Act state (Phase 2/3 Mobile 1s long-press) ─────────────────────
   protected readonly holdingVertexId = signal<string | null>(null);
+  protected readonly holdingEdgeKey = signal<string | null>(null);
   protected readonly holdProgress = signal<number>(0);
+  protected readonly edgeHoldProgress = signal<number>(0);
   protected readonly holdActionType = signal<'city' | 'settlement' | null>(null);
+
+  protected readonly interactiveRoadEdges = computed<
+    {
+      from: string;
+      to: string;
+      p1: { x: number; y: number };
+      p2: { x: number; y: number };
+      p1Trimmed: { x: number; y: number };
+      p2Trimmed: { x: number; y: number };
+      midpoint: { x: number; y: number };
+      builders: {
+        colorId: string;
+        colorHex: string;
+        name: string;
+        startVertexId: string;
+      }[];
+    }[]
+  >(() => {
+    if (this.store.gameWinner()) return [];
+    if (this.store.appPhase() !== 'game') return [];
+
+    const vertices = this.store.allVertices();
+    const vertexMap = new Map<string, Vertex>();
+    for (const v of vertices) {
+      vertexMap.set(v.id, v);
+    }
+
+    const edges: {
+      from: string;
+      to: string;
+      p1: { x: number; y: number };
+      p2: { x: number; y: number };
+      p1Trimmed: { x: number; y: number };
+      p2Trimmed: { x: number; y: number };
+      midpoint: { x: number; y: number };
+      builders: {
+        colorId: string;
+        colorHex: string;
+        name: string;
+        startVertexId: string;
+      }[];
+    }[] = [];
+
+    const addedKeys = new Set<string>();
+
+    for (const v1 of vertices) {
+      for (const adjId of v1.adjacentVertexIds) {
+        const key = v1.id < adjId ? `${v1.id}_${adjId}` : `${adjId}_${v1.id}`;
+        if (addedKeys.has(key)) continue;
+
+        const v2 = vertexMap.get(adjId);
+        if (!v2) continue;
+
+        const rawBuilders = this.store.getAvailableRoadBuildersForEdge(v1.id, v2.id);
+        if (rawBuilders.length === 0) continue;
+
+        addedKeys.add(key);
+
+        const builders = rawBuilders.map(b => {
+          const isV1Valid = this.store.isValidRoadStart(v1.id, b.colorId);
+          const isV2Valid = this.store.isValidRoadStart(v2.id, b.colorId);
+          let startVertexId = v1.id;
+          if (isV1Valid) {
+            startVertexId = v1.id;
+          } else if (isV2Valid) {
+            startVertexId = v2.id;
+          }
+          return {
+            ...b,
+            startVertexId,
+          };
+        });
+
+        const trimmed = this.getTrimmedEdgePoints(v1.position, v2.position, 15);
+
+        edges.push({
+          from: v1.id,
+          to: v2.id,
+          p1: v1.position,
+          p2: v2.position,
+          p1Trimmed: trimmed.p1Trimmed,
+          p2Trimmed: trimmed.p2Trimmed,
+          midpoint: {
+            x: (v1.position.x + v2.position.x) / 2,
+            y: (v1.position.y + v2.position.y) / 2,
+          },
+          builders,
+        });
+      }
+    }
+    return edges;
+  });
+
+  private getTrimmedEdgePoints(
+    p1: { x: number; y: number },
+    p2: { x: number; y: number },
+    insetPx = 15,
+  ): {
+    p1Trimmed: { x: number; y: number };
+    p2Trimmed: { x: number; y: number };
+  } {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    if (len === 0) return { p1Trimmed: p1, p2Trimmed: p2 };
+
+    const tInset = Math.min(0.35, insetPx / len);
+    return {
+      p1Trimmed: {
+        x: p1.x + dx * tInset,
+        y: p1.y + dy * tInset,
+      },
+      p2Trimmed: {
+        x: p2.x - dx * tInset,
+        y: p2.y - dy * tInset,
+      },
+    };
+  }
+
+  protected getHoldLineSegments(
+    edge: {
+      from: string;
+      to: string;
+      p1: { x: number; y: number };
+      p2: { x: number; y: number };
+      p1Trimmed: { x: number; y: number };
+      p2Trimmed: { x: number; y: number };
+      midpoint: { x: number; y: number };
+      builders: {
+        colorId: string;
+        colorHex: string;
+        name: string;
+        startVertexId: string;
+      }[];
+    },
+    progress: number,
+  ): { x1: number; y1: number; x2: number; y2: number; colorHex: string }[] {
+    if (progress <= 0 || edge.builders.length === 0) return [];
+
+    const b1 = edge.builders[0];
+    const b2 = edge.builders[1];
+
+    if (edge.builders.length >= 2 && b1 && b2 && b1.startVertexId !== b2.startVertexId) {
+      // Dual Converging Lines!
+      const pStart1 = b1.startVertexId === edge.from ? edge.p1Trimmed : edge.p2Trimmed;
+      const pStart2 = b2.startVertexId === edge.from ? edge.p1Trimmed : edge.p2Trimmed;
+      const M = edge.midpoint;
+
+      const end1 = {
+        x: pStart1.x + (M.x - pStart1.x) * progress,
+        y: pStart1.y + (M.y - pStart1.y) * progress,
+      };
+      const end2 = {
+        x: pStart2.x + (M.x - pStart2.x) * progress,
+        y: pStart2.y + (M.y - pStart2.y) * progress,
+      };
+
+      return [
+        { x1: pStart1.x, y1: pStart1.y, x2: end1.x, y2: end1.y, colorHex: b1.colorHex },
+        { x1: pStart2.x, y1: pStart2.y, x2: end2.x, y2: end2.y, colorHex: b2.colorHex },
+      ];
+    } else {
+      // Single Builder (or both starting at same vertex)
+      const primary = edge.builders[0];
+      const pStart = primary.startVertexId === edge.from ? edge.p1Trimmed : edge.p2Trimmed;
+      const pEnd = primary.startVertexId === edge.from ? edge.p2Trimmed : edge.p1Trimmed;
+
+      const currentEnd = {
+        x: pStart.x + (pEnd.x - pStart.x) * progress,
+        y: pStart.y + (pEnd.y - pStart.y) * progress,
+      };
+
+      return [
+        {
+          x1: pStart.x,
+          y1: pStart.y,
+          x2: currentEnd.x,
+          y2: currentEnd.y,
+          colorHex: primary.colorHex,
+        },
+      ];
+    }
+  }
 
   private holdAnimFrame: number | null = null;
   private holdStartTime = 0;
@@ -631,7 +816,9 @@ export class BoardComponent {
       this.holdAnimFrame = null;
     }
     this.holdingVertexId.set(null);
+    this.holdingEdgeKey.set(null);
     this.holdProgress.set(0);
+    this.edgeHoldProgress.set(0);
     this.holdActionType.set(null);
     this.holdPointerStartPos = null;
   }
@@ -692,10 +879,13 @@ export class BoardComponent {
 
   @HostListener('document:pointerdown', ['$event'])
   onDocumentPointerDown(event: PointerEvent): void {
-    if (!this.store.builderPickerVertexId()) return;
+    if (this.store.builderPickerOptions().length === 0) return;
 
-    const target = event.target as HTMLElement | SVGElement | null;
-    if (target?.closest('.builder-picker-layer')) {
+    const target = event.target as Element | null;
+    if (
+      target?.closest?.('.builder-picker-layer') ||
+      target?.parentElement?.closest?.('.builder-picker-layer')
+    ) {
       return;
     }
 
@@ -709,7 +899,7 @@ export class BoardComponent {
 
   @HostListener('document:keydown.escape', ['$event'])
   onEscapeKey(event: Event): void {
-    if (this.store.builderPickerVertexId()) {
+    if (this.store.builderPickerOptions().length > 0) {
       event.preventDefault();
       event.stopPropagation();
       this.closeBuilderPicker();
@@ -793,8 +983,110 @@ export class BoardComponent {
     }
   }
 
+  protected onEdgePointerDown(
+    event: PointerEvent,
+    edge: {
+      from: string;
+      to: string;
+      p1: { x: number; y: number };
+      p2: { x: number; y: number };
+      midpoint: { x: number; y: number };
+      builders: { colorId: string; colorHex: string; name: string }[];
+    },
+  ): void {
+    if (this.store.gameWinner()) return;
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    const target = event.currentTarget as HTMLElement | SVGElement | null;
+    try {
+      (target as Element)?.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Ignore pointer capture errors on unsupported devices
+    }
+
+    const key = `${edge.from}_${edge.to}`;
+    this.isHoldCompleted = false;
+    this.holdingEdgeKey.set(key);
+    this.edgeHoldProgress.set(0);
+    this.holdStartTime = performance.now();
+    this.holdPointerStartPos = { x: event.clientX, y: event.clientY };
+
+    const DURATION = 1000;
+    const animate = (now: number) => {
+      if (this.holdingEdgeKey() !== key) return;
+      const elapsed = now - this.holdStartTime;
+      const progress = Math.min(1, elapsed / DURATION);
+
+      this.ngZone.run(() => {
+        this.edgeHoldProgress.set(progress);
+      });
+
+      if (progress >= 1) {
+        this.isHoldCompleted = true;
+        this.ngZone.run(() => {
+          this.executeEdgeHoldAction(edge);
+          this.cancelHold();
+        });
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try {
+            navigator.vibrate(40);
+          } catch {
+            // Ignore haptic vibration errors on unsupported devices
+          }
+        }
+        return;
+      }
+      this.holdAnimFrame = requestAnimationFrame(animate);
+    };
+    this.holdAnimFrame = requestAnimationFrame(animate);
+  }
+
+  private executeEdgeHoldAction(edge: {
+    from: string;
+    to: string;
+    midpoint: { x: number; y: number };
+    builders: { colorId: string; colorHex: string; name: string }[];
+  }): void {
+    if (edge.builders.length === 1) {
+      this.store.buildRoad(edge.from, edge.to, edge.builders[0]?.colorId);
+    } else if (edge.builders.length > 1) {
+      this.openEdgeBuilderPicker(edge);
+    }
+  }
+
+  private openEdgeBuilderPicker(edge: {
+    from: string;
+    to: string;
+    midpoint: { x: number; y: number };
+    builders: { colorId: string; colorHex: string; name: string }[];
+  }): void {
+    const pos = edge.midpoint;
+    const spacing = 38;
+    const options = edge.builders.map((c, idx) => {
+      const offset = (idx - (edge.builders.length - 1) / 2) * spacing;
+      return {
+        ...c,
+        position: { x: pos.x + offset, y: pos.y - 24 },
+      };
+    });
+
+    this.store.builderPickerEdge.set({ from: edge.from, to: edge.to });
+    this.store.builderPickerOptions.set(options);
+  }
+
   protected onRoadEdgeClick(fromId: string, toId: string): void {
-    this.store.buildRoad(fromId, toId);
+    if (this.isHoldCompleted) {
+      this.isHoldCompleted = false;
+      return;
+    }
+    if (this.store.gameWinner()) return;
+
+    // Single tap click ONLY builds if the Road Tool is explicitly active in the store
+    if (this.store.activeBuildTool() === 'road') {
+      this.store.buildRoad(fromId, toId);
+    }
   }
 
   protected isSelected(v: Vertex): boolean {
