@@ -21,6 +21,7 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
 - **Hold-to-Act Gestures & Mobile Quick Actions**:
   - Touch & hold (~400ms - 1s) on board vertices and edges to build settlements, upgrade to cities, or place roads instantly without tool switching.
   - **Directional Animated Hold Progress**: Dual-converging animated SVG stroke indicators give visual feedback during hold gestures, paired with haptic vibration (`navigator.vibrate`).
+  - **2-Finger Swipe Undo/Redo**: Swipe left (`←`) with 2 fingers on the board to undo an action (`store.undo()`) and swipe right (`→`) to redo (`store.redo()`), complete with pop-up toast notification and haptic vibration.
   - **Multi-Builder Radial Selection Menu**: Interactive floating builder picker overlay when multiple player colors connect to an intersection or edge.
   - **Native Callout Protection**: Prevents native context menus, text selection popups (`user-select: none`, `-webkit-touch-callout: none`), and long-press browser defaults during gesture interaction.
 - **Monte Carlo Simulation Engine**: Computes $10000$ mini-games of player-count dependent rolls each (80 rolls for 3 players, 100 for 4 players, 125 for 5 players, and 150 for 6 players) in under $25\text{ms}$ (with a 100ms yield to guarantee UI render updates) to yield raw expected resource probabilities per vertex.

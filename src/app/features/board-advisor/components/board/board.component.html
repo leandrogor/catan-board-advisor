@@ -1,4 +1,25 @@
-<div class="relative w-full flex items-center justify-center">
+<div
+  class="relative w-full flex items-center justify-center"
+  (touchstart)="onTouchStart($event)"
+  (touchmove)="onTouchMove($event)"
+  (touchend)="onTouchEnd()"
+  (touchcancel)="onTouchCancel()"
+>
+  <!-- Gesture feedback toast -->
+  @if (gestureToast(); as toast) {
+    <div
+      class="gesture-toast-anim pointer-events-none absolute top-6 left-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-xl bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 border border-white/20 dark:border-slate-800/40 backdrop-blur-md text-sm font-semibold"
+    >
+      @if (toast.action === 'undo') {
+        <span class="text-base">↺</span>
+        <span>{{ i18n.t().undo }}</span>
+      } @else {
+        <span class="text-base">↻</span>
+        <span>{{ i18n.t().redo }}</span>
+      }
+    </div>
+  }
+
   <!-- Simulating overlay: fixed so it always covers the full viewport on mobile too -->
   @if (store.isSimulating()) {
     <div

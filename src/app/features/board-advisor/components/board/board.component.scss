@@ -203,3 +203,26 @@ circle {
 .longest-road-glow {
   animation: longest-road-pulse 2s ease-in-out infinite;
 }
+
+@keyframes gesture-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.9);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -6px) scale(0.95);
+  }
+}
+
+.gesture-toast-anim {
+  animation: gesture-pop 1.2s ease-in-out forwards;
+}

@@ -1,7 +1,7 @@
 # PROJECT_SKILL.md — Catan Board Advisor
 
 > **Purpose**: Onboarding document for AI assistants working on this codebase.
-> **Last updated**: 2026-08-02 (Mobile hold-to-act gestures & progress animations, multi-builder radial selection picker, native touch callout protection, edge pickers, win condition freeze checks, customizable road expansion target selector, Escape key hex/vertex deselect)
+> **Last updated**: 2026-08-02 (Mobile 2-finger swipe undo/redo gestures & toast, hold-to-act gestures & progress animations, multi-builder radial selection picker, native touch callout protection, edge pickers, win condition freeze checks, customizable road expansion target selector, Escape key hex/vertex deselect)
 
 ---
 

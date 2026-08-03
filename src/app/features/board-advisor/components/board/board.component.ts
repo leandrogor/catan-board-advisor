@@ -239,6 +239,33 @@ export class BoardComponent {
     return result;
   });
 
+  protected readonly canUndo = computed(() => {
+    if (this.store.appPhase() === 'setup') {
+      return this.store.desertUndoStack().length > 0;
+    }
+    return this.store.undoStack().length > 0;
+  });
+
+  protected readonly canRedo = computed(() => {
+    if (this.store.appPhase() === 'setup') {
+      return this.store.desertRedoStack().length > 0;
+    }
+    return this.store.redoStack().length > 0;
+  });
+
+  protected readonly gestureToast = signal<{ action: 'undo' | 'redo'; id: number } | null>(null);
+  private gestureToastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  private twoFingerState: {
+    active: boolean;
+    disqualified: boolean;
+    startX: number;
+    startY: number;
+    startDist: number;
+    startTime: number;
+    lastDeltaX: number;
+  } | null = null;
+
   protected readonly activeSelectionOptions = computed(() => {
     if (!this.store.isSelectingRoad()) return [];
     const pendingId = this.store.pendingSettlementVertexId();
@@ -962,6 +989,108 @@ export class BoardComponent {
         behavior: 'smooth',
       });
     }, 100);
+  }
+
+  protected onTouchStart(event: TouchEvent): void {
+    if (event.touches.length === 2) {
+      const t1 = event.touches[0];
+      const t2 = event.touches[1];
+      const startX = (t1.clientX + t2.clientX) / 2;
+      const startY = (t1.clientY + t2.clientY) / 2;
+      const startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      this.twoFingerState = {
+        active: true,
+        disqualified: false,
+        startX,
+        startY,
+        startDist,
+        startTime: Date.now(),
+        lastDeltaX: 0,
+      };
+    } else if (event.touches.length > 2 && this.twoFingerState) {
+      this.twoFingerState.disqualified = true;
+    }
+  }
+
+  protected onTouchMove(event: TouchEvent): void {
+    if (!this.twoFingerState || !this.twoFingerState.active || this.twoFingerState.disqualified) {
+      return;
+    }
+    if (event.touches.length !== 2) {
+      this.twoFingerState.disqualified = true;
+      return;
+    }
+    const t1 = event.touches[0];
+    const t2 = event.touches[1];
+    const currentX = (t1.clientX + t2.clientX) / 2;
+    const currentY = (t1.clientY + t2.clientY) / 2;
+    const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+    const distDelta = Math.abs(currentDist - this.twoFingerState.startDist);
+    if (distDelta > 35) {
+      this.twoFingerState.disqualified = true;
+      return;
+    }
+
+    const deltaX = currentX - this.twoFingerState.startX;
+    const deltaY = currentY - this.twoFingerState.startY;
+
+    if (Math.abs(deltaY) > Math.abs(deltaX) * 1.2 && Math.abs(deltaY) > 15) {
+      this.twoFingerState.disqualified = true;
+      return;
+    }
+
+    this.twoFingerState.lastDeltaX = deltaX;
+  }
+
+  protected onTouchEnd(): void {
+    if (!this.twoFingerState || !this.twoFingerState.active) {
+      return;
+    }
+    const state = this.twoFingerState;
+    this.twoFingerState = null;
+
+    if (state.disqualified) {
+      return;
+    }
+
+    const duration = Date.now() - state.startTime;
+    const minDistance = 50;
+
+    if (duration < 700 && Math.abs(state.lastDeltaX) >= minDistance) {
+      if (state.lastDeltaX < 0) {
+        if (this.canUndo()) {
+          this.store.undo();
+          this.showGestureToast('undo');
+        }
+      } else if (state.lastDeltaX > 0) {
+        if (this.canRedo()) {
+          this.store.redo();
+          this.showGestureToast('redo');
+        }
+      }
+    }
+  }
+
+  protected onTouchCancel(): void {
+    this.twoFingerState = null;
+  }
+
+  private showGestureToast(action: 'undo' | 'redo'): void {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(40);
+      } catch {
+        // Ignore vibration errors if not supported or permitted
+      }
+    }
+    if (this.gestureToastTimeout) {
+      clearTimeout(this.gestureToastTimeout);
+    }
+    this.gestureToast.set({ action, id: Date.now() });
+    this.gestureToastTimeout = setTimeout(() => {
+      this.gestureToast.set(null);
+    }, 1200);
   }
 
   protected onHexClick(hex: HexDefinition): void {
