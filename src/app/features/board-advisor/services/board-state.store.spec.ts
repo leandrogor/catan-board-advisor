@@ -979,4 +979,26 @@ describe('BoardStateStore - Longest Road', () => {
       expect(probs.yearOfPlenty).toBe(0);
     });
   });
+
+  describe('Non-producing vertex ranking', () => {
+    it('should assign the last production rank to non-producing vertices instead of null', () => {
+      const ranked = store.rankedVertices();
+      const nonNullRanks = ranked.map(v => v.rank).filter((r): r is number => r !== null);
+      expect(nonNullRanks).toHaveSize(ranked.length); // Every vertex must have a non-null rank
+
+      const producingVertices = ranked.filter(
+        v => (v.rawScore ?? 0) > 0 && !v.isBlocked && !v.isOccupied,
+      );
+      const nonProducingVertices = ranked.filter(v => (v.rawScore ?? 0) === 0);
+
+      if (producingVertices.length > 0 && nonProducingVertices.length > 0) {
+        const lastRank = nonProducingVertices[0].rank;
+        expect(lastRank).toBeGreaterThan(0);
+        // Non-producing vertices should have a rank greater than top producing vertices
+        const topRank = store.topVertex()?.rank;
+        expect(topRank).toBe(1);
+        expect(lastRank).toBeGreaterThan(1);
+      }
+    });
+  });
 });

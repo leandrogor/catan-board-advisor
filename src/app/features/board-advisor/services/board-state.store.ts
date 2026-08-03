@@ -546,6 +546,7 @@ export class BoardStateStore {
       v =>
         !v.isBlocked &&
         !v.isOccupied &&
+        (v.rawScore ?? 0) > 0 &&
         v.adjacentHexIds.some(id => {
           const hex = hexMap.get(id);
           return hex !== undefined && !hex.isDesert;
@@ -591,6 +592,12 @@ export class BoardStateStore {
         v.rank = groupRank;
       }
       runningCount += group.vertices.length;
+    }
+
+    // Vertices that produce 0 or are non-eligible get the rank corresponding to the last position in production ranking
+    const lastProductionRank = 1 + runningCount;
+    for (const v of vertices) {
+      v.rank ??= lastProductionRank;
     }
 
     return vertices;

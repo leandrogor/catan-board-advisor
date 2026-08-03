@@ -111,6 +111,7 @@ export class SimulationService {
         v =>
           !v.isBlocked &&
           !v.isOccupied &&
+          (v.rawScore ?? 0) > 0 &&
           v.adjacentHexIds.some(id => {
             const hex = hexMap.get(id);
             return hex ? !hex.isDesert : false;
@@ -122,10 +123,11 @@ export class SimulationService {
       v.rank = i + 1;
     });
 
-    // Set rank null for non-eligible
+    // Set rank for non-eligible to last position in production ranking
+    const lastProductionRank = eligible.length + 1;
     for (const v of vertices) {
       if (!eligible.includes(v)) {
-        v.rank = null;
+        v.rank = lastProductionRank;
       }
     }
 

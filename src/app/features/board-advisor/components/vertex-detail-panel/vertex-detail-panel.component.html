@@ -36,7 +36,9 @@
                     ? i18n.t().occupied
                     : vertex.isBlocked
                       ? i18n.t().blocked
-                      : '#' + vertex.rank
+                      : vertex.rank
+                        ? '#' + vertex.rank
+                        : ''
               }}
             </span>
           }
