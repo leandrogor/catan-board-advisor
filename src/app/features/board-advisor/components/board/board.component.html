@@ -5,6 +5,17 @@
   (touchend)="onTouchEnd()"
   (touchcancel)="onTouchCancel()"
 >
+  <!-- Simple fixed Cancel 'X' button positioned comfortably below header -->
+  @if (store.isSelectingRoad()) {
+    <button
+      class="fixed top-20 right-4 z-40 flex items-center justify-center w-10 h-10 rounded-full bg-slate-900/90 text-white dark:bg-slate-800/90 border border-white/20 shadow-2xl backdrop-blur-md hover:bg-slate-800 active:scale-95 transition-all cursor-pointer text-base font-bold"
+      (click)="store.cancelRoadSelection()"
+      [attr.aria-label]="i18n.t().close"
+      title="Cancelar selección"
+    >
+      ✕
+    </button>
+  }
   <!-- Gesture feedback toast -->
   @if (gestureToast(); as toast) {
     <div
@@ -84,6 +95,7 @@
             (!hex.isDesert && store.appPhase() === 'results' ? ' hex-clickable' : '') +
             (isDropTarget(hex.id) ? ' drop-target' : '')
           "
+          [style.pointer-events]="store.isSelectingRoad() ? 'none' : 'auto'"
           [attr.points]="getPolygonPoints(hex)"
           [attr.fill]="
             hex.isDesert
@@ -137,6 +149,7 @@
               "
               [attr.transform]="getTextCounterRotation(hex.center.x, hex.center.y)"
               class="hex-number"
+              style="pointer-events: none; user-select: none"
             >
               {{ getHexPhase1Label(hex) }}
             </text>
@@ -158,26 +171,23 @@
               🏜️
             </text>
           } @else {
-            <g role="button" tabindex="0">
-              <text
-                [attr.x]="hex.center.x"
-                [attr.y]="hex.center.y + 2"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                [attr.font-size]="getNumberFontSize(hex.diceNumber)"
-                [attr.fill]="
-                  isHotNumber(hex.diceNumber)
-                    ? 'var(--hex-number-hot)'
-                    : 'var(--hex-number-default)'
-                "
-                [attr.font-weight]="isHotNumber(hex.diceNumber) ? 'bold' : 'normal'"
-                [attr.transform]="getTextCounterRotation(hex.center.x, hex.center.y)"
-                class="hex-number"
-              >
-                {{ hex.diceNumber }}
-                <title>{{ i18n.t().hexLetter }}: {{ hex.letter }}</title>
-              </text>
-            </g>
+            <text
+              [attr.x]="hex.center.x"
+              [attr.y]="hex.center.y + 2"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              [attr.font-size]="getNumberFontSize(hex.diceNumber)"
+              [attr.fill]="
+                isHotNumber(hex.diceNumber) ? 'var(--hex-number-hot)' : 'var(--hex-number-default)'
+              "
+              [attr.font-weight]="isHotNumber(hex.diceNumber) ? 'bold' : 'normal'"
+              [attr.transform]="getTextCounterRotation(hex.center.x, hex.center.y)"
+              class="hex-number"
+              style="pointer-events: none; user-select: none"
+            >
+              {{ hex.diceNumber }}
+              <title>{{ i18n.t().hexLetter }}: {{ hex.letter }}</title>
+            </text>
           }
         }
       </g>
@@ -272,130 +282,6 @@
             opacity="0.45"
             style="pointer-events: none"
           />
-        }
-      }
-
-      <!-- 2. Active Selection Road Options & Projection Dashes -->
-      @if (store.isSelectingRoad()) {
-        @for (sel of activeSelectionOptions(); track sel.opt.toVertexId) {
-          <!-- Projected next settlement dashed lines and faint circle -->
-          @if (sel.pProj) {
-            <!-- Render segment lines -->
-            @for (line of sel.projectionLines; track $index) {
-              <line
-                [attr.x1]="line.x1"
-                [attr.y1]="line.y1"
-                [attr.x2]="line.x2"
-                [attr.y2]="line.y2"
-                [attr.stroke]="
-                  sel.opt.rank === 1
-                    ? 'var(--color-top-vertex, #f59e0b)'
-                    : sel.opt.rank === 2
-                      ? '#64748b'
-                      : '#94a3b8'
-                "
-                [attr.opacity]="sel.opt.rank === 3 ? 0.35 : 0.55"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-dasharray="4 4"
-                style="pointer-events: none"
-              />
-            }
-            <!-- Faint circle marker at projected next settlement -->
-            <circle
-              [attr.cx]="sel.pProj.x"
-              [attr.cy]="sel.pProj.y"
-              [attr.r]="8"
-              [attr.stroke]="
-                sel.opt.rank === 1
-                  ? 'var(--color-top-vertex, #f59e0b)'
-                  : sel.opt.rank === 2
-                    ? '#64748b'
-                    : '#94a3b8'
-              "
-              [attr.fill]="
-                sel.opt.rank === 1
-                  ? 'var(--color-top-vertex, #f59e0b)'
-                  : sel.opt.rank === 2
-                    ? '#64748b'
-                    : '#94a3b8'
-              "
-              [attr.opacity]="sel.opt.rank === 3 ? 0.3 : 0.5"
-              fill-opacity="0.12"
-              stroke-width="1.5"
-              stroke-dasharray="2 2"
-              style="pointer-events: none"
-            />
-          }
-
-          <!-- Hit area (generously wide transparent line) placed behind the visible line -->
-          <line
-            [attr.x1]="sel.p1.x"
-            [attr.y1]="sel.p1.y"
-            [attr.x2]="sel.p2.x"
-            [attr.y2]="sel.p2.y"
-            stroke="transparent"
-            stroke-width="20"
-            stroke-linecap="round"
-            class="cursor-pointer"
-            (click)="store.confirmRoadSelection(sel.opt.toVertexId)"
-            role="button"
-            [attr.aria-label]="'Select road direction rank ' + sel.opt.rank"
-          />
-
-          <!-- Original rank-colored line (setup/results: initial settlement placement) -->
-          <line
-            [attr.x1]="sel.p1.x"
-            [attr.y1]="sel.p1.y"
-            [attr.x2]="sel.p2.x"
-            [attr.y2]="sel.p2.y"
-            [attr.stroke]="
-              sel.opt.rank === 1
-                ? 'var(--color-top-vertex, #f59e0b)'
-                : sel.opt.rank === 2
-                  ? '#64748b'
-                  : '#94a3b8'
-            "
-            [attr.opacity]="sel.opt.rank === 3 ? 0.5 : 1"
-            stroke-width="6"
-            stroke-linecap="round"
-            style="pointer-events: none"
-          />
-
-          <!-- Rank Badge at midpoint -->
-          @if (sel.midpoint) {
-            <g [attr.transform]="'translate(' + sel.midpoint.x + ', ' + sel.midpoint.y + ')'">
-              <circle
-                cx="0"
-                cy="0"
-                r="8"
-                [attr.fill]="
-                  sel.opt.rank === 1
-                    ? 'var(--color-top-vertex, #f59e0b)'
-                    : sel.opt.rank === 2
-                      ? '#64748b'
-                      : '#94a3b8'
-                "
-                [attr.opacity]="sel.opt.rank === 3 ? 0.6 : 1"
-                stroke="white"
-                stroke-width="1"
-                style="pointer-events: none"
-              />
-              <text
-                x="0"
-                y="0"
-                text-anchor="middle"
-                dominant-baseline="central"
-                font-size="9"
-                font-weight="bold"
-                fill="white"
-                [attr.transform]="getTextCounterRotation(0, 0)"
-                style="pointer-events: none; user-select: none"
-              >
-                {{ sel.opt.rank }}
-              </text>
-            </g>
-          }
         }
       }
     </g>
@@ -542,6 +428,7 @@
             [attr.cx]="vertex.position.x"
             [attr.cy]="vertex.position.y"
             [attr.r]="getVertexTouchRadius(vertex)"
+            [style.pointer-events]="store.isSelectingRoad() ? 'none' : 'auto'"
             fill="transparent"
             style="
               touch-action: manipulation;
@@ -839,6 +726,121 @@
           />
         </g>
       }
+    }
+    <!-- Primary Elevated Layer: Active Selection Road Options & Interactive Rank Badges (1-2-3) -->
+    @if (store.isSelectingRoad()) {
+      <g class="active-road-selection-layer" style="pointer-events: auto">
+        @for (sel of activeSelectionOptions(); track sel.opt.toVertexId) {
+          <!-- Projected next settlement dashed lines and faint circle -->
+          @if (sel.pProj) {
+            <!-- Render segment lines -->
+            @for (line of sel.projectionLines; track $index) {
+              <line
+                [attr.x1]="line.x1"
+                [attr.y1]="line.y1"
+                [attr.x2]="line.x2"
+                [attr.y2]="line.y2"
+                [attr.stroke]="sel.opt.rank === 1 ? 'var(--color-top-vertex, #f59e0b)' : '#64748b'"
+                [attr.opacity]="sel.opt.rank === 3 ? 0.35 : 0.65"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-dasharray="4 4"
+                style="pointer-events: none"
+              />
+            }
+            <!-- Faint circle marker at projected next settlement -->
+            <circle
+              [attr.cx]="sel.pProj.x"
+              [attr.cy]="sel.pProj.y"
+              [attr.r]="8"
+              [attr.stroke]="sel.opt.rank === 1 ? 'var(--color-top-vertex, #f59e0b)' : '#64748b'"
+              [attr.fill]="sel.opt.rank === 1 ? 'var(--color-top-vertex, #f59e0b)' : '#64748b'"
+              [attr.opacity]="sel.opt.rank === 3 ? 0.3 : 0.5"
+              fill-opacity="0.12"
+              stroke-width="1.5"
+              stroke-dasharray="2 2"
+              style="pointer-events: none"
+            />
+          }
+
+          <!-- Line Hit Area (generously wide transparent line) -->
+          <line
+            [attr.x1]="sel.p1.x"
+            [attr.y1]="sel.p1.y"
+            [attr.x2]="sel.p2.x"
+            [attr.y2]="sel.p2.y"
+            stroke="transparent"
+            stroke-width="32"
+            stroke-linecap="round"
+            class="cursor-pointer"
+            (click)="store.confirmRoadSelection(sel.opt.toVertexId)"
+            (touchend)="$event.stopPropagation(); store.confirmRoadSelection(sel.opt.toVertexId)"
+            role="button"
+            [attr.aria-label]="'Select road direction rank ' + sel.opt.rank"
+          />
+
+          <!-- Visible rank-colored road candidate line (50% semi-transparent) -->
+          <line
+            [attr.x1]="sel.p1.x"
+            [attr.y1]="sel.p1.y"
+            [attr.x2]="sel.p2.x"
+            [attr.y2]="sel.p2.y"
+            [attr.stroke]="sel.opt.rank === 1 ? 'var(--color-top-vertex, #f59e0b)' : '#64748b'"
+            [attr.opacity]="0.5"
+            stroke-width="6.5"
+            stroke-linecap="round"
+            style="pointer-events: none"
+          />
+
+          <!-- Interactive Mobile Rank Badge (1, 2, 3) at midpoint -->
+          @if (sel.midpoint) {
+            <g
+              [attr.transform]="'translate(' + sel.midpoint.x + ', ' + sel.midpoint.y + ')'"
+              class="road-option-badge cursor-pointer"
+              (click)="
+                $event.stopPropagation();
+                $event.preventDefault();
+                store.confirmRoadSelection(sel.opt.toVertexId)
+              "
+              (touchend)="
+                $event.stopPropagation();
+                $event.preventDefault();
+                store.confirmRoadSelection(sel.opt.toVertexId)
+              "
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="'Select road direction rank ' + sel.opt.rank"
+            >
+              <!-- Transparent touch hit target (r=22 for easy mobile tapping) -->
+              <circle cx="0" cy="0" r="22" fill="transparent" />
+
+              <!-- Compact Main Badge Circle -->
+              <circle
+                cx="0"
+                cy="0"
+                r="8.5"
+                [attr.fill]="sel.opt.rank === 1 ? 'var(--color-top-vertex, #f59e0b)' : '#64748b'"
+                [attr.opacity]="sel.opt.rank === 3 ? 0.7 : 1"
+                stroke="#ffffff"
+                stroke-width="1.2"
+              />
+              <text
+                x="0"
+                y="0"
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-size="9"
+                font-weight="bold"
+                fill="#ffffff"
+                [attr.transform]="getTextCounterRotation(0, 0)"
+                style="pointer-events: none; user-select: none"
+              >
+                {{ sel.opt.rank }}
+              </text>
+            </g>
+          }
+        }
+      </g>
     }
   </svg>
 

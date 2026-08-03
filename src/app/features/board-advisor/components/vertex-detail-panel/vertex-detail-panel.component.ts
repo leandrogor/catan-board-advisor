@@ -12,7 +12,7 @@ export class VertexDetailPanelComponent {
   protected readonly i18n = inject(TranslationService);
 
   protected readonly selectedVertex = computed(() => {
-    const id = this.store.selectedVertexId();
+    const id = this.store.selectedVertexId() ?? this.store.pendingSettlementVertexId();
     if (!id) return null;
     return this.store.rankedVertices().find(v => v.id === id) ?? null;
   });

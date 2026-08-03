@@ -2,17 +2,32 @@
   @let player = store.currentPlayerColor();
   @if (player) {
     <output
-      class="flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#faf8f3]/95 dark:bg-slate-900/95 backdrop-blur-sm border-t border-b border-[#e4dccb] dark:border-slate-700 shadow-sm"
+      class="relative flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#faf8f3]/95 dark:bg-slate-900/95 backdrop-blur-sm border-t border-b border-[#e4dccb] dark:border-slate-700 shadow-sm"
       [attr.aria-label]="indicatorText()"
     >
-      <span
-        class="inline-block w-5 h-5 rounded-full shadow-sm ring-2 ring-white dark:ring-slate-700 shrink-0"
-        [style.background-color]="player.hex"
-      ></span>
+      <div class="flex items-center gap-2.5">
+        <span
+          class="inline-block w-5 h-5 rounded-full shadow-sm ring-2 ring-white dark:ring-slate-700 shrink-0"
+          [style.background-color]="player.hex"
+        ></span>
 
-      <span class="text-sm font-semibold text-slate-800 dark:text-slate-200 tracking-wide">
-        {{ indicatorText() }}
-      </span>
+        <span class="text-sm font-semibold text-slate-800 dark:text-slate-200 tracking-wide">
+          {{ indicatorText() }}
+        </span>
+      </div>
+
+      @if (
+        !store.panelVisible() && (store.selectedVertexId() || store.pendingSettlementVertexId())
+      ) {
+        <button
+          class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 rounded-full bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-600/60 transition-all active:scale-95 cursor-pointer text-xs shadow-xs"
+          (click)="store.panelVisible.set(true)"
+          [attr.aria-label]="i18n.t().showPanel"
+          title="Ver panel"
+        >
+          👁️
+        </button>
+      }
     </output>
   }
 }
