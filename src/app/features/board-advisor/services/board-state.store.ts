@@ -1842,6 +1842,9 @@ export class BoardStateStore {
     this.isSelectingRoad.set(false);
     this.pendingSettlementVertexId.set(null);
     this.currentRoadOptions.set([]);
+    this.selectedVertexId.set(null);
+    this.selectedHexId.set(null);
+    this.panelVisible.set(true);
   }
 
   confirmRoadSelection(toVertexId: string): void {
@@ -2018,7 +2021,10 @@ export class BoardStateStore {
 
   selectVertex(id: string | null): void {
     this.selectedVertexId.set(id);
-    if (id !== null) this.selectedHexId.set(null);
+    if (id !== null) {
+      this.selectedHexId.set(null);
+      this.panelVisible.set(true);
+    }
   }
 
   updateHexSize(viewportWidth: number): void {

@@ -51,12 +51,10 @@
           </button>
           <button
             class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none p-1 cursor-pointer"
-            (click)="
-              store.isSelectingRoad() ? store.cancelRoadSelection() : store.selectVertex(null)
-            "
+            (click)="store.cancelRoadSelection()"
             [attr.aria-label]="i18n.t().close"
           >
-            X
+            ✕
           </button>
         </div>
       </div>
