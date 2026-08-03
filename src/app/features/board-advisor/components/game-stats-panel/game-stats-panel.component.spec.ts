@@ -53,10 +53,10 @@ describe('GameStatsPanelComponent', () => {
     expect(component['activeTab']()).toBe('projection');
   });
 
-  it('should return empty paths when history is empty', () => {
+  it('should return fallback baseline initial paths when history is empty', () => {
     store.gameHistory.set([]);
-    expect(component['vpPaths']()).toHaveSize(0);
-    expect(component['prodPaths']()).toHaveSize(0);
+    expect(component['vpPaths']()).toHaveSize(2);
+    expect(component['prodPaths']()).toHaveSize(2);
   });
 
   it('should compute paths correctly when history has data', () => {

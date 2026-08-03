@@ -63,359 +63,349 @@
 
       <!-- Scrollable content -->
       <div class="overflow-y-auto max-h-[65vh] p-5 space-y-5">
-        @if (store.gameHistory().length <= 1) {
-          <!-- Empty State -->
-          <div class="text-center py-12 px-4">
-            <span class="text-4xl block mb-3">🏚️</span>
-            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
-              {{ i18n.t().statsNoData }}
-            </p>
-          </div>
-        } @else {
-          <!-- Tab content: PROGRESS -->
-          @if (activeTab() === 'progress') {
-            <!-- Charts Section -->
-            <div class="grid grid-col-1 md:grid-cols-2 gap-6">
-              <!-- Victory Points Chart Card -->
-              <div
-                class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 flex flex-col"
+        <!-- Tab content: PROGRESS -->
+        @if (activeTab() === 'progress') {
+          <!-- Charts Section -->
+          <div class="grid grid-col-1 md:grid-cols-2 gap-6">
+            <!-- Victory Points Chart Card -->
+            <div
+              class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 flex flex-col"
+            >
+              <h4
+                class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 flex items-center justify-between gap-1.5"
               >
-                <h4
-                  class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 flex items-center justify-between gap-1.5"
+                <span class="flex items-center gap-1.5"
+                  >📈 <span>{{ i18n.t().statsVPTrend }}</span></span
                 >
-                  <span class="flex items-center gap-1.5"
-                    >📈 <span>{{ i18n.t().statsVPTrend }}</span></span
-                  >
+                <button
+                  type="button"
+                  class="text-xs text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer bg-transparent border-0 p-1 flex items-center"
+                  (click)="zoomedChart.set('vp'); clearTooltip()"
+                  [title]="i18n.t().statsZoomChartTitle"
+                >
+                  🔍
+                </button>
+              </h4>
+
+              <!-- Horizontal Legend -->
+              <div class="flex flex-wrap gap-2.5 justify-center mb-3">
+                @for (path of vpPaths(); track path.color.id) {
                   <button
                     type="button"
-                    class="text-xs text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer bg-transparent border-0 p-1 flex items-center"
-                    (click)="zoomedChart.set('vp'); clearTooltip()"
-                    [title]="i18n.t().statsZoomChartTitle"
+                    class="flex items-center gap-1 text-[9px] font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 transition-all select-none bg-transparent border-0"
+                    [class.opacity-45]="
+                      highlightedPlayerId() !== null && highlightedPlayerId() !== path.color.id
+                    "
+                    [class.ring-1]="highlightedPlayerId() === path.color.id"
+                    [class.ring-indigo-500]="highlightedPlayerId() === path.color.id"
+                    (click)="toggleHighlightPlayer(path.color.id)"
                   >
-                    🔍
+                    <span
+                      class="w-2 h-2 rounded-full"
+                      [style.background-color]="path.color.hex"
+                    ></span>
+                    <span class="text-slate-500 dark:text-slate-400 transition-colors">{{
+                      colorName(path.color)
+                    }}</span>
                   </button>
-                </h4>
-
-                <!-- Horizontal Legend -->
-                <div class="flex flex-wrap gap-2.5 justify-center mb-3">
-                  @for (path of vpPaths(); track path.color.id) {
-                    <button
-                      type="button"
-                      class="flex items-center gap-1 text-[9px] font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 transition-all select-none bg-transparent border-0"
-                      [class.opacity-45]="
-                        highlightedPlayerId() !== null && highlightedPlayerId() !== path.color.id
-                      "
-                      [class.ring-1]="highlightedPlayerId() === path.color.id"
-                      [class.ring-indigo-500]="highlightedPlayerId() === path.color.id"
-                      (click)="toggleHighlightPlayer(path.color.id)"
-                    >
-                      <span
-                        class="w-2 h-2 rounded-full"
-                        [style.background-color]="path.color.hex"
-                      ></span>
-                      <span class="text-slate-500 dark:text-slate-400 transition-colors">{{
-                        colorName(path.color)
-                      }}</span>
-                    </button>
-                  }
-                </div>
-
-                <div class="relative w-full aspect-2/1 min-h-42.5 flex-1" (click)="clearTooltip()">
-                  <!-- VP Line Chart SVG -->
-                  <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
-                    <defs>
-                      <filter
-                        id="glow-vp"
-                        filterUnits="userSpaceOnUse"
-                        x="-50"
-                        y="-50"
-                        width="600"
-                        height="300"
-                      >
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                    </defs>
-                    <!-- Vertical Grid Lines from xAxisTicks -->
-                    @for (tick of xAxisTicks(); track tick.label) {
-                      <line
-                        [attr.x1]="tick.x"
-                        y1="30"
-                        [attr.x2]="tick.x"
-                        y2="170"
-                        class="stroke-slate-100 dark:stroke-slate-800/20"
-                        stroke-width="1"
-                      ></line>
-                    }
-                    <!-- Horizontal Grid Lines -->
-                    @for (line of vpGridLines(); track line.score) {
-                      <line
-                        x1="45"
-                        y1="180"
-                        [attr.x2]="480"
-                        [attr.y2]="line.y"
-                        class="stroke-slate-200/70 dark:stroke-slate-800/50"
-                        stroke-width="1"
-                        stroke-dasharray="4 4"
-                        [attr.y1]="line.y"
-                      ></line>
-                      <text
-                        x="30"
-                        [attr.y]="line.y + 3"
-                        class="fill-slate-400 dark:fill-slate-500 font-bold tabular-nums text-[9px]"
-                        text-anchor="end"
-                      >
-                        {{ line.score }}
-                      </text>
-                    }
-                    <!-- X-axis line -->
-                    <line
-                      x1="45"
-                      y1="170"
-                      x2="480"
-                      y2="170"
-                      class="stroke-slate-200 dark:stroke-slate-700/60"
-                      stroke-width="1.5"
-                    ></line>
-                    <!-- X-axis ticks & labels -->
-                    @for (tick of xAxisTicks(); track tick.label) {
-                      <line
-                        [attr.x1]="tick.x"
-                        y1="170"
-                        [attr.x2]="tick.x"
-                        y2="174"
-                        class="stroke-slate-300 dark:stroke-slate-650"
-                        stroke-width="1.5"
-                      ></line>
-                      <text
-                        [attr.x]="tick.x"
-                        y="186"
-                        class="fill-slate-400 dark:fill-slate-500 text-[8px] font-bold"
-                        text-anchor="middle"
-                      >
-                        {{ tick.label }}
-                      </text>
-                    }
-                    <!-- Lines for each player -->
-                    @for (path of vpPaths(); track path.color.id) {
-                      <path
-                        [attr.d]="path.pathD"
-                        fill="none"
-                        [attr.stroke]="path.color.hex"
-                        [attr.stroke-width]="highlightedPlayerId() === path.color.id ? 4.5 : 3"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        [attr.filter]="
-                          highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
-                            ? 'url(#glow-vp)'
-                            : null
-                        "
-                        class="transition-all duration-500"
-                        [style.opacity]="
-                          highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
-                            ? 1.0
-                            : 0.25
-                        "
-                      ></path>
-                      @for (pt of path.points; track pt.idx) {
-                        <circle
-                          [attr.cx]="pt.x"
-                          [attr.cy]="pt.y"
-                          [attr.r]="highlightedPlayerId() === path.color.id ? 6.5 : 4.5"
-                          [attr.fill]="path.color.hex"
-                          class="stroke-white dark:stroke-slate-900 stroke-1.5 transition-all duration-300 hover:scale-125 cursor-pointer"
-                          [style.opacity]="
-                            highlightedPlayerId() === null ||
-                            highlightedPlayerId() === path.color.id
-                              ? 1.0
-                              : 0.25
-                          "
-                          (click)="showTooltip($event, 'vp', false, pt, true)"
-                          (mouseenter)="onMouseEnterPoint($event, 'vp', false, pt)"
-                          (mouseleave)="onMouseLeavePoint()"
-                        ></circle>
-                      }
-                    }
-                  </svg>
-                </div>
+                }
               </div>
 
-              <!-- Production Engine Growth Card -->
-              <div
-                class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 flex flex-col"
-              >
-                <h4
-                  class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 flex items-center justify-between gap-1.5"
-                >
-                  <span class="flex items-center gap-1.5"
-                    >⚡ <span>{{ i18n.t().statsProdTrend }}</span></span
-                  >
-                  <button
-                    type="button"
-                    class="text-xs text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer bg-transparent border-0 p-1 flex items-center"
-                    (click)="zoomedChart.set('prod'); clearTooltip()"
-                    [title]="i18n.t().statsZoomChartTitle"
-                  >
-                    🔍
-                  </button>
-                </h4>
-
-                <!-- Horizontal Legend -->
-                <div class="flex flex-wrap gap-2.5 justify-center mb-3">
-                  @for (path of prodPaths(); track path.color.id) {
-                    <button
-                      type="button"
-                      class="flex items-center gap-1 text-[9px] font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 transition-all select-none bg-transparent border-0"
-                      [class.opacity-45]="
-                        highlightedPlayerId() !== null && highlightedPlayerId() !== path.color.id
-                      "
-                      [class.ring-1]="highlightedPlayerId() === path.color.id"
-                      [class.ring-indigo-500]="highlightedPlayerId() === path.color.id"
-                      (click)="toggleHighlightPlayer(path.color.id)"
+              <div class="relative w-full aspect-2/1 min-h-42.5 flex-1" (click)="clearTooltip()">
+                <!-- VP Line Chart SVG -->
+                <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
+                  <defs>
+                    <filter
+                      id="glow-vp"
+                      filterUnits="userSpaceOnUse"
+                      x="-50"
+                      y="-50"
+                      width="600"
+                      height="300"
                     >
-                      <span
-                        class="w-2 h-2 rounded-full"
-                        [style.background-color]="path.color.hex"
-                      ></span>
-                      <span class="text-slate-500 dark:text-slate-400 transition-colors">{{
-                        colorName(path.color)
-                      }}</span>
-                    </button>
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                  </defs>
+                  <!-- Vertical Grid Lines from xAxisTicks -->
+                  @for (tick of xAxisTicks(); track tick.label) {
+                    <line
+                      [attr.x1]="tick.x"
+                      y1="30"
+                      [attr.x2]="tick.x"
+                      y2="170"
+                      class="stroke-slate-100 dark:stroke-slate-800/20"
+                      stroke-width="1"
+                    ></line>
                   }
-                </div>
-
-                <div class="relative w-full aspect-2/1 min-h-42.5 flex-1" (click)="clearTooltip()">
-                  <!-- Production Chart SVG -->
-                  <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
-                    <defs>
-                      <filter
-                        id="glow-prod"
-                        filterUnits="userSpaceOnUse"
-                        x="-50"
-                        y="-50"
-                        width="600"
-                        height="300"
-                      >
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                    </defs>
-                    <!-- Vertical Grid Lines from xAxisTicks -->
-                    @for (tick of xAxisTicks(); track tick.label) {
-                      <line
-                        [attr.x1]="tick.x"
-                        y1="30"
-                        [attr.x2]="tick.x"
-                        y2="170"
-                        class="stroke-slate-100 dark:stroke-slate-800/20"
-                        stroke-width="1"
-                      ></line>
-                    }
-                    <!-- Horizontal Grid Lines -->
-                    @for (line of prodGridLines(); track line.val) {
-                      <line
-                        x1="45"
-                        y1="180"
-                        [attr.x2]="480"
-                        [attr.y2]="line.y"
-                        class="stroke-slate-200/70 dark:stroke-slate-800/50"
-                        stroke-width="1"
-                        stroke-dasharray="4 4"
-                        [attr.y1]="line.y"
-                      ></line>
-                      <text
-                        x="30"
-                        [attr.y]="line.y + 3"
-                        class="fill-slate-400 dark:fill-slate-500 font-bold tabular-nums text-[8px]"
-                        text-anchor="end"
-                      >
-                        {{ formatProduction(line.val) }}
-                      </text>
-                    }
-                    <!-- X-axis line -->
+                  <!-- Horizontal Grid Lines -->
+                  @for (line of vpGridLines(); track line.score) {
                     <line
                       x1="45"
+                      y1="180"
+                      [attr.x2]="480"
+                      [attr.y2]="line.y"
+                      class="stroke-slate-200/70 dark:stroke-slate-800/50"
+                      stroke-width="1"
+                      stroke-dasharray="4 4"
+                      [attr.y1]="line.y"
+                    ></line>
+                    <text
+                      x="30"
+                      [attr.y]="line.y + 3"
+                      class="fill-slate-400 dark:fill-slate-500 font-bold tabular-nums text-[9px]"
+                      text-anchor="end"
+                    >
+                      {{ line.score }}
+                    </text>
+                  }
+                  <!-- X-axis line -->
+                  <line
+                    x1="45"
+                    y1="170"
+                    x2="480"
+                    y2="170"
+                    class="stroke-slate-200 dark:stroke-slate-700/60"
+                    stroke-width="1.5"
+                  ></line>
+                  <!-- X-axis ticks & labels -->
+                  @for (tick of xAxisTicks(); track tick.label) {
+                    <line
+                      [attr.x1]="tick.x"
                       y1="170"
-                      x2="480"
-                      y2="170"
-                      class="stroke-slate-200 dark:stroke-slate-700/60"
+                      [attr.x2]="tick.x"
+                      y2="174"
+                      class="stroke-slate-300 dark:stroke-slate-650"
                       stroke-width="1.5"
                     ></line>
-                    <!-- X-axis ticks & labels -->
-                    @for (tick of xAxisTicks(); track tick.label) {
-                      <line
-                        [attr.x1]="tick.x"
-                        y1="170"
-                        [attr.x2]="tick.x"
-                        y2="174"
-                        class="stroke-slate-300 dark:stroke-slate-650"
-                        stroke-width="1.5"
-                      ></line>
-                      <text
-                        [attr.x]="tick.x"
-                        y="186"
-                        class="fill-slate-400 dark:fill-slate-500 text-[8px] font-bold"
-                        text-anchor="middle"
-                      >
-                        {{ tick.label }}
-                      </text>
-                    }
-                    <!-- Lines for each player -->
-                    @for (path of prodPaths(); track path.color.id) {
-                      <path
-                        [attr.d]="path.pathD"
-                        fill="none"
-                        [attr.stroke]="path.color.hex"
-                        [attr.stroke-width]="highlightedPlayerId() === path.color.id ? 4.5 : 3"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        [attr.filter]="
-                          highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
-                            ? 'url(#glow-prod)'
-                            : null
-                        "
-                        class="transition-all duration-500"
+                    <text
+                      [attr.x]="tick.x"
+                      y="186"
+                      class="fill-slate-400 dark:fill-slate-500 text-[8px] font-bold"
+                      text-anchor="middle"
+                    >
+                      {{ tick.label }}
+                    </text>
+                  }
+                  <!-- Lines for each player -->
+                  @for (path of vpPaths(); track path.color.id) {
+                    <path
+                      [attr.d]="path.pathD"
+                      fill="none"
+                      [attr.stroke]="path.color.hex"
+                      [attr.stroke-width]="highlightedPlayerId() === path.color.id ? 4.5 : 3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      [attr.filter]="
+                        highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
+                          ? 'url(#glow-vp)'
+                          : null
+                      "
+                      class="transition-all duration-500"
+                      [style.opacity]="
+                        highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
+                          ? 1.0
+                          : 0.25
+                      "
+                    ></path>
+                    @for (pt of path.points; track pt.idx) {
+                      <circle
+                        [attr.cx]="pt.x"
+                        [attr.cy]="pt.y"
+                        [attr.r]="highlightedPlayerId() === path.color.id ? 6.5 : 4.5"
+                        [attr.fill]="path.color.hex"
+                        class="stroke-white dark:stroke-slate-900 stroke-1.5 transition-all duration-300 hover:scale-125 cursor-pointer"
                         [style.opacity]="
                           highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
                             ? 1.0
                             : 0.25
                         "
-                      ></path>
-                      @for (pt of path.points; track pt.idx) {
-                        <circle
-                          [attr.cx]="pt.x"
-                          [attr.cy]="pt.y"
-                          [attr.r]="highlightedPlayerId() === path.color.id ? 6.5 : 4.5"
-                          [attr.fill]="path.color.hex"
-                          class="stroke-white dark:stroke-slate-900 stroke-1.5 transition-all duration-300 hover:scale-125 cursor-pointer"
-                          [style.opacity]="
-                            highlightedPlayerId() === null ||
-                            highlightedPlayerId() === path.color.id
-                              ? 1.0
-                              : 0.25
-                          "
-                          (click)="showTooltip($event, 'prod', false, pt, true)"
-                          (mouseenter)="onMouseEnterPoint($event, 'prod', false, pt)"
-                          (mouseleave)="onMouseLeavePoint()"
-                        ></circle>
-                      }
+                        (click)="showTooltip($event, 'vp', false, pt, true)"
+                        (mouseenter)="onMouseEnterPoint($event, 'vp', false, pt)"
+                        (mouseleave)="onMouseLeavePoint()"
+                      ></circle>
                     }
-                  </svg>
-                </div>
+                  }
+                </svg>
               </div>
             </div>
 
-            <!-- Game Log Section -->
-            <div class="space-y-3">
+            <!-- Production Engine Growth Card -->
+            <div
+              class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 flex flex-col"
+            >
               <h4
-                class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5"
+                class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 flex items-center justify-between gap-1.5"
               >
-                📜 <span>{{ i18n.t().statsLogTitle }}</span>
+                <span class="flex items-center gap-1.5"
+                  >⚡ <span>{{ i18n.t().statsProdTrend }}</span></span
+                >
+                <button
+                  type="button"
+                  class="text-xs text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer bg-transparent border-0 p-1 flex items-center"
+                  (click)="zoomedChart.set('prod'); clearTooltip()"
+                  [title]="i18n.t().statsZoomChartTitle"
+                >
+                  🔍
+                </button>
               </h4>
 
-              <div
-                class="rounded-2xl border border-slate-200/70 dark:border-slate-800/60 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-55 overflow-y-auto"
-              >
+              <!-- Horizontal Legend -->
+              <div class="flex flex-wrap gap-2.5 justify-center mb-3">
+                @for (path of prodPaths(); track path.color.id) {
+                  <button
+                    type="button"
+                    class="flex items-center gap-1 text-[9px] font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 transition-all select-none bg-transparent border-0"
+                    [class.opacity-45]="
+                      highlightedPlayerId() !== null && highlightedPlayerId() !== path.color.id
+                    "
+                    [class.ring-1]="highlightedPlayerId() === path.color.id"
+                    [class.ring-indigo-500]="highlightedPlayerId() === path.color.id"
+                    (click)="toggleHighlightPlayer(path.color.id)"
+                  >
+                    <span
+                      class="w-2 h-2 rounded-full"
+                      [style.background-color]="path.color.hex"
+                    ></span>
+                    <span class="text-slate-500 dark:text-slate-400 transition-colors">{{
+                      colorName(path.color)
+                    }}</span>
+                  </button>
+                }
+              </div>
+
+              <div class="relative w-full aspect-2/1 min-h-42.5 flex-1" (click)="clearTooltip()">
+                <!-- Production Chart SVG -->
+                <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
+                  <defs>
+                    <filter
+                      id="glow-prod"
+                      filterUnits="userSpaceOnUse"
+                      x="-50"
+                      y="-50"
+                      width="600"
+                      height="300"
+                    >
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                  </defs>
+                  <!-- Vertical Grid Lines from xAxisTicks -->
+                  @for (tick of xAxisTicks(); track tick.label) {
+                    <line
+                      [attr.x1]="tick.x"
+                      y1="30"
+                      [attr.x2]="tick.x"
+                      y2="170"
+                      class="stroke-slate-100 dark:stroke-slate-800/20"
+                      stroke-width="1"
+                    ></line>
+                  }
+                  <!-- Horizontal Grid Lines -->
+                  @for (line of prodGridLines(); track line.val) {
+                    <line
+                      x1="45"
+                      y1="180"
+                      [attr.x2]="480"
+                      [attr.y2]="line.y"
+                      class="stroke-slate-200/70 dark:stroke-slate-800/50"
+                      stroke-width="1"
+                      stroke-dasharray="4 4"
+                      [attr.y1]="line.y"
+                    ></line>
+                    <text
+                      x="30"
+                      [attr.y]="line.y + 3"
+                      class="fill-slate-400 dark:fill-slate-500 font-bold tabular-nums text-[8px]"
+                      text-anchor="end"
+                    >
+                      {{ formatProduction(line.val) }}
+                    </text>
+                  }
+                  <!-- X-axis line -->
+                  <line
+                    x1="45"
+                    y1="170"
+                    x2="480"
+                    y2="170"
+                    class="stroke-slate-200 dark:stroke-slate-700/60"
+                    stroke-width="1.5"
+                  ></line>
+                  <!-- X-axis ticks & labels -->
+                  @for (tick of xAxisTicks(); track tick.label) {
+                    <line
+                      [attr.x1]="tick.x"
+                      y1="170"
+                      [attr.x2]="tick.x"
+                      y2="174"
+                      class="stroke-slate-300 dark:stroke-slate-650"
+                      stroke-width="1.5"
+                    ></line>
+                    <text
+                      [attr.x]="tick.x"
+                      y="186"
+                      class="fill-slate-400 dark:fill-slate-500 text-[8px] font-bold"
+                      text-anchor="middle"
+                    >
+                      {{ tick.label }}
+                    </text>
+                  }
+                  <!-- Lines for each player -->
+                  @for (path of prodPaths(); track path.color.id) {
+                    <path
+                      [attr.d]="path.pathD"
+                      fill="none"
+                      [attr.stroke]="path.color.hex"
+                      [attr.stroke-width]="highlightedPlayerId() === path.color.id ? 4.5 : 3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      [attr.filter]="
+                        highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
+                          ? 'url(#glow-prod)'
+                          : null
+                      "
+                      class="transition-all duration-500"
+                      [style.opacity]="
+                        highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
+                          ? 1.0
+                          : 0.25
+                      "
+                    ></path>
+                    @for (pt of path.points; track pt.idx) {
+                      <circle
+                        [attr.cx]="pt.x"
+                        [attr.cy]="pt.y"
+                        [attr.r]="highlightedPlayerId() === path.color.id ? 6.5 : 4.5"
+                        [attr.fill]="path.color.hex"
+                        class="stroke-white dark:stroke-slate-900 stroke-1.5 transition-all duration-300 hover:scale-125 cursor-pointer"
+                        [style.opacity]="
+                          highlightedPlayerId() === null || highlightedPlayerId() === path.color.id
+                            ? 1.0
+                            : 0.25
+                        "
+                        (click)="showTooltip($event, 'prod', false, pt, true)"
+                        (mouseenter)="onMouseEnterPoint($event, 'prod', false, pt)"
+                        (mouseleave)="onMouseLeavePoint()"
+                      ></circle>
+                    }
+                  }
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Game Log Section -->
+          <div class="space-y-3">
+            <h4
+              class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5"
+            >
+              📜 <span>{{ i18n.t().statsLogTitle }}</span>
+            </h4>
+
+            <div
+              class="rounded-2xl border border-slate-200/70 dark:border-slate-800/60 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-55 overflow-y-auto"
+            >
+              @if (gameLog().length > 0) {
                 @for (log of gameLog(); track log.entry.entryId; let idx = $index) {
                   <div
                     class="px-4 py-3 flex items-start justify-between gap-3 text-xs bg-[#faf8f3] dark:bg-slate-900 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
@@ -445,128 +435,134 @@
                     </span>
                   </div>
                 }
-              </div>
+              } @else {
+                <div
+                  class="px-4 py-6 text-center text-xs font-medium text-slate-400 dark:text-slate-500"
+                >
+                  {{ i18n.t().statsNoActions }}
+                </div>
+              }
             </div>
-          }
+          </div>
+        }
 
-          <!-- Tab content: PROJECTIONS -->
-          @if (activeTab() === 'projection') {
-            <!-- Projections Hint Card -->
+        <!-- Tab content: PROJECTIONS -->
+        @if (activeTab() === 'projection') {
+          <!-- Projections Hint Card -->
+          <div
+            class="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-150/40 dark:border-indigo-900/30 rounded-2xl p-4 text-[11px] text-indigo-700 dark:text-indigo-300 leading-relaxed flex items-start gap-2.5"
+          >
+            <span class="text-sm shrink-0">💡</span>
+            <div>
+              {{ i18n.t().statsProjectionsHint }}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <!-- Projections Table Card -->
             <div
-              class="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-150/40 dark:border-indigo-900/30 rounded-2xl p-4 text-[11px] text-indigo-700 dark:text-indigo-300 leading-relaxed flex items-start gap-2.5"
+              class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 flex flex-col space-y-4"
             >
-              <span class="text-sm shrink-0">💡</span>
-              <div>
-                {{ i18n.t().statsProjectionsHint }}
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <!-- Projections Table Card -->
-              <div
-                class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 flex flex-col space-y-4"
+              <h4
+                class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5"
               >
-                <h4
-                  class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5"
-                >
-                  🔮 <span>{{ i18n.t().statsRoundsToWin }}</span>
-                </h4>
+                🔮 <span>{{ i18n.t().statsRoundsToWin }}</span>
+              </h4>
 
-                <div class="space-y-3">
-                  @for (proj of projections(); track proj.color.id) {
-                    <div
-                      class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 pb-2.5 last:border-0 last:pb-0"
-                    >
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="w-3 h-3 rounded-full shrink-0 ring-1 ring-white dark:ring-slate-800"
-                          [style.background-color]="proj.color.hex"
-                        ></span>
-                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          {{ colorName(proj.color) }} ({{ proj.score }})
-                        </span>
-                      </div>
-
-                      <div class="flex items-center gap-2">
-                        <!-- Speed status label -->
-                        <span
-                          class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full select-none"
-                          [class.bg-emerald-100]="proj.speedClass === 'fast'"
-                          [class.text-emerald-700]="proj.speedClass === 'fast'"
-                          [class.dark:bg-emerald-950/40]="proj.speedClass === 'fast'"
-                          [class.dark:text-emerald-300]="proj.speedClass === 'fast'"
-                          [class.bg-amber-100]="proj.speedClass === 'medium'"
-                          [class.text-amber-700]="proj.speedClass === 'medium'"
-                          [class.dark:bg-amber-950/40]="proj.speedClass === 'medium'"
-                          [class.dark:text-amber-300]="proj.speedClass === 'medium'"
-                          [class.bg-slate-100]="proj.speedClass === 'slow'"
-                          [class.text-slate-600]="proj.speedClass === 'slow'"
-                          [class.dark:bg-slate-800]="proj.speedClass === 'slow'"
-                          [class.dark:text-slate-400]="proj.speedClass === 'slow'"
-                          [class.bg-linear-to-r]="proj.speedClass === 'won'"
-                          [class.from-yellow-400]="proj.speedClass === 'won'"
-                          [class.to-amber-500]="proj.speedClass === 'won'"
-                          [class.text-slate-900]="proj.speedClass === 'won'"
-                          [class.shadow-xs]="proj.speedClass === 'won'"
-                        >
-                          {{ getSpeedLabel(proj.speedTextKey) }}
-                        </span>
-
-                        <span
-                          class="text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums"
-                        >
-                          {{ proj.roundsRange }}
-                        </span>
-                      </div>
+              <div class="space-y-3">
+                @for (proj of projections(); track proj.color.id) {
+                  <div
+                    class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 pb-2.5 last:border-0 last:pb-0"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="w-3 h-3 rounded-full shrink-0 ring-1 ring-white dark:ring-slate-800"
+                        [style.background-color]="proj.color.hex"
+                      ></span>
+                      <span class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        {{ colorName(proj.color) }} ({{ proj.score }})
+                      </span>
                     </div>
-                  }
-                </div>
-              </div>
 
-              <!-- Production Engine Comparison Bar Chart -->
-              <div
-                class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 flex flex-col space-y-4"
-              >
-                <h4
-                  class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5"
-                >
-                  ⚡ <span>{{ i18n.t().statsProdPower }}</span>
-                </h4>
-
-                <div class="space-y-4 pt-1">
-                  @for (bar of expectedYieldBars(); track bar.color.id) {
-                    <div class="space-y-1.5">
-                      <div class="flex items-center justify-between text-xs">
-                        <div class="flex items-center gap-2">
-                          <span
-                            class="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-white dark:ring-slate-800"
-                            [style.background-color]="bar.color.hex"
-                          ></span>
-                          <span class="font-bold text-slate-700 dark:text-slate-300">
-                            {{ colorName(bar.color) }} ({{ bar.settlements }}+{{ bar.cities }})
-                          </span>
-                        </div>
-                        <span class="text-slate-500 dark:text-slate-400 font-semibold tabular-nums">
-                          {{ formatProduction(bar.val) }}
-                        </span>
-                      </div>
-
-                      <!-- Bar Progress -->
-                      <div
-                        class="w-full h-2 rounded-full bg-slate-200/50 dark:bg-slate-800 overflow-hidden"
+                    <div class="flex items-center gap-2">
+                      <!-- Speed status label -->
+                      <span
+                        class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full select-none"
+                        [class.bg-emerald-100]="proj.speedClass === 'fast'"
+                        [class.text-emerald-700]="proj.speedClass === 'fast'"
+                        [class.dark:bg-emerald-950/40]="proj.speedClass === 'fast'"
+                        [class.dark:text-emerald-300]="proj.speedClass === 'fast'"
+                        [class.bg-amber-100]="proj.speedClass === 'medium'"
+                        [class.text-amber-700]="proj.speedClass === 'medium'"
+                        [class.dark:bg-amber-950/40]="proj.speedClass === 'medium'"
+                        [class.dark:text-amber-300]="proj.speedClass === 'medium'"
+                        [class.bg-slate-100]="proj.speedClass === 'slow'"
+                        [class.text-slate-600]="proj.speedClass === 'slow'"
+                        [class.dark:bg-slate-800]="proj.speedClass === 'slow'"
+                        [class.dark:text-slate-400]="proj.speedClass === 'slow'"
+                        [class.bg-linear-to-r]="proj.speedClass === 'won'"
+                        [class.from-yellow-400]="proj.speedClass === 'won'"
+                        [class.to-amber-500]="proj.speedClass === 'won'"
+                        [class.text-slate-900]="proj.speedClass === 'won'"
+                        [class.shadow-xs]="proj.speedClass === 'won'"
                       >
-                        <div
-                          class="h-full rounded-full transition-all duration-500"
-                          [style.background-color]="bar.color.hex"
-                          [style.width.%]="bar.pct"
-                        ></div>
-                      </div>
+                        {{ getSpeedLabel(proj.speedTextKey) }}
+                      </span>
+
+                      <span
+                        class="text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums"
+                      >
+                        {{ proj.roundsRange }}
+                      </span>
                     </div>
-                  }
-                </div>
+                  </div>
+                }
               </div>
             </div>
-          }
+
+            <!-- Production Engine Comparison Bar Chart -->
+            <div
+              class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 flex flex-col space-y-4"
+            >
+              <h4
+                class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5"
+              >
+                ⚡ <span>{{ i18n.t().statsProdPower }}</span>
+              </h4>
+
+              <div class="space-y-4 pt-1">
+                @for (bar of expectedYieldBars(); track bar.color.id) {
+                  <div class="space-y-1.5">
+                    <div class="flex items-center justify-between text-xs">
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-white dark:ring-slate-800"
+                          [style.background-color]="bar.color.hex"
+                        ></span>
+                        <span class="font-bold text-slate-700 dark:text-slate-300">
+                          {{ colorName(bar.color) }} ({{ bar.settlements }}+{{ bar.cities }})
+                        </span>
+                      </div>
+                      <span class="text-slate-500 dark:text-slate-400 font-semibold tabular-nums">
+                        {{ formatProduction(bar.val) }}
+                      </span>
+                    </div>
+
+                    <!-- Bar Progress -->
+                    <div
+                      class="w-full h-2 rounded-full bg-slate-200/50 dark:bg-slate-800 overflow-hidden"
+                    >
+                      <div
+                        class="h-full rounded-full transition-all duration-500"
+                        [style.background-color]="bar.color.hex"
+                        [style.width.%]="bar.pct"
+                      ></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
         }
       </div>
     </div>

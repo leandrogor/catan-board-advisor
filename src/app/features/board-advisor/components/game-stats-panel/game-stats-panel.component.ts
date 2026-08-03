@@ -12,6 +12,7 @@ import {
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { PlayerColor } from '../../models/player-color.model';
+import { GameHistoryEntry } from '../../models/game-history.model';
 
 interface TimelinePoint {
   x: number;
@@ -135,16 +136,49 @@ export class GameStatsPanelComponent {
 
   /**
    * Filtered history starting from setup (index 0).
+   * Ensures at least 1 baseline entry ('start') exists for rendering initial state.
+   */
+  protected readonly effectiveHistory = computed(() => {
+    const history = this.store.gameHistory();
+    if (history.length > 0) return history;
+
+    // Fallback baseline entry if history is empty
+    const scoresMap: Record<string, number> = {};
+    const prodMap: Record<string, number> = {};
+    for (const scoreRow of this.store.playerScores()) {
+      scoresMap[scoreRow.color.id] = scoreRow.score;
+      prodMap[scoreRow.color.id] = scoreRow.avgProd;
+    }
+
+    const fallbackEntry: GameHistoryEntry = {
+      entryId: 'start',
+      playerColorId: '',
+      description: this.i18n.t().statsInitialPhase,
+      scores: scoresMap,
+      avgProd: prodMap,
+      placements: [...this.store.placedSettlements()],
+      roads: [...this.store.placedRoads()],
+      devCardsPurchased: { ...this.store.devCardsPurchased() },
+      devCardsPlayed: [...this.store.devCardsPlayed()],
+      longestRoadOwnerId: this.store.longestRoadOwnerId(),
+      largestArmyOwnerId: this.store.largestArmyOwnerId(),
+      timestamp: Date.now(),
+    };
+    return [fallbackEntry];
+  });
+
+  /**
+   * Filtered history starting from setup (index 0).
    * Generates grid coordinates for Victory Points line chart.
    */
   protected readonly vpPaths = computed(() => {
     this.i18n.lang();
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     const colors = this.store.playerColors();
     if (history.length === 0) return [];
 
     const total = history.length;
-    const allScores = history.flatMap(e => Object.values(e.scores));
+    const allScores = history.flatMap(e => Object.values(e.scores) as number[]);
     const maxScore = Math.max(10, ...allScores);
 
     return colors.map(color => {
@@ -152,7 +186,10 @@ export class GameStatsPanelComponent {
         const x = total <= 1 ? 250 : 50 + (idx / (total - 1)) * 410;
         const score = entry.scores[color.id] ?? 2;
         const y = 170 - ((score - 2) / (maxScore - 2)) * 130;
-        const desc = this.store.formatHistoryDescription(entry, history[idx - 1]);
+        const desc =
+          idx === 0
+            ? this.i18n.t().statsInitialPhase
+            : this.store.formatHistoryDescription(entry, history[idx - 1]);
         return { x, y, score, idx, desc, playerColorId: entry.playerColorId };
       });
 
@@ -171,12 +208,12 @@ export class GameStatsPanelComponent {
    */
   protected readonly prodPaths = computed(() => {
     this.i18n.lang();
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     const colors = this.store.playerColors();
     if (history.length === 0) return [];
 
     const total = history.length;
-    const allYields = history.flatMap(e => Object.values(e.avgProd));
+    const allYields = history.flatMap(e => Object.values(e.avgProd) as number[]);
     const maxYield = Math.max(0.5, ...allYields);
 
     return colors.map(color => {
@@ -184,7 +221,10 @@ export class GameStatsPanelComponent {
         const x = total <= 1 ? 250 : 50 + (idx / (total - 1)) * 410;
         const val = entry.avgProd[color.id] ?? 0;
         const y = 170 - (val / maxYield) * 130;
-        const desc = this.store.formatHistoryDescription(entry, history[idx - 1]);
+        const desc =
+          idx === 0
+            ? this.i18n.t().statsInitialPhase
+            : this.store.formatHistoryDescription(entry, history[idx - 1]);
         return { x, y, val, idx, desc, playerColorId: entry.playerColorId };
       });
 
@@ -202,9 +242,9 @@ export class GameStatsPanelComponent {
    * Dynamic horizontal grids for the VP chart.
    */
   protected readonly vpGridLines = computed(() => {
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     if (history.length === 0) return [];
-    const allScores = history.flatMap(e => Object.values(e.scores));
+    const allScores = history.flatMap(e => Object.values(e.scores) as number[]);
     const maxScore = Math.max(10, ...allScores);
 
     const steps = [2, 4, 6, 8, 10];
@@ -223,9 +263,9 @@ export class GameStatsPanelComponent {
    * Dynamic horizontal grids for the production chart.
    */
   protected readonly prodGridLines = computed(() => {
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     if (history.length === 0) return [];
-    const allYields = history.flatMap(e => Object.values(e.avgProd));
+    const allYields = history.flatMap(e => Object.values(e.avgProd) as number[]);
     const maxYield = Math.max(0.5, ...allYields);
 
     // Provide 4 divisions
@@ -242,12 +282,16 @@ export class GameStatsPanelComponent {
    * Dynamic X-axis tick positions and labels.
    */
   protected readonly xAxisTicks = computed(() => {
-    const history = this.store.gameHistory();
-    if (history.length <= 1) return [];
+    const history = this.effectiveHistory();
+    if (history.length === 0) return [];
+    const startText = this.i18n.t().statsStartLabel;
+
+    if (history.length === 1) {
+      return [{ label: startText, x: 250 }];
+    }
 
     const total = history.length;
     const ticks: { label: string; x: number }[] = [];
-    const startText = this.i18n.t().statsStartLabel;
 
     if (total <= 6) {
       history.forEach((_, idx) => {
@@ -400,7 +444,7 @@ export class GameStatsPanelComponent {
    * Zoomed SVG total width in pixels when in zoom mode.
    */
   protected readonly zoomedSvgWidth = computed(() => {
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     const totalTurnos = history.length;
     if (totalTurnos <= 1) return 700;
     return 120 + (totalTurnos - 1) * 50;
@@ -420,12 +464,12 @@ export class GameStatsPanelComponent {
    * Zoomed VP lines and paths
    */
   protected readonly zoomVpPaths = computed(() => {
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     const colors = this.store.playerColors();
     if (history.length === 0) return [];
 
     const total = history.length;
-    const allScores = history.flatMap(e => Object.values(e.scores));
+    const allScores = history.flatMap(e => Object.values(e.scores) as number[]);
     const maxScore = Math.max(10, ...allScores);
     const isZoom = this.isZoomMode();
     const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
@@ -436,16 +480,23 @@ export class GameStatsPanelComponent {
     return colors.map(color => {
       const points = history.map((entry, idx) => {
         let x: number;
-        if (isZoom) {
-          x = 60 + idx * 50;
-        } else if (total <= 1) {
+        if (total <= 1) {
           x = W / 2;
+        } else if (isZoom) {
+          x = 60 + idx * 50;
         } else {
           x = 60 + (idx / (total - 1)) * (W - 120);
         }
         const score = entry.scores[color.id] ?? 2;
         const y = H - 35 - ((score - 2) / (maxScore - 2)) * rangeY;
-        return { x, y, score, idx, desc: entry.description, playerColorId: entry.playerColorId };
+        return {
+          x,
+          y,
+          score,
+          idx,
+          desc: idx === 0 ? this.i18n.t().statsInitialPhase : entry.description,
+          playerColorId: entry.playerColorId,
+        };
       });
 
       const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -462,12 +513,12 @@ export class GameStatsPanelComponent {
    * Zoomed production lines and paths
    */
   protected readonly zoomProdPaths = computed(() => {
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     const colors = this.store.playerColors();
     if (history.length === 0) return [];
 
     const total = history.length;
-    const allYields = history.flatMap(e => Object.values(e.avgProd));
+    const allYields = history.flatMap(e => Object.values(e.avgProd) as number[]);
     const maxYield = Math.max(0.5, ...allYields);
     const isZoom = this.isZoomMode();
     const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
@@ -478,16 +529,23 @@ export class GameStatsPanelComponent {
     return colors.map(color => {
       const points = history.map((entry, idx) => {
         let x: number;
-        if (isZoom) {
-          x = 60 + idx * 50;
-        } else if (total <= 1) {
+        if (total <= 1) {
           x = W / 2;
+        } else if (isZoom) {
+          x = 60 + idx * 50;
         } else {
           x = 60 + (idx / (total - 1)) * (W - 120);
         }
         const val = entry.avgProd[color.id] ?? 0;
         const y = H - 35 - (val / maxYield) * rangeY;
-        return { x, y, val, idx, desc: entry.description, playerColorId: entry.playerColorId };
+        return {
+          x,
+          y,
+          val,
+          idx,
+          desc: idx === 0 ? this.i18n.t().statsInitialPhase : entry.description,
+          playerColorId: entry.playerColorId,
+        };
       });
 
       const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -505,9 +563,9 @@ export class GameStatsPanelComponent {
    */
   protected readonly zoomVpGridLines = computed(() => {
     const lines = this.vpGridLines();
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     if (history.length === 0) return [];
-    const allScores = history.flatMap(e => Object.values(e.scores));
+    const allScores = history.flatMap(e => Object.values(e.scores) as number[]);
     const maxScore = Math.max(10, ...allScores);
     const H = this.svgHeight();
     const topMargin = this.svgTopMargin();
@@ -524,9 +582,9 @@ export class GameStatsPanelComponent {
    */
   protected readonly zoomProdGridLines = computed(() => {
     const lines = this.prodGridLines();
-    const history = this.store.gameHistory();
+    const history = this.effectiveHistory();
     if (history.length === 0) return [];
-    const allYields = history.flatMap(e => Object.values(e.avgProd));
+    const allYields = history.flatMap(e => Object.values(e.avgProd) as number[]);
     const maxYield = Math.max(0.5, ...allYields);
     const H = this.svgHeight();
     const topMargin = this.svgTopMargin();
@@ -542,14 +600,18 @@ export class GameStatsPanelComponent {
    * Zoomed X-axis ticks
    */
   protected readonly zoomXAxisTicks = computed(() => {
-    const history = this.store.gameHistory();
-    if (history.length <= 1) return [];
+    const history = this.effectiveHistory();
+    if (history.length === 0) return [];
 
     const total = history.length;
     const ticks: { label: string; x: number }[] = [];
     const startText = this.i18n.t().statsStartLabel;
     const isZoom = this.isZoomMode();
     const W = isZoom ? this.zoomedSvgWidth() : this.svgWidth();
+
+    if (total <= 1) {
+      return [{ label: startText, x: W / 2 }];
+    }
 
     if (isZoom) {
       history.forEach((_, idx) => {

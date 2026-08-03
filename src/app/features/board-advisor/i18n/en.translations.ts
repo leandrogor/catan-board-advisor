@@ -155,7 +155,7 @@ export interface Translations {
   statsProdTrend: string;
   statsRoundsToWin: string;
   statsRoundsWon: string;
-  statsNoData: string;
+  statsNoActions: string;
   statsLogTitle: string;
   statsEngineSpeed: string;
   statsEngineFast: string;
@@ -453,14 +453,14 @@ export const EN: Translations = {
   statsProdTrend: 'Production Engine Growth',
   statsRoundsToWin: 'Est. Rounds to Win',
   statsRoundsWon: 'Won! 🏆',
-  statsNoData: 'No buildings placed in the active game yet. Build something to see stats!',
+  statsNoActions: 'No actions recorded yet. Register the first move!',
   statsLogTitle: 'Game Log',
   statsEngineSpeed: 'Engine Speed',
   statsEngineFast: 'Fast ⚡',
   statsEngineMedium: 'Moderate ⚖️',
   statsEngineSlow: 'Slow 🐌',
   statsProjectionsHint:
-    'Projections estimate how many full rounds of table turns (1 roll per player) are needed to reach 10 VP based on current production rates.',
+    'Projections estimate how many full rounds of table turns (1 roll per player) are needed to reach 10 VP based on current production rates. Parentheses indicate current VP (left panel) and settlements + cities built (right panel).',
   statsProdPower: 'Current Production Power',
   statsMoveNum: 'Move',
   statsAwardLongestRoadGained: '+Longest Road',
