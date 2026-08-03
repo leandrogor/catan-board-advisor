@@ -2337,7 +2337,7 @@ export class BoardStateStore {
       if (Array.isArray(s.playerColors) && s.playerColors.length > 0) {
         this.playerColors.set(s.playerColors as PlayerColor[]);
       }
-      const importedMyColor = s.myPlayerColorId ?? null;
+      const importedMyColor = (s.myPlayerColorId as PlayerColor['id'] | null) ?? null;
       this.myPlayerColorId.set(importedMyColor);
       if (typeof s.projectionTargetPlayerId === 'string') {
         this.projectionTargetPlayerId.set(s.projectionTargetPlayerId);

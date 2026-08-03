@@ -17,7 +17,7 @@ export interface BoardSnapshot {
   version?: number;
   playerCount?: PlayerCount;
   playerColors?: PlayerColor[];
-  myPlayerColorId?: PlayerColor['id'] | null;
+  myPlayerColorId?: string | null;
   projectionTargetPlayerId?: string;
   playerNames?: Record<string, string>;
   desertState?: DesertState;
@@ -30,9 +30,9 @@ export interface BoardSnapshot {
   currentTurnIndex?: number;
   boardRotationDeg?: BoardRotationDeg;
   appPhase?: AppPhase;
-  gameActivePlayerId?: PlayerColor['id'] | null;
-  longestRoadOwnerId?: PlayerColor['id'] | null;
-  largestArmyOwnerId?: PlayerColor['id'] | null;
+  gameActivePlayerId?: string | null;
+  longestRoadOwnerId?: string | null;
+  largestArmyOwnerId?: string | null;
   useReducedDeck?: boolean;
   devCardsPurchased?: Record<string, number>;
   devCardsPlayed?: PlayedDevCard[];

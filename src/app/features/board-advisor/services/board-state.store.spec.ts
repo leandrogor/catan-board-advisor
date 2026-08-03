@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { BoardStateStore } from './board-state.store';
 import { PlacedRoad } from '../models/road-option.model';
+import { BoardSnapshot } from '../models/board-snapshot.model';
 import { TranslationService } from '../../../core/services/translation.service';
 
 describe('BoardStateStore - Longest Road', () => {
@@ -433,7 +434,7 @@ describe('BoardStateStore - Longest Road', () => {
       ]);
 
       // 2. Export state to a mock snapshot JSON object
-      const snapshot = {
+      const snapshot: BoardSnapshot = {
         version: 2,
         playerCount: store.playerCount(),
         playerColors: store.playerColors(),
@@ -731,12 +732,20 @@ describe('BoardStateStore - Longest Road', () => {
     });
 
     it('should set projectionTargetPlayerId to "me" if myPlayerColorId is in snapshot, or "none" if unassigned', () => {
-      const snapshotWithMe = { version: 2, playerCount: 3, myPlayerColorId: 'green' };
+      const snapshotWithMe: BoardSnapshot = {
+        version: 2,
+        playerCount: 3,
+        myPlayerColorId: 'green',
+      };
       store.importSnapshot(snapshotWithMe);
       expect(store.myPlayerColorId()).toBe('green');
       expect(store.projectionTargetPlayerId()).toBe('me');
 
-      const snapshotWithoutMe = { version: 2, playerCount: 4, myPlayerColorId: null };
+      const snapshotWithoutMe: BoardSnapshot = {
+        version: 2,
+        playerCount: 4,
+        myPlayerColorId: null,
+      };
       store.importSnapshot(snapshotWithoutMe);
       expect(store.myPlayerColorId()).toBeNull();
       expect(store.projectionTargetPlayerId()).toBe('none');
@@ -775,7 +784,7 @@ describe('BoardStateStore - Longest Road', () => {
       store.setPlayerName('red', 'Juan');
       store.setPlayerName('blue', 'Maria');
 
-      const snapshot = {
+      const snapshot: BoardSnapshot = {
         version: 2,
         playerCount: 3,
         playerColors: store.playerColors(),
@@ -837,7 +846,7 @@ describe('BoardStateStore - Longest Road', () => {
       store.undo();
       expect(store.redoStack()).toHaveSize(1);
 
-      const mockSnapshot = {
+      const mockSnapshot: BoardSnapshot = {
         version: 2,
         playerCount: store.playerCount(),
         playerColors: store.playerColors(),

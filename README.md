@@ -21,12 +21,15 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
 - **Hold-to-Act Gestures & Mobile Quick Actions**:
   - Touch & hold (~400ms - 1s) on board vertices and edges to build settlements, upgrade to cities, or place roads instantly without tool switching.
   - **Directional Animated Hold Progress**: Dual-converging animated SVG stroke indicators give visual feedback during hold gestures, paired with haptic vibration (`navigator.vibrate`).
-  - **2-Finger Swipe Undo/Redo**: Swipe left (`←`) with 2 fingers on the board to undo an action (`store.undo()`) and swipe right (`→`) to redo (`store.redo()`), complete with pop-up toast notification and haptic vibration.
+  - **2-Finger Swipe Undo/Redo & Gesture Counter**: Swipe left (`←`) with 2 fingers on the board to undo an action (`store.undo()`) and swipe right (`→`) to redo (`store.redo()`), featuring a consecutive gesture counter badge (`x2`, `x3`, etc.), auto-extending toast notification timeouts, and haptic vibration.
+  - **Mobile Touch-Action & Road Selection Isolation**: Optimizes pinch-to-zoom touch actions, disables vertex/hex pointer events during road selection mode (`isSelectingRoad`) to eliminate selection misclicks, and stabilizes SVG badges against hover flicker.
   - **Multi-Builder Radial Selection Menu**: Interactive floating builder picker overlay when multiple player colors connect to an intersection or edge.
   - **Native Callout Protection**: Prevents native context menus, text selection popups (`user-select: none`, `-webkit-touch-callout: none`), and long-press browser defaults during gesture interaction.
 - **Monte Carlo Simulation Engine**: Computes $10000$ mini-games of player-count dependent rolls each (80 rolls for 3 players, 100 for 4 players, 125 for 5 players, and 150 for 6 players) in under $25\text{ms}$ (with a 100ms yield to guarantee UI render updates) to yield raw expected resource probabilities per vertex.
-- **Vertex Heatmap & Ranking**: Visualizes optimal intersections using HSL-based heatmaps, highlighting the best spot with pulsing rings, and displaying top ranking slots directly on the board.
-- **Vertex Yield Inspection & Distance-Rule Hiding**: Inspect expected yield on all board intersections while automatically hiding/dimming vertices blocked by Catan's 2-edge distance rule.
+- **Vertex Heatmap & Ranking**: Visualizes optimal intersections using HSL-based heatmaps, highlighting the best spot with pulsing rings, displaying top ranking slots directly on the board, and assigning the last production rank to non-producing vertices instead of `null` for complete leaderboard coverage.
+- **Vertex Yield Inspection & Distance-Rule Hiding**: Inspect expected yield on all board intersections while automatically hiding/dimming vertices blocked by Catan's 2-edge distance rule. Option to toggle zero-score vertex markers via settings drawer.
+- **Click-Outside Modal Dismissal**: Detail panels (Hex Info Panel, Vertex Detail Panel) feature full-viewport transparent backdrops (`fixed inset-0 z-40 bg-transparent`), allowing seamless modal dismissal by tapping anywhere outside the active panel.
+- **Phase-Conditioned Settings Drawer**: Options inside the app shell settings drawer automatically adjust to match the active game phase (Phase 1 Setup, Phase 2 Draft, Phase 3 Active Game).
 - **Snake Draft Placement Order**: Simulates the standard setup order (e.g. $1 \to 2 \to 3 \to 4 \to 4 \to 3 \to 2 \to 1$). It tracks whose turn it is, alerts you when to pick, and ranks placements on a final leaderboard once complete.
 - **Keyboard Shortcuts & Help Cheat Sheet Modal**:
   - Global keyboard shortcuts for fast gameplay: `?` / `h` (Cheat Sheet Modal), `s` (Settlement), `c` (City), `r` (Road), `d` (Dev Cards), `1`..`9` (Rank selection in draft), `Ctrl+Z` / `Ctrl+Y` (Undo/Redo), and `ESC` (Modal dismiss, builder picker close, hex & vertex deselect).
@@ -61,6 +64,7 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
   - Expanded chart zoom modal featuring translated titles, theme support, keyboard navigation, and backdrop dismiss.
 - **Warm Parchment Theme & Visual Polish**:
   - Warm parchment light mode theme (`#faf8f3`), subtle neon piece glows in Dark Mode, glassmorphism overlays, and transparent backdrop controls.
+- **Strict TypeScript Architecture**: 100% strictly typed codebase with zero `unknown` types, dedicated snapshot models (`BoardSnapshot`), and comprehensive type guards for all state and configuration handlers.
 - **Dark Mode & Multilingual**: Sleek dark/light modes and fully signal-based Spanish/English i18n support.
 - **Progressive Web App (PWA)**: Works offline, can be installed on home screens, and launches instantly.
 
