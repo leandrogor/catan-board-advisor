@@ -253,7 +253,11 @@ export class BoardComponent {
     return this.store.redoStack().length > 0;
   });
 
-  protected readonly gestureToast = signal<{ action: 'undo' | 'redo'; id: number } | null>(null);
+  protected readonly gestureToast = signal<{
+    action: 'undo' | 'redo';
+    count: number;
+    id: number;
+  } | null>(null);
   private gestureToastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private twoFingerState: {
@@ -1044,7 +1048,7 @@ export class BoardComponent {
   }
 
   protected onTouchEnd(): void {
-    if (!this.twoFingerState || !this.twoFingerState.active) {
+    if (!this.twoFingerState?.active) {
       return;
     }
     const state = this.twoFingerState;
@@ -1084,13 +1088,16 @@ export class BoardComponent {
         // Ignore vibration errors if not supported or permitted
       }
     }
+    const current = this.gestureToast();
+    const newCount = current?.action === action ? current.count + 1 : 1;
+
     if (this.gestureToastTimeout) {
       clearTimeout(this.gestureToastTimeout);
     }
-    this.gestureToast.set({ action, id: Date.now() });
+    this.gestureToast.set({ action, count: newCount, id: Date.now() });
     this.gestureToastTimeout = setTimeout(() => {
       this.gestureToast.set(null);
-    }, 1200);
+    }, 1500);
   }
 
   protected onHexClick(hex: HexDefinition): void {

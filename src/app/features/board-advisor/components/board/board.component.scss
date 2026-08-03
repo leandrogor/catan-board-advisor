@@ -29,11 +29,11 @@ circle {
   transition: transform 0.35s ease;
   transform-origin: center center;
   overflow: visible;
-  touch-action: none;
+  touch-action: pan-x pan-y pinch-zoom;
   /* On desktop constrain height so it fits without scrolling */
 }
 .board-wrapper.setup-phase {
-  touch-action: none;
+  touch-action: pan-x pan-y pinch-zoom;
 }
 @media (min-width: 1024px) {
   :host {

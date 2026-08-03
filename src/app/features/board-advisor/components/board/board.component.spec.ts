@@ -100,4 +100,24 @@ describe('BoardComponent - 2-Finger Touch Gestures', () => {
 
     expect(store.undo).not.toHaveBeenCalled();
   });
+
+  it('should increment toast counter on consecutive swipes of the same action', () => {
+    store.appPhase.set('game');
+    store.undoStack.set([
+      { historyLength: 1 } as unknown as ActionSnapshot,
+      { historyLength: 2 } as unknown as ActionSnapshot,
+    ]);
+
+    // First swipe
+    component['showGestureToast']('undo');
+    expect(component['gestureToast']()?.count).toBe(1);
+
+    // Second swipe
+    component['showGestureToast']('undo');
+    expect(component['gestureToast']()?.count).toBe(2);
+
+    // Switch action
+    component['showGestureToast']('redo');
+    expect(component['gestureToast']()?.count).toBe(1);
+  });
 });
