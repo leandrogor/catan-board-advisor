@@ -93,20 +93,22 @@ export class BoardComponent {
 
   protected readonly displayVertices = computed(() => {
     const vertices = this.store.rankedVertices();
-    if (this.store.appPhase() === 'game') {
-      return vertices.filter(v => !v.isBlocked);
-    }
-    const showZeros = this.store.showZeroScores();
-    if (showZeros) return vertices.filter(v => !v.isBlocked || v.isOccupied);
 
-    const threshold = this.thresholdRank();
-    return vertices.filter(
-      v =>
-        !v.isBlocked &&
-        (v.isOccupied ||
-          v.id === this.store.selectedVertexId() ||
-          (v.rank !== null && v.rank <= threshold)),
-    );
+    if (this.store.appPhase() === 'setup' || !this.store.simulationResult()) {
+      return vertices.filter(v => !v.isBlocked || v.isOccupied);
+    }
+
+    const showZeros = this.store.showZeroScores();
+    return vertices.filter(v => {
+      if (v.isOccupied) return true;
+      if (v.isBlocked) return false;
+      if (v.id === this.store.selectedVertexId()) return true;
+
+      if (!showZeros && (v.rawScore ?? 0) <= 0) {
+        return false;
+      }
+      return true;
+    });
   });
 
   protected readonly validSettlementVertices = computed(() => {

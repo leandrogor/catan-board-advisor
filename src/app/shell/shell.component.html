@@ -92,212 +92,222 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between">
-          <span
-            class="text-sm font-medium text-slate-700 dark:text-slate-300"
-            id="label-show-zero"
-            >{{ i18n.t().showZeroScores }}</span
-          >
-          <button
-            class="relative w-11 h-6 rounded-full transition-colors"
-            [class]="store.showZeroScores() ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'"
-            (click)="store.toggleShowZeroScores()"
-            role="switch"
-            [attr.aria-checked]="store.showZeroScores()"
-            aria-labelledby="label-show-zero"
-          >
+        @if (store.appPhase() !== 'setup') {
+          <div class="flex items-center justify-between">
             <span
-              class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
-              [class.translate-x-5]="store.showZeroScores()"
-            ></span>
-          </button>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <span
-            class="text-sm font-medium text-slate-700 dark:text-slate-300"
-            id="label-auto-zoom"
-            >{{ i18n.t().autoZoom }}</span
-          >
-          <button
-            class="relative w-11 h-6 rounded-full transition-colors"
-            [class]="store.enableAutoZoom() ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'"
-            (click)="store.toggleAutoZoom()"
-            role="switch"
-            [attr.aria-checked]="store.enableAutoZoom()"
-            aria-labelledby="label-auto-zoom"
-          >
-            <span
-              class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
-              [class.translate-x-5]="store.enableAutoZoom()"
-            ></span>
-          </button>
-        </div>
-
-        <div>
-          <label
-            for="projection-target-dropdown-btn"
-            class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1.5"
-          >
-            {{ i18n.t().projectionTarget }}
-          </label>
-
-          <div class="relative">
-            <!-- Custom Dropdown Trigger Button -->
-            <button
-              type="button"
-              id="projection-target-dropdown-btn"
-              aria-haspopup="listbox"
-              [attr.aria-expanded]="targetDropdownOpen()"
-              class="w-full flex items-center justify-between text-sm py-2 px-3 rounded-lg bg-slate-100 dark:bg-slate-700/80 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-xs"
-              (click)="targetDropdownOpen.set(!targetDropdownOpen())"
+              class="text-sm font-medium text-slate-700 dark:text-slate-300"
+              id="label-show-zero"
+              >{{ i18n.t().showZeroScores }}</span
             >
-              <div class="flex items-center gap-2 truncate">
-                @if (store.projectionTargetPlayerId() === 'me' && store.myPlayerColorId()) {
-                  <span
-                    class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/10 dark:border-white/20"
-                    [style.background-color]="getPlayerColorHex(store.myPlayerColorId()!)"
-                  ></span>
-                  <span class="font-medium truncate">
-                    {{ i18n.t().projectionTargetMe }} ({{
-                      getPlayerColorName(store.myPlayerColorId()!)
-                    }})
-                  </span>
-                } @else if (
-                  store.projectionTargetPlayerId() !== 'none' &&
-                  store.projectionTargetPlayerId() !== 'me'
-                ) {
-                  <span
-                    class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/10 dark:border-white/20"
-                    [style.background-color]="getPlayerColorHex(store.projectionTargetPlayerId())"
-                  ></span>
-                  <span class="font-medium truncate">
-                    {{ getPlayerColorName(store.projectionTargetPlayerId()) }}
-                  </span>
-                } @else {
-                  <span class="text-xs">🚫</span>
-                  <span class="font-medium truncate">{{ i18n.t().projectionTargetNone }}</span>
-                }
-              </div>
-              <span class="text-xs opacity-60 ml-2">▼</span>
+            <button
+              class="relative w-11 h-6 rounded-full transition-colors"
+              [class]="store.showZeroScores() ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'"
+              (click)="store.toggleShowZeroScores()"
+              role="switch"
+              [attr.aria-checked]="store.showZeroScores()"
+              aria-labelledby="label-show-zero"
+            >
+              <span
+                class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                [class.translate-x-5]="store.showZeroScores()"
+              ></span>
             </button>
+          </div>
+        }
 
-            <!-- Custom Dropdown Options Popover -->
-            @if (targetDropdownOpen()) {
-              <div
-                class="absolute left-0 right-0 mt-1 z-30 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 py-1 overflow-hidden transition-all"
+        @if (store.appPhase() === 'results' && !store.isSetupComplete()) {
+          <div class="flex items-center justify-between">
+            <span
+              class="text-sm font-medium text-slate-700 dark:text-slate-300"
+              id="label-auto-zoom"
+              >{{ i18n.t().autoZoom }}</span
+            >
+            <button
+              class="relative w-11 h-6 rounded-full transition-colors"
+              [class]="store.enableAutoZoom() ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'"
+              (click)="store.toggleAutoZoom()"
+              role="switch"
+              [attr.aria-checked]="store.enableAutoZoom()"
+              aria-labelledby="label-auto-zoom"
+            >
+              <span
+                class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                [class.translate-x-5]="store.enableAutoZoom()"
+              ></span>
+            </button>
+          </div>
+        }
+
+        @if (store.appPhase() === 'game') {
+          <div>
+            <label
+              for="projection-target-dropdown-btn"
+              class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1.5"
+            >
+              {{ i18n.t().projectionTarget }}
+            </label>
+
+            <div class="relative">
+              <!-- Custom Dropdown Trigger Button -->
+              <button
+                type="button"
+                id="projection-target-dropdown-btn"
+                aria-haspopup="listbox"
+                [attr.aria-expanded]="targetDropdownOpen()"
+                class="w-full flex items-center justify-between text-sm py-2 px-3 rounded-lg bg-slate-100 dark:bg-slate-700/80 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-xs"
+                (click)="targetDropdownOpen.set(!targetDropdownOpen())"
               >
-                <!-- Option: Me (only if myPlayerColorId is set) -->
-                @if (store.myPlayerColorId()) {
-                  <button
-                    type="button"
-                    class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium hover:bg-indigo-50 dark:hover:bg-slate-700/70 transition-colors text-left"
-                    [class.text-indigo-600]="store.projectionTargetPlayerId() === 'me'"
-                    [class.dark:text-indigo-400]="store.projectionTargetPlayerId() === 'me'"
-                    (click)="selectProjectionTarget('me')"
-                  >
-                    <div class="flex items-center gap-2 truncate">
-                      <span
-                        class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/10 dark:border-white/20"
-                        [style.background-color]="getPlayerColorHex(store.myPlayerColorId()!)"
-                      ></span>
-                      <span>
-                        {{ i18n.t().projectionTargetMe }} ({{
-                          getPlayerColorName(store.myPlayerColorId()!)
-                        }})
-                      </span>
-                    </div>
-                    @if (store.projectionTargetPlayerId() === 'me') {
-                      <span class="text-indigo-600 dark:text-indigo-400 font-bold">✓</span>
-                    }
-                  </button>
-                }
+                <div class="flex items-center gap-2 truncate">
+                  @if (store.projectionTargetPlayerId() === 'me' && store.myPlayerColorId()) {
+                    <span
+                      class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/10 dark:border-white/20"
+                      [style.background-color]="getPlayerColorHex(store.myPlayerColorId()!)"
+                    ></span>
+                    <span class="font-medium truncate">
+                      {{ i18n.t().projectionTargetMe }} ({{
+                        getPlayerColorName(store.myPlayerColorId()!)
+                      }})
+                    </span>
+                  } @else if (
+                    store.projectionTargetPlayerId() !== 'none' &&
+                    store.projectionTargetPlayerId() !== 'me'
+                  ) {
+                    <span
+                      class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/10 dark:border-white/20"
+                      [style.background-color]="getPlayerColorHex(store.projectionTargetPlayerId())"
+                    ></span>
+                    <span class="font-medium truncate">
+                      {{ getPlayerColorName(store.projectionTargetPlayerId()) }}
+                    </span>
+                  } @else {
+                    <span class="text-xs">🚫</span>
+                    <span class="font-medium truncate">{{ i18n.t().projectionTargetNone }}</span>
+                  }
+                </div>
+                <span class="text-xs opacity-60 ml-2">▼</span>
+              </button>
 
-                <!-- Active Players Options (excluding the one designated as 'me' to avoid duplication) -->
-                @for (player of store.playerColors(); track player.id) {
-                  @if (player.id !== store.myPlayerColorId()) {
+              <!-- Custom Dropdown Options Popover -->
+              @if (targetDropdownOpen()) {
+                <div
+                  class="absolute left-0 right-0 mt-1 z-30 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 py-1 overflow-hidden transition-all"
+                >
+                  <!-- Option: Me (only if myPlayerColorId is set) -->
+                  @if (store.myPlayerColorId()) {
                     <button
                       type="button"
                       class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium hover:bg-indigo-50 dark:hover:bg-slate-700/70 transition-colors text-left"
-                      [class.text-indigo-600]="store.projectionTargetPlayerId() === player.id"
-                      [class.dark:text-indigo-400]="store.projectionTargetPlayerId() === player.id"
-                      (click)="selectProjectionTarget(player.id)"
+                      [class.text-indigo-600]="store.projectionTargetPlayerId() === 'me'"
+                      [class.dark:text-indigo-400]="store.projectionTargetPlayerId() === 'me'"
+                      (click)="selectProjectionTarget('me')"
                     >
                       <div class="flex items-center gap-2 truncate">
                         <span
                           class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/10 dark:border-white/20"
-                          [style.background-color]="player.hex"
+                          [style.background-color]="getPlayerColorHex(store.myPlayerColorId()!)"
                         ></span>
-                        <span>{{ getPlayerColorName(player.id) }}</span>
+                        <span>
+                          {{ i18n.t().projectionTargetMe }} ({{
+                            getPlayerColorName(store.myPlayerColorId()!)
+                          }})
+                        </span>
                       </div>
-                      @if (store.projectionTargetPlayerId() === player.id) {
+                      @if (store.projectionTargetPlayerId() === 'me') {
                         <span class="text-indigo-600 dark:text-indigo-400 font-bold">✓</span>
                       }
                     </button>
                   }
-                }
 
-                <!-- Option: None -->
-                <button
-                  type="button"
-                  class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium hover:bg-indigo-50 dark:hover:bg-slate-700/70 transition-colors text-left border-t border-slate-100 dark:border-slate-700/50"
-                  [class.text-indigo-600]="
-                    store.projectionTargetPlayerId() === 'none' ||
-                    (store.projectionTargetPlayerId() === 'me' && !store.myPlayerColorId())
-                  "
-                  [class.dark:text-indigo-400]="
-                    store.projectionTargetPlayerId() === 'none' ||
-                    (store.projectionTargetPlayerId() === 'me' && !store.myPlayerColorId())
-                  "
-                  (click)="selectProjectionTarget('none')"
-                >
-                  <div class="flex items-center gap-2 truncate text-slate-500 dark:text-slate-400">
-                    <span class="text-xs">🚫</span>
-                    <span>{{ i18n.t().projectionTargetNone }}</span>
-                  </div>
-                  @if (
-                    store.projectionTargetPlayerId() === 'none' ||
-                    (store.projectionTargetPlayerId() === 'me' && !store.myPlayerColorId())
-                  ) {
-                    <span class="text-indigo-600 dark:text-indigo-400 font-bold">✓</span>
+                  <!-- Active Players Options (excluding the one designated as 'me' to avoid duplication) -->
+                  @for (player of store.playerColors(); track player.id) {
+                    @if (player.id !== store.myPlayerColorId()) {
+                      <button
+                        type="button"
+                        class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium hover:bg-indigo-50 dark:hover:bg-slate-700/70 transition-colors text-left"
+                        [class.text-indigo-600]="store.projectionTargetPlayerId() === player.id"
+                        [class.dark:text-indigo-400]="
+                          store.projectionTargetPlayerId() === player.id
+                        "
+                        (click)="selectProjectionTarget(player.id)"
+                      >
+                        <div class="flex items-center gap-2 truncate">
+                          <span
+                            class="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/10 dark:border-white/20"
+                            [style.background-color]="player.hex"
+                          ></span>
+                          <span>{{ getPlayerColorName(player.id) }}</span>
+                        </div>
+                        @if (store.projectionTargetPlayerId() === player.id) {
+                          <span class="text-indigo-600 dark:text-indigo-400 font-bold">✓</span>
+                        }
+                      </button>
+                    }
                   }
+
+                  <!-- Option: None -->
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium hover:bg-indigo-50 dark:hover:bg-slate-700/70 transition-colors text-left border-t border-slate-100 dark:border-slate-700/50"
+                    [class.text-indigo-600]="
+                      store.projectionTargetPlayerId() === 'none' ||
+                      (store.projectionTargetPlayerId() === 'me' && !store.myPlayerColorId())
+                    "
+                    [class.dark:text-indigo-400]="
+                      store.projectionTargetPlayerId() === 'none' ||
+                      (store.projectionTargetPlayerId() === 'me' && !store.myPlayerColorId())
+                    "
+                    (click)="selectProjectionTarget('none')"
+                  >
+                    <div
+                      class="flex items-center gap-2 truncate text-slate-500 dark:text-slate-400"
+                    >
+                      <span class="text-xs">🚫</span>
+                      <span>{{ i18n.t().projectionTargetNone }}</span>
+                    </div>
+                    @if (
+                      store.projectionTargetPlayerId() === 'none' ||
+                      (store.projectionTargetPlayerId() === 'me' && !store.myPlayerColorId())
+                    ) {
+                      <span class="text-indigo-600 dark:text-indigo-400 font-bold">✓</span>
+                    }
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (store.effectiveProjectionPlayerId() !== null) {
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-sm font-medium text-slate-700 dark:text-slate-300"
+                  id="label-show-second-proj"
+                >
+                  {{ i18n.t().showSecondBestProjection }}
+                </span>
+                <button
+                  class="relative w-11 h-6 rounded-full transition-colors"
+                  [class]="
+                    store.showSecondBestProjection()
+                      ? 'bg-indigo-600'
+                      : 'bg-slate-300 dark:bg-slate-600'
+                  "
+                  (click)="store.toggleShowSecondBestProjection()"
+                  role="switch"
+                  [attr.aria-checked]="store.showSecondBestProjection()"
+                  aria-labelledby="label-show-second-proj"
+                >
+                  <span
+                    class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                    [class.translate-x-5]="store.showSecondBestProjection()"
+                  ></span>
                 </button>
               </div>
-            }
-          </div>
-        </div>
-
-        @if (store.effectiveProjectionPlayerId() !== null) {
-          <div class="flex flex-col gap-1">
-            <div class="flex items-center justify-between">
-              <span
-                class="text-sm font-medium text-slate-700 dark:text-slate-300"
-                id="label-show-second-proj"
-              >
-                {{ i18n.t().showSecondBestProjection }}
-              </span>
-              <button
-                class="relative w-11 h-6 rounded-full transition-colors"
-                [class]="
-                  store.showSecondBestProjection()
-                    ? 'bg-indigo-600'
-                    : 'bg-slate-300 dark:bg-slate-600'
-                "
-                (click)="store.toggleShowSecondBestProjection()"
-                role="switch"
-                [attr.aria-checked]="store.showSecondBestProjection()"
-                aria-labelledby="label-show-second-proj"
-              >
-                <span
-                  class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
-                  [class.translate-x-5]="store.showSecondBestProjection()"
-                ></span>
-              </button>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                {{ i18n.t().secondBestProjectionHint }}
+              </p>
             </div>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-              {{ i18n.t().secondBestProjectionHint }}
-            </p>
-          </div>
+          }
         }
 
         @if (store.appPhase() !== 'game' && store.playerCount() <= 4) {

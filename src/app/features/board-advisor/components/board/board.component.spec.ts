@@ -120,4 +120,34 @@ describe('BoardComponent - 2-Finger Touch Gestures', () => {
     component['showGestureToast']('redo');
     expect(component['gestureToast']()?.count).toBe(1);
   });
+
+  describe('displayVertices filtering', () => {
+    it('should show all unblocked vertices in setup phase', () => {
+      store.appPhase.set('setup');
+      const displayed = component['displayVertices']();
+      expect(displayed.length).toBeGreaterThan(0);
+    });
+
+    it('should filter zero-score vertices when showZeroScores is false after simulation', () => {
+      store.appPhase.set('results');
+      (
+        store as unknown as { _simulationResult: { set: (val: unknown) => void } }
+      )._simulationResult.set({
+        maxRawScore: 10,
+        resourceMap: new Map([
+          ['v-1', 5],
+          ['v-2', 0],
+        ]),
+      });
+
+      store.showZeroScores.set(true);
+      const allDisplayed = component['displayVertices']();
+
+      store.showZeroScores.set(false);
+      const filteredDisplayed = component['displayVertices']();
+
+      expect(filteredDisplayed.length).toBeLessThan(allDisplayed.length);
+      expect(filteredDisplayed.some(v => v.id === 'v-2')).toBeFalse();
+    });
+  });
 });
