@@ -1,9 +1,31 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { WritableSignal } from '@angular/core';
 import { BoardComponent } from './board.component';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { ActionSnapshot } from '../../models/road-option.model';
+import { SimulationResult } from '../../models/simulation-result.model';
+
+function createMockSnapshot(overrides: Partial<ActionSnapshot> = {}): ActionSnapshot {
+  return {
+    settled: [],
+    roads: [],
+    turnIndex: 0,
+    ...overrides,
+  };
+}
+
+function createMockTouch(clientX: number, clientY: number): Touch {
+  return { clientX, clientY } as Partial<Touch> as Touch;
+}
+
+function createMockTouchEvent(touches: Touch[]): TouchEvent {
+  const touchList: TouchList = Object.assign(touches, {
+    item: (i: number) => touches[i] ?? null,
+  });
+  return { touches: touchList } as Partial<TouchEvent> as TouchEvent;
+}
 
 describe('BoardComponent - 2-Finger Touch Gestures', () => {
   let component: BoardComponent;
@@ -29,21 +51,17 @@ describe('BoardComponent - 2-Finger Touch Gestures', () => {
   it('should trigger store.undo() on two-finger left swipe when canUndo is true', () => {
     spyOn(store, 'undo');
     store.appPhase.set('game');
-    store.undoStack.set([{ historyLength: 1 } as unknown as ActionSnapshot]);
+    store.undoStack.set([createMockSnapshot({ historyLength: 1 })]);
 
     // Touch start with 2 fingers
-    const touch1 = { clientX: 200, clientY: 100 } as unknown as Touch;
-    const touch2 = { clientX: 220, clientY: 100 } as unknown as Touch;
-    component['onTouchStart']({
-      touches: [touch1, touch2],
-    } as unknown as TouchEvent);
+    const touch1 = createMockTouch(200, 100);
+    const touch2 = createMockTouch(220, 100);
+    component['onTouchStart'](createMockTouchEvent([touch1, touch2]));
 
     // Move left by 70px
-    const touch1Move = { clientX: 130, clientY: 100 } as unknown as Touch;
-    const touch2Move = { clientX: 150, clientY: 100 } as unknown as Touch;
-    component['onTouchMove']({
-      touches: [touch1Move, touch2Move],
-    } as unknown as TouchEvent);
+    const touch1Move = createMockTouch(130, 100);
+    const touch2Move = createMockTouch(150, 100);
+    component['onTouchMove'](createMockTouchEvent([touch1Move, touch2Move]));
 
     // Touch end
     component['onTouchEnd']();
@@ -55,21 +73,17 @@ describe('BoardComponent - 2-Finger Touch Gestures', () => {
   it('should trigger store.redo() on two-finger right swipe when canRedo is true', () => {
     spyOn(store, 'redo');
     store.appPhase.set('game');
-    store.redoStack.set([{ historyLength: 1 } as unknown as ActionSnapshot]);
+    store.redoStack.set([createMockSnapshot({ historyLength: 1 })]);
 
     // Touch start with 2 fingers
-    const touch1 = { clientX: 100, clientY: 100 } as unknown as Touch;
-    const touch2 = { clientX: 120, clientY: 100 } as unknown as Touch;
-    component['onTouchStart']({
-      touches: [touch1, touch2],
-    } as unknown as TouchEvent);
+    const touch1 = createMockTouch(100, 100);
+    const touch2 = createMockTouch(120, 100);
+    component['onTouchStart'](createMockTouchEvent([touch1, touch2]));
 
     // Move right by 70px
-    const touch1Move = { clientX: 170, clientY: 100 } as unknown as Touch;
-    const touch2Move = { clientX: 190, clientY: 100 } as unknown as Touch;
-    component['onTouchMove']({
-      touches: [touch1Move, touch2Move],
-    } as unknown as TouchEvent);
+    const touch1Move = createMockTouch(170, 100);
+    const touch2Move = createMockTouch(190, 100);
+    component['onTouchMove'](createMockTouchEvent([touch1Move, touch2Move]));
 
     // Touch end
     component['onTouchEnd']();
@@ -81,20 +95,16 @@ describe('BoardComponent - 2-Finger Touch Gestures', () => {
   it('should ignore gesture if pinch-to-zoom distance changes significantly', () => {
     spyOn(store, 'undo');
     store.appPhase.set('game');
-    store.undoStack.set([{ historyLength: 1 } as unknown as ActionSnapshot]);
+    store.undoStack.set([createMockSnapshot({ historyLength: 1 })]);
 
-    const touch1 = { clientX: 100, clientY: 100 } as unknown as Touch;
-    const touch2 = { clientX: 120, clientY: 100 } as unknown as Touch; // initial dist = 20px
-    component['onTouchStart']({
-      touches: [touch1, touch2],
-    } as unknown as TouchEvent);
+    const touch1 = createMockTouch(100, 100);
+    const touch2 = createMockTouch(120, 100); // initial dist = 20px
+    component['onTouchStart'](createMockTouchEvent([touch1, touch2]));
 
     // Move fingers far apart (pinch zoom)
-    const touch1Move = { clientX: 50, clientY: 100 } as unknown as Touch;
-    const touch2Move = { clientX: 200, clientY: 100 } as unknown as Touch; // dist = 150px
-    component['onTouchMove']({
-      touches: [touch1Move, touch2Move],
-    } as unknown as TouchEvent);
+    const touch1Move = createMockTouch(50, 100);
+    const touch2Move = createMockTouch(200, 100); // dist = 150px
+    component['onTouchMove'](createMockTouchEvent([touch1Move, touch2Move]));
 
     component['onTouchEnd']();
 
@@ -104,8 +114,8 @@ describe('BoardComponent - 2-Finger Touch Gestures', () => {
   it('should increment toast counter on consecutive swipes of the same action', () => {
     store.appPhase.set('game');
     store.undoStack.set([
-      { historyLength: 1 } as unknown as ActionSnapshot,
-      { historyLength: 2 } as unknown as ActionSnapshot,
+      createMockSnapshot({ historyLength: 1 }),
+      createMockSnapshot({ historyLength: 2 }),
     ]);
 
     // First swipe
@@ -131,7 +141,9 @@ describe('BoardComponent - 2-Finger Touch Gestures', () => {
     it('should filter zero-score vertices when showZeroScores is false after simulation', () => {
       store.appPhase.set('results');
       (
-        store as unknown as { _simulationResult: { set: (val: unknown) => void } }
+        store as object as {
+          _simulationResult: WritableSignal<Partial<SimulationResult> | null>;
+        }
       )._simulationResult.set({
         maxRawScore: 10,
         resourceMap: new Map([

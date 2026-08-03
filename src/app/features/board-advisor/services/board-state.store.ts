@@ -27,6 +27,7 @@ import { BASE_DEFAULT_DESERT_POSITION } from '../data/base-catan-board-layout.da
 import { BoardLayoutService } from './board-layout.service';
 import { SimulationService } from './simulation.service';
 import { GameHistoryEntry } from '../models/game-history.model';
+import { BoardSnapshot } from '../models/board-snapshot.model';
 import { TranslationService } from '../../../core/services/translation.service';
 import {
   assignSpiralLetters,
@@ -2064,7 +2065,7 @@ export class BoardStateStore {
   }
 
   /**
-   * Records that a player purchased a development card (type unknown).
+   * Records that a player purchased a development card (unspecified type).
    * Increments their in-hand counter.
    */
   purchaseDevCard(playerColorId: string): void {
@@ -2320,32 +2321,31 @@ export class BoardStateStore {
    * Restores game state from a snapshot object parsed from a JSON file.
    * Returns true on success, false if the snapshot structure is invalid.
    */
-  importSnapshot(raw: unknown): boolean {
+  importSnapshot(raw: Partial<BoardSnapshot> | null | undefined): boolean {
     if (!raw || typeof raw !== 'object') return false;
-    const s = raw as Record<string, unknown>;
-    if (s['version'] !== 2) return false;
+    const s = raw;
+    if (s.version !== 2) return false;
 
     try {
       // ── 1. Player count (determines board variant) ─────────────────────
-      const count = s['playerCount'];
+      const count = s.playerCount;
       if (typeof count === 'number' && [3, 4, 5, 6].includes(count)) {
         this.playerCount.set(count as PlayerCount);
       }
 
       // ── 2. Player colors & names ───────────────────────────────────────
-      if (Array.isArray(s['playerColors']) && s['playerColors'].length > 0) {
-        this.playerColors.set(s['playerColors'] as PlayerColor[]);
+      if (Array.isArray(s.playerColors) && s.playerColors.length > 0) {
+        this.playerColors.set(s.playerColors as PlayerColor[]);
       }
-      const importedMyColor =
-        (s['myPlayerColorId'] as PlayerColor['id'] | null | undefined) ?? null;
+      const importedMyColor = s.myPlayerColorId ?? null;
       this.myPlayerColorId.set(importedMyColor);
-      if (typeof s['projectionTargetPlayerId'] === 'string') {
-        this.projectionTargetPlayerId.set(s['projectionTargetPlayerId'] as string);
+      if (typeof s.projectionTargetPlayerId === 'string') {
+        this.projectionTargetPlayerId.set(s.projectionTargetPlayerId);
       } else {
         this.projectionTargetPlayerId.set(importedMyColor ? 'me' : 'none');
       }
-      if (s['playerNames'] && typeof s['playerNames'] === 'object') {
-        this.playerNames.set(s['playerNames'] as Record<string, string>);
+      if (s.playerNames && typeof s.playerNames === 'object') {
+        this.playerNames.set(s.playerNames);
       }
 
       // ── 3. Hex size (must match the board variant just set) ────────────
@@ -2357,29 +2357,29 @@ export class BoardStateStore {
       }
 
       // ── 4. Desert state (recomputes hexes + allVertices) ───────────────
-      if (s['desertState'] && typeof s['desertState'] === 'object') {
-        this.desertState.set(s['desertState'] as DesertState);
+      if (s.desertState && typeof s.desertState === 'object') {
+        this.desertState.set(s.desertState as DesertState);
       }
 
       // ── 5. Board actions ───────────────────────────────────────────────
-      if (Array.isArray(s['placedSettlements'])) {
-        this.placedSettlements.set(s['placedSettlements'] as PlacedSettlement[]);
+      if (Array.isArray(s.placedSettlements)) {
+        this.placedSettlements.set(s.placedSettlements as PlacedSettlement[]);
       }
-      if (Array.isArray(s['placedRoads'])) {
-        this.placedRoads.set(s['placedRoads'] as PlacedRoad[]);
+      if (Array.isArray(s.placedRoads)) {
+        this.placedRoads.set(s.placedRoads as PlacedRoad[]);
       }
-      if (typeof s['currentTurnIndex'] === 'number') {
-        this.currentTurnIndex.set(s['currentTurnIndex']);
+      if (typeof s.currentTurnIndex === 'number') {
+        this.currentTurnIndex.set(s.currentTurnIndex);
       }
-      if (typeof s['boardRotationDeg'] === 'number') {
-        this.boardRotationDeg.set(s['boardRotationDeg'] as BoardRotationDeg);
+      if (typeof s.boardRotationDeg === 'number') {
+        this.boardRotationDeg.set(s.boardRotationDeg as BoardRotationDeg);
       }
 
       // ── 6. Simulation result ───────────────────────────────────────────
-      const rawResult = s['simulationResult'] as Record<string, unknown> | null | undefined;
+      const rawResult = s.simulationResult;
       if (rawResult && typeof rawResult === 'object') {
-        const resourceEntries = rawResult['resourceMap'] as [string, number][] | undefined;
-        const rollEntries = rawResult['rollCountMap'] as [number, number][] | undefined;
+        const resourceEntries = rawResult.resourceMap;
+        const rollEntries = rawResult.rollCountMap;
 
         const resourceMap = new Map<string, number>(resourceEntries ?? []);
         const rollCountMap = new Map<number, number>(
@@ -2387,11 +2387,11 @@ export class BoardStateStore {
         );
 
         this._simulationResult.set({
-          totalMiniGames: (rawResult['totalMiniGames'] as number) ?? 0,
+          totalMiniGames: rawResult.totalMiniGames ?? 0,
           rollCountMap,
           resourceMap,
-          maxRawScore: (rawResult['maxRawScore'] as number) ?? 0,
-          rankedVertexIds: (rawResult['rankedVertexIds'] as string[]) ?? [],
+          maxRawScore: rawResult.maxRawScore ?? 0,
+          rankedVertexIds: rawResult.rankedVertexIds ?? [],
         });
       } else {
         this._simulationResult.set(null);
