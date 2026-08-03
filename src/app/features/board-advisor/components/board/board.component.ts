@@ -1044,6 +1044,10 @@ export class BoardComponent {
       return;
     }
 
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+
     this.twoFingerState.lastDeltaX = deltaX;
   }
 

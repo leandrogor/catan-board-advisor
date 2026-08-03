@@ -8,7 +8,8 @@
   <!-- Gesture feedback toast -->
   @if (gestureToast(); as toast) {
     <div
-      class="gesture-toast-anim pointer-events-none absolute top-6 left-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-xl bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 border border-white/20 dark:border-slate-800/40 backdrop-blur-md text-sm font-semibold"
+      [attr.data-id]="toast.id"
+      class="gesture-toast-container pointer-events-none absolute top-6 left-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-xl bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 border border-white/20 dark:border-slate-800/40 backdrop-blur-md text-sm font-semibold transition-all duration-150"
     >
       @if (toast.action === 'undo') {
         <span class="text-base">↺</span>
@@ -68,7 +69,7 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
-      touch-action: pan-x pan-y pinch-zoom;
+      touch-action: pan-y pinch-zoom;
     "
   >
     <!-- Hex polygons -->
