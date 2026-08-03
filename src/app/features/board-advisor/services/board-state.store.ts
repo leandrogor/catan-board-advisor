@@ -63,7 +63,7 @@ export class BoardStateStore {
 
   // ── Settings ────────────────────────────────────────────────────────────────
   readonly scoreFormat = signal<'decimal' | 'percentage'>(
-    (localStorage.getItem('catan-score-fmt') as 'decimal' | 'percentage') ?? 'decimal',
+    localStorage.getItem('catan-score-fmt') === 'percentage' ? 'percentage' : 'decimal',
   );
   readonly showZeroScores = signal<boolean>(localStorage.getItem('catan-show-zeros') !== 'false');
   readonly enableAutoZoom = signal<boolean>(localStorage.getItem('catan-auto-zoom') !== 'false');
@@ -2398,55 +2398,55 @@ export class BoardStateStore {
       }
 
       // ── 7. Game-phase active player & card awards ──────────────────────
-      const activeId = s['gameActivePlayerId'];
+      const activeId = s.gameActivePlayerId;
       this.gameActivePlayerId.set(typeof activeId === 'string' ? activeId : null);
 
-      const lrOwnerId = s['longestRoadOwnerId'];
+      const lrOwnerId = s.longestRoadOwnerId;
       this.longestRoadOwnerId.set(typeof lrOwnerId === 'string' ? lrOwnerId : null);
 
-      const laOwnerId = s['largestArmyOwnerId'];
+      const laOwnerId = s.largestArmyOwnerId;
       this.largestArmyOwnerId.set(typeof laOwnerId === 'string' ? laOwnerId : null);
 
-      if (typeof s['useReducedDeck'] === 'boolean') {
-        this.useReducedDeck.set(s['useReducedDeck']);
+      if (typeof s.useReducedDeck === 'boolean') {
+        this.useReducedDeck.set(s.useReducedDeck);
       } else {
         this.useReducedDeck.set(false);
       }
-      if (s['devCardsPurchased'] && typeof s['devCardsPurchased'] === 'object') {
-        this.devCardsPurchased.set(s['devCardsPurchased'] as Record<string, number>);
+      if (s.devCardsPurchased && typeof s.devCardsPurchased === 'object') {
+        this.devCardsPurchased.set(s.devCardsPurchased);
       } else {
         this.devCardsPurchased.set({});
       }
-      if (Array.isArray(s['devCardsPlayed'])) {
-        this.devCardsPlayed.set(s['devCardsPlayed'] as PlayedDevCard[]);
+      if (Array.isArray(s.devCardsPlayed)) {
+        this.devCardsPlayed.set(s.devCardsPlayed);
       } else {
         this.devCardsPlayed.set([]);
       }
 
-      if (Array.isArray(s['gameHistory'])) {
-        this.gameHistory.set(s['gameHistory'] as GameHistoryEntry[]);
+      if (Array.isArray(s.gameHistory)) {
+        this.gameHistory.set(s.gameHistory);
       } else {
         this.gameHistory.set([]);
       }
 
       // ── 8. Undo / Redo stacks ──────────────────────────────────────────
-      if (Array.isArray(s['undoStack'])) {
-        this.undoStack.set(s['undoStack'] as ActionSnapshot[]);
+      if (Array.isArray(s.undoStack)) {
+        this.undoStack.set(s.undoStack);
       } else {
         this.undoStack.set([]);
       }
-      if (Array.isArray(s['redoStack'])) {
-        this.redoStack.set(s['redoStack'] as ActionSnapshot[]);
+      if (Array.isArray(s.redoStack)) {
+        this.redoStack.set(s.redoStack);
       } else {
         this.redoStack.set([]);
       }
-      if (Array.isArray(s['desertUndoStack'])) {
-        this.desertUndoStack.set(s['desertUndoStack'] as DesertState[]);
+      if (Array.isArray(s.desertUndoStack)) {
+        this.desertUndoStack.set(s.desertUndoStack);
       } else {
         this.desertUndoStack.set([]);
       }
-      if (Array.isArray(s['desertRedoStack'])) {
-        this.desertRedoStack.set(s['desertRedoStack'] as DesertState[]);
+      if (Array.isArray(s.desertRedoStack)) {
+        this.desertRedoStack.set(s.desertRedoStack);
       } else {
         this.desertRedoStack.set([]);
       }
@@ -2454,7 +2454,7 @@ export class BoardStateStore {
       this.clearTransientSelectionState();
 
       // ── 9. Phase (LAST – triggers full UI re-render) ───────────────────
-      const phase = s['appPhase'] as AppPhase | undefined;
+      const phase = s.appPhase;
       if (phase === 'results' || phase === 'game' || phase === 'setup') {
         this.appPhase.set(phase);
       }

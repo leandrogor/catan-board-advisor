@@ -49,7 +49,7 @@ export class BoardLayoutService {
         } else if (posKey === desertKey2) {
           letter = 'L2';
         } else {
-          letter = (letterAssignment.get(posKey) ?? 'A') as HexLetter;
+          letter = letterAssignment.get(posKey) ?? 'A';
         }
 
         const diceNumber = isDesert ? null : (EXT_CATAN_LETTER_VALUES[letter] ?? null);
@@ -75,9 +75,7 @@ export class BoardLayoutService {
         const posKey = `${row}-${col}`;
         const isDesert = posKey === desertKey;
 
-        const letter: HexLetter = isDesert
-          ? 'L1'
-          : ((letterAssignment.get(posKey) ?? 'A') as HexLetter);
+        const letter: HexLetter = isDesert ? 'L1' : (letterAssignment.get(posKey) ?? 'A');
 
         const diceNumber = isDesert ? null : (BASE_CATAN_LETTER_VALUES[letter] ?? null);
         const center = baseHexCenter(row, col, R);

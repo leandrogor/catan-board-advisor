@@ -42,6 +42,6 @@ export class PlayerSetupComponent {
   }
 
   protected asCount(n: number): 3 | 4 | 5 | 6 {
-    return n as 3 | 4 | 5 | 6;
+    return n === 3 || n === 5 || n === 6 ? n : 4;
   }
 }

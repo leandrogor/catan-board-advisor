@@ -8,8 +8,11 @@ export class TranslationService {
   private readonly document = inject(DOCUMENT);
 
   readonly lang = signal<'en' | 'es'>(
-    (localStorage.getItem('catan-lang') as 'en' | 'es') ??
-      (navigator.language.startsWith('es') ? 'es' : 'en'),
+    (() => {
+      const saved = localStorage.getItem('catan-lang');
+      if (saved === 'en' || saved === 'es') return saved;
+      return navigator.language.startsWith('es') ? 'es' : 'en';
+    })(),
   );
   readonly t = computed<Translations>(() => (this.lang() === 'en' ? EN : ES));
 

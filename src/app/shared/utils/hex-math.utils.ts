@@ -1,4 +1,4 @@
-import { HexDefinition } from '../../features/board-advisor/models/hex.model';
+import { HexDefinition, HexLetter } from '../../features/board-advisor/models/hex.model';
 import { Vertex } from '../../features/board-advisor/models/vertex.model';
 import { DesertState } from '../../features/board-advisor/data/ext-catan-board-layout.data';
 
@@ -299,13 +299,13 @@ const EXT_SPIRAL_LETTERS = [
  *
  * @returns Map from `"${row}-${col}"` key → assigned letter string
  */
-export function assignSpiralLetters(desertPositions: DesertState): Map<string, string> {
+export function assignSpiralLetters(desertPositions: DesertState): Map<string, HexLetter> {
   const desertSet = new Set([`${desertPositions.L1.row}-${desertPositions.L1.col}`]);
   if (desertPositions.variant === 'ext') {
     desertSet.add(`${desertPositions.L2.row}-${desertPositions.L2.col}`);
   }
 
-  const result = new Map<string, string>();
+  const result = new Map<string, HexLetter>();
   let letterIdx = 0;
 
   for (const pos of SPIRAL_ORDER) {
@@ -397,9 +397,9 @@ const BASE_SPIRAL_LETTERS = [
 export function assignBaseSpiralLetters(desertPos: {
   row: number;
   col: number;
-}): Map<string, string> {
+}): Map<string, HexLetter> {
   const desertKey = `${desertPos.row}-${desertPos.col}`;
-  const result = new Map<string, string>();
+  const result = new Map<string, HexLetter>();
   let letterIdx = 0;
 
   for (const pos of BASE_SPIRAL_ORDER) {

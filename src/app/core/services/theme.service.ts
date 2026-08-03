@@ -3,12 +3,15 @@ import { Injectable, signal, computed, effect } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly _theme = signal<'light' | 'dark'>(
-    (localStorage.getItem('catan-theme') as 'light' | 'dark') ??
-      (typeof globalThis !== 'undefined' &&
-      typeof globalThis.matchMedia === 'function' &&
-      globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+    (() => {
+      const saved = localStorage.getItem('catan-theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+      return typeof globalThis !== 'undefined' &&
+        typeof globalThis.matchMedia === 'function' &&
+        globalThis.matchMedia('(prefers-color-scheme: dark)').matches
         ? 'dark'
-        : 'light'),
+        : 'light';
+    })(),
   );
   readonly isDark = computed(() => this._theme() === 'dark');
 
