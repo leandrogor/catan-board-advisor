@@ -16,13 +16,20 @@ tspan,
 g,
 path,
 polygon,
-circle {
+circle,
+line {
   user-select: none !important;
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
   -webkit-touch-callout: none !important;
   -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+
+  &:focus,
+  &:focus-visible {
+    outline: none !important;
+  }
 }
 
 .board-wrapper {

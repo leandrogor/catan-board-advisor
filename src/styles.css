@@ -62,7 +62,7 @@ body {
   opacity: 0.65;
 }
 
-/* Disable text selection, callout menus, and tap highlights on the board component */
+/* Disable text selection, callout menus, tap highlights, and focus outlines on the board component */
 app-board,
 app-board * {
   user-select: none !important;
@@ -71,4 +71,10 @@ app-board * {
   -ms-user-select: none !important;
   -webkit-touch-callout: none !important;
   -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+}
+
+app-board *:focus,
+app-board *:focus-visible {
+  outline: none !important;
 }
