@@ -1,11 +1,17 @@
 @if (selectedVertex(); as vertex) {
+  @if (store.panelVisible()) {
+    <div
+      class="fixed inset-0 z-40 bg-transparent lg:hidden"
+      (click)="store.cancelRoadSelection()"
+    ></div>
+  }
   <div
-    class="fixed bottom-0 left-0 right-0 z-50 transform transition-transform duration-300 ease-out lg:relative lg:bottom-auto lg:inset-auto lg:z-auto lg:translate-y-0"
+    class="fixed bottom-0 left-0 right-0 z-50 transform transition-transform duration-300 ease-out pointer-events-none lg:pointer-events-auto lg:relative lg:bottom-auto lg:inset-auto lg:z-auto lg:translate-y-0"
     [class.translate-y-0]="store.panelVisible()"
     [class.translate-y-full]="!store.panelVisible()"
   >
     <div
-      class="mx-auto max-w-lg lg:max-w-none bg-[#faf8f3] dark:bg-slate-800 rounded-t-2xl lg:rounded-2xl shadow-2xl border border-[#e4dccb] dark:border-slate-700 p-5 max-h-[85vh] overflow-y-auto pb-20 lg:pb-5"
+      class="mx-auto max-w-lg lg:max-w-none bg-[#faf8f3] dark:bg-slate-800 rounded-t-2xl lg:rounded-2xl shadow-2xl border border-[#e4dccb] dark:border-slate-700 p-5 max-h-[85vh] overflow-y-auto pb-20 lg:pb-5 pointer-events-auto"
     >
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
