@@ -1,7 +1,7 @@
 # PROJECT_SKILL.md — Catan Board Advisor
 
 > **Purpose**: Onboarding document for AI assistants working on this codebase.
-> **Last updated**: 2026-08-01 (Keyboard shortcuts engine & cheat sheet modal, custom player names, game snapshot v2 with full action stacks, vertex yield inspection & distance-rule hiding, warm parchment light theme, viewport-aware chart tooltips, dev card probability calculation fix for empty draw piles)
+> **Last updated**: 2026-08-02 (Mobile hold-to-act gestures & progress animations, multi-builder radial selection picker, native touch callout protection, edge pickers, win condition freeze checks, customizable road expansion target selector, Escape key hex/vertex deselect)
 
 ---
 
@@ -327,6 +327,10 @@ Deduplication maps vertices using Rounded coordinates to 1 decimal place: `"${Ma
 | `devCardsPlayed`            | `PlayedDevCard[]`                          | `[]`                                | Yes (in snapshot)                |
 | `largestArmyOwnerId`        | `string \| null`                           | `null`                              | Yes (in snapshot)                |
 | `devCardsPanelOpen`         | `boolean`                                  | `false`                             | No                               |
+| `projectionTargetPlayerId`  | `string`                                   | `'me'` (or `'none'`)                | Yes (in snapshot)                |
+| `builderPickerVertexId`     | `string \| null`                           | `null`                              | No (transient overlay state)     |
+| `builderPickerEdge`         | `{ from: string; to: string } \| null`     | `null`                              | No (transient overlay state)     |
+| `builderPickerOptions`      | `BuilderOption[]`                          | `[]`                                | No (transient overlay state)     |
 
 **Computed signals (derived):**
 
@@ -374,7 +378,7 @@ In Catan, the initial settlement setup follows a **snake draft** (e.g., for 4 pl
 
 ---
 
-## 5. SVG Rendering & Drag-and-Drop (board.component.ts + html + scss)
+## 5. SVG Rendering, Drag-and-Drop & Mobile Touch Gestures (board.component.ts + html + scss)
 
 ### Interactive Desert Drag-and-Drop (Pointer Events API)
 
@@ -383,6 +387,24 @@ In Catan, the initial settlement setup follows a **snake draft** (e.g., for 4 pl
 - Touch/mouse drag captures pointer events and renders a translucent ghost preview.
 - Nearby hexes undergo a distance-based hit-test to find the closest drop target.
 - In **Extension Board** mode, dropping a desert on the other desert's position is automatically blocked. Dropping it on an adjacent tile will swap their positions if necessary.
+
+### Hold-to-Act Gestures & Rapid Building Mechanics
+
+- **Hold-to-Act on Intersections & Edges**: Pressing and holding an intersection vertex or edge path for ~400ms - 1s triggers quick placement directly without needing to switch active build tools or navigate drawer panels.
+  - In **Phase 2 (Setup/Draft)**: Rapidly places a settlement (or opens builder picker if multiple colors qualify).
+  - In **Phase 3 (Active Game)**: Upgrades existing settlements to cities, places new settlements on empty connected spots, or builds connecting roads.
+- **Directional Animated Progress Feedback**: Dual-converging animated SVG stroke indicators give visual progress feedback target-locked to the active press location.
+- **Haptic Vibration Feedback**: Fires `navigator.vibrate(40)` upon hold completion on touch-supported mobile devices.
+
+### Multi-Builder Floating Selection Menu (Builder Picker)
+
+- When an intersection or road edge can be built upon by multiple eligible player colors (e.g. in setup or where multiple players' networks converge), a floating radial selection menu (`builderPickerOptions`) renders directly above the target coordinate.
+- Selecting a color executes `confirmBuilderPickerSelection(colorId)`, performing the placement in a single tap while dismissing the overlay.
+
+### Callout & Context Menu Protection
+
+- Added CSS rules (`user-select: none`, `-webkit-touch-callout: none`, `-webkit-user-select: none`) and `@HostListener('contextmenu', ['$event'])` event handlers.
+- Prevents native iOS/Android callout selection popups, long-press web context menus, and copy highlight overlays from disrupting interactive touch gestures.
 
 ### Visual Placements and Runway Indicators
 
@@ -492,10 +514,16 @@ Calculated dynamically in `board-state.store.ts`:
   - If a player holds the card, another player must strictly _exceed_ (not match) their count to claim it.
   - If the owner is surpassed, but there is a tie for first place among challengers, the card returns to the bank.
 
+### Win Condition Freeze & Safety Checks
+
+- `gameWinner()` signal evaluates whether any player reaches $\ge 10$ Victory Points.
+- All placement, building, edge action methods (`buildSettlement`, `placeSettlement`, `upgradeToCity`, `buildRoad`), and valid spot computeds (`validSettlementSpots`, `validCitySpots`, `validRoadEdges`) check `gameWinner()`.
+- Action execution and interactive highlights freeze instantly when a player reaches the victory condition, ensuring state integrity after a win.
+
 ### Snapshot Import/Export Sequence (Version 2)
 
 A JSON snapshot saves the entire setup/game state. The serialization format is version-controlled (`version: 2`).
-Snapshot `v2` preserves full `undoStack` and `redoStack` action states, custom player names, and history logs across sessions.
+Snapshot `v2` preserves full `undoStack` and `redoStack` action states, custom player names, projection target preferences (`projectionTargetPlayerId`), and history logs across sessions.
 To prevent state race conditions, importation follows a strict signal-setting order:
 
 1. `playerCount` (triggers computed `boardVariant` to calculate dimensions).
@@ -504,7 +532,7 @@ To prevent state race conditions, importation follows a strict signal-setting or
 4. `desertState` (recomputes hex grid coordinates and vertices).
 5. Action lists & stacks: `placedSettlements`, `placedRoads`, `currentTurnIndex`, `boardRotationDeg`, `undoStack`, and `redoStack`.
 6. `simulationResult` (re-attaches simulation numbers so vertices can resolve expected yields).
-7. Game active states: `gameActivePlayerId`, `longestRoadOwnerId`, and `largestArmyOwnerId`.
+7. Game active states: `gameActivePlayerId`, `longestRoadOwnerId`, `largestArmyOwnerId`, and `projectionTargetPlayerId`.
 8. Development card configs and logs: `useReducedDeck`, `devCardsPurchased`, and `devCardsPlayed`.
 9. `appPhase` (set LAST to trigger a full UI layout update).
 
@@ -518,23 +546,23 @@ The application provides a global keyboard shortcuts system powered by `Keyboard
 
 - **Context Isolation**: Direct key events are ignored when focus is inside text input fields (`HTMLInputElement`, `HTMLTextAreaElement`, or `isContentEditable`), except for specialized input navigation (e.g. `Enter` / `Tab` in custom player name fields).
 - **Cheat Sheet Modal (`ShortcutsHelpModalComponent`)**: Pressing `?` or `h` toggles the interactive cheat sheet modal listing all keybindings by category with full i18n support.
-- **Backdrop & Escape Controls**: Pressing `Escape` closes active drawers and modals (Help Cheat Sheet, Dev Cards Panel, Hex Info Panel, Vertex Detail Panel, Zoomed Chart).
+- **Backdrop & Escape Controls**: Pressing `Escape` closes active drawers and modals (Help Cheat Sheet, Dev Cards Panel, Hex Info Panel, Vertex Detail Panel, Zoomed Chart), closes open builder pickers (`builderPickerOptions`), and deselects selected hexes (`selectedHexId`) and vertices (`selectedVertexId`).
 
 ### Keybindings Quick Reference
 
-| Key / Combination        | Action / Target Context                                                |
-| ------------------------ | ---------------------------------------------------------------------- |
-| `?` or `h`               | Open / Close Keyboard Shortcuts Cheat Sheet Modal                      |
-| `s`                      | Activate **Settlement** tool (Active Game Phase 3)                     |
-| `c`                      | Activate **City** tool (Active Game Phase 3)                           |
-| `r`                      | Activate **Road** tool (Active Game Phase 3)                           |
-| `d`                      | Toggle **Development Cards** Panel (Active Game Phase 3)               |
-| `1` .. `9`               | Select rank option (1st to 9th) during Snake Draft Placement (Phase 2) |
-| `Ctrl+Z` / `Cmd+Z`       | Undo last action (Phase 1 desert move, Phase 2 draft, Phase 3 build)   |
-| `Ctrl+Y` / `Cmd+Shift+Z` | Redo action                                                            |
-| `Ctrl+O`                 | Trigger Load Snapshot file dialog                                      |
-| `Ctrl+S`                 | Export current session state snapshot `.json`                          |
-| `Escape`                 | Close open modal, panel, or zoomed chart view                          |
+| Key / Combination        | Action / Target Context                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| `?` or `h`               | Open / Close Keyboard Shortcuts Cheat Sheet Modal                                            |
+| `s`                      | Activate **Settlement** tool (Active Game Phase 3)                                           |
+| `c`                      | Activate **City** tool (Active Game Phase 3)                                                 |
+| `r`                      | Activate **Road** tool (Active Game Phase 3)                                                 |
+| `d`                      | Toggle **Development Cards** Panel (Active Game Phase 3)                                     |
+| `1` .. `9`               | Select rank option (1st to 9th) during Snake Draft Placement (Phase 2)                       |
+| `Ctrl+Z` / `Cmd+Z`       | Undo last action (Phase 1 desert move, Phase 2 draft, Phase 3 build)                         |
+| `Ctrl+Y` / `Cmd+Shift+Z` | Redo action                                                                                  |
+| `Ctrl+O`                 | Trigger Load Snapshot file dialog                                                            |
+| `Ctrl+S`                 | Export current session state snapshot `.json`                                                |
+| `Escape`                 | Dismiss modals/pickers & deselect active hex (`selectedHexId`) / vertex (`selectedVertexId`) |
 
 ---
 

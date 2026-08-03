@@ -18,21 +18,28 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
   - **3-4 Players**: Standard Base Board layout (19 hexes, 1 desert, letters A to R).
   - **5-6 Players**: Extension Board layout (30 hexes, 2 deserts, letters A to Zc).
 - **Pointer-Events Drag-and-Drop**: Drag deserts (`L1` and `L2` in extension, or the single desert in base) directly on the board. Token numbers and letters dynamically recalculate their spiral paths counter-clockwise.
+- **Hold-to-Act Gestures & Mobile Quick Actions**:
+  - Touch & hold (~400ms - 1s) on board vertices and edges to build settlements, upgrade to cities, or place roads instantly without tool switching.
+  - **Directional Animated Hold Progress**: Dual-converging animated SVG stroke indicators give visual feedback during hold gestures, paired with haptic vibration (`navigator.vibrate`).
+  - **Multi-Builder Radial Selection Menu**: Interactive floating builder picker overlay when multiple player colors connect to an intersection or edge.
+  - **Native Callout Protection**: Prevents native context menus, text selection popups (`user-select: none`, `-webkit-touch-callout: none`), and long-press browser defaults during gesture interaction.
 - **Monte Carlo Simulation Engine**: Computes $10000$ mini-games of player-count dependent rolls each (80 rolls for 3 players, 100 for 4 players, 125 for 5 players, and 150 for 6 players) in under $25\text{ms}$ (with a 100ms yield to guarantee UI render updates) to yield raw expected resource probabilities per vertex.
 - **Vertex Heatmap & Ranking**: Visualizes optimal intersections using HSL-based heatmaps, highlighting the best spot with pulsing rings, and displaying top ranking slots directly on the board.
 - **Vertex Yield Inspection & Distance-Rule Hiding**: Inspect expected yield on all board intersections while automatically hiding/dimming vertices blocked by Catan's 2-edge distance rule.
 - **Snake Draft Placement Order**: Simulates the standard setup order (e.g. $1 \to 2 \to 3 \to 4 \to 4 \to 3 \to 2 \to 1$). It tracks whose turn it is, alerts you when to pick, and ranks placements on a final leaderboard once complete.
 - **Keyboard Shortcuts & Help Cheat Sheet Modal**:
-  - Global keyboard shortcuts for fast gameplay: `?` / `h` (Cheat Sheet Modal), `s` (Settlement), `c` (City), `r` (Road), `d` (Dev Cards), `1`..`9` (Rank selection in draft), `Ctrl+Z` / `Ctrl+Y` (Undo/Redo), and `ESC` (Modal dismiss).
+  - Global keyboard shortcuts for fast gameplay: `?` / `h` (Cheat Sheet Modal), `s` (Settlement), `c` (City), `r` (Road), `d` (Dev Cards), `1`..`9` (Rank selection in draft), `Ctrl+Z` / `Ctrl+Y` (Undo/Redo), and `ESC` (Modal dismiss, builder picker close, hex & vertex deselect).
 - **Custom Player Names**:
   - Set custom player names during setup or active game scoreboard. Names populate across board tooltips, rankings, turn indicators, and dev card summaries, and are saved in snapshots.
-- **Road Expansion Planner**: Evaluates and suggests the best expansion roads based on projected target settlement scores and distance cost (evaluated in unified transactions with undo/redo support).
-- **Active Game Mode (Phase 3)**:
+- **Road Expansion Planner & Customizable Projections**:
+  - Evaluates and suggests the best expansion roads based on projected target settlement scores and distance cost (evaluated in unified transactions with undo/redo support).
+  - Features customizable projection target player selector (`projectionTargetPlayerId`), secondary option styling, and opponent settlement expansion safety logic.
+- **Active Game Mode (Phase 3) & Win Condition Protection**:
   - Transition from board setup straight into live gameplay.
   - Scoreboard tracking settlements, cities, roads, total Victory Points (VP), and expected production rates.
   - Custom build tools (Settlements, Cities, Roads) with interactive placement highlights and piece limit enforcement (5 settlements, 4 cities, 15 roads).
   - Expected resource production stat reflecting current building counts (settlement = 1x, city = 2x expected resources per roll).
-  - Dynamic game-ending announcement at 10 VP with custom winning color styling.
+  - Dynamic game-ending announcement at 10 VP with custom winning color styling, freezing interactive build actions when a game winner is decided.
 - **Longest Road Award**:
   - DFS-based path analyzer tracking the longest continuous road network for each player.
   - Accounts for blocking rules where opponent settlements cut road connectivity.
