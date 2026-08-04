@@ -587,7 +587,10 @@ pnpm start
 # Production build for GitHub Pages
 pnpm ng build --base-href /catan-board-advisor/ --configuration production
 
-# Run tests
+# Run tests (single run without watch)
+pnpm test:ci
+
+# Run tests (watch mode)
 pnpm test
 
 # Lint
