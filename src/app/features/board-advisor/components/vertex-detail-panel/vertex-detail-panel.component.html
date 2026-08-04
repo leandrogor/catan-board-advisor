@@ -170,7 +170,7 @@
                   <span>🏰</span>
                   <span>{{ i18n.t().upgradeToCity }}</span>
                 </button>
-              } @else {
+              } @else if (isMaxCitiesReached()) {
                 <p class="text-xs text-amber-600 dark:text-amber-400 text-center font-medium py-1">
                   {{ i18n.t().limitCities }}
                 </p>

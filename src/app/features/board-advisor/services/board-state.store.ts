@@ -1454,6 +1454,7 @@ export class BoardStateStore {
 
   upgradeToCity(vertexId: string): void {
     if (this.gameWinner()) return;
+    if (!this.isSetupComplete()) return;
     const colorId =
       this.placedSettlements().find(s => s.vertexId === vertexId)?.playerColorId ?? 'red';
     this.undoStack.update(s => [

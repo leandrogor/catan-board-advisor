@@ -351,6 +351,7 @@ describe('BoardStateStore - Longest Road', () => {
       translationService.lang.set('es');
       store.appPhase.set('game');
       store.gameActivePlayerId.set('red');
+      store.currentTurnIndex.set(store.totalTurns());
 
       store.gameHistory.set([
         {
@@ -382,6 +383,7 @@ describe('BoardStateStore - Longest Road', () => {
 
       // Test English
       translationService.lang.set('en');
+      store.currentTurnIndex.set(store.totalTurns());
       store.gameHistory.set([
         {
           entryId: 'start',
@@ -409,6 +411,17 @@ describe('BoardStateStore - Longest Road', () => {
       history = store.gameHistory();
       expect(history).toHaveSize(2);
       expect(history[1].description).toBe('1 city, 1 card played (Knight)');
+    });
+
+    it('should not allow upgrading settlement to city during initial setup phase', () => {
+      store.appPhase.set('results');
+      store.currentTurnIndex.set(0); // Setup phase incomplete
+      store.placedSettlements.set([{ vertexId: 'v1', playerColorId: 'red', type: 'settlement' }]);
+
+      store.upgradeToCity('v1');
+
+      const settlement = store.placedSettlements().find(s => s.vertexId === 'v1');
+      expect(settlement?.type).toBe('settlement');
     });
   });
 

@@ -43,12 +43,20 @@ export class VertexDetailPanelComponent {
 
   protected readonly canUpgradeToCity = computed(() => {
     if (this.store.gameWinner()) return false;
+    if (!this.store.isSetupComplete()) return false;
     const settlement = this.settlementAtVertex();
     if (!settlement || settlement.type === 'city') return false;
     const ownerId = settlement.playerColorId;
     const counts = this.store.getPlayerPieceCounts(ownerId);
     if (counts.cities >= 4) return false;
     return true;
+  });
+
+  protected readonly isMaxCitiesReached = computed(() => {
+    const settlement = this.settlementAtVertex();
+    if (!settlement || settlement.type === 'city') return false;
+    const counts = this.store.getPlayerPieceCounts(settlement.playerColorId);
+    return counts.cities >= 4;
   });
 
   protected readonly availableBuilderColors = computed<

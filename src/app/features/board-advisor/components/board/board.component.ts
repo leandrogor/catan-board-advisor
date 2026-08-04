@@ -749,6 +749,7 @@ export class BoardComponent {
     if (this.store.isSelectingRoad()) return null;
 
     if (v.isOccupied) {
+      if (!this.store.isSetupComplete()) return null;
       const s = this.store.getSettlementAt(v.id);
       if (s?.type === 'settlement') {
         const counts = this.store.getPlayerPieceCounts(s.playerColorId);
