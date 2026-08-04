@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { KeyboardShortcutsService } from './keyboard-shortcuts.service';
 import { BoardStateStore } from '../../features/board-advisor/services/board-state.store';
 import { ThemeService } from './theme.service';
+import { Vertex } from '../../features/board-advisor/models/vertex.model';
 
 describe('KeyboardShortcutsService', () => {
   let service: KeyboardShortcutsService;
@@ -114,5 +115,31 @@ describe('KeyboardShortcutsService', () => {
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true }));
     expect(store.startGamePhase).toHaveBeenCalledTimes(2);
+  });
+
+  it('should select ranked vertex or fallback to highest lower rank when key rank has no matches', () => {
+    spyOn(store, 'isSetupComplete').and.returnValue(false);
+    spyOn(store, 'selectVertex');
+    store.appPhase.set('results');
+
+    const mockVertices = [
+      { id: 'v-1', rank: 1 },
+      { id: 'v-2', rank: 2 },
+      { id: 'v-3', rank: 3 },
+      { id: 'v-4a', rank: 4 },
+      { id: 'v-4b', rank: 4 },
+      { id: 'v-6', rank: 6 },
+    ] as Vertex[];
+    spyOn(store, 'rankedVertices').and.returnValue(mockVertices);
+
+    // Pressing '4' when nothing is selected selects 'v-4a'
+    store.selectedVertexId.set(null);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '4', cancelable: true }));
+    expect(store.selectVertex).toHaveBeenCalledWith('v-4a');
+
+    // Pressing '5' when 'v-4a' is selected falls back to rank 4 and cycles to 'v-4b'
+    store.selectedVertexId.set('v-4a');
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '5', cancelable: true }));
+    expect(store.selectVertex).toHaveBeenCalledWith('v-4b');
   });
 });

@@ -304,9 +304,19 @@ export class KeyboardShortcutsService {
 
       // Number keys 1-9 select/cycle ranked vertices
       if (!ctrlOrCmd && key >= '1' && key <= '9') {
-        const rank = Number(key);
+        const targetRank = Number(key);
         const rankedVertices = this.store.rankedVertices();
-        const rankMatches = rankedVertices.filter(v => v.rank === rank);
+        let rankMatches = rankedVertices.filter(v => v.rank === targetRank);
+
+        if (rankMatches.length === 0) {
+          const lowerRanks = rankedVertices
+            .map(v => v.rank)
+            .filter((r): r is number => r !== null && r < targetRank);
+          if (lowerRanks.length > 0) {
+            const fallbackRank = Math.max(...lowerRanks);
+            rankMatches = rankedVertices.filter(v => v.rank === fallbackRank);
+          }
+        }
 
         if (rankMatches.length > 0) {
           event.preventDefault();
