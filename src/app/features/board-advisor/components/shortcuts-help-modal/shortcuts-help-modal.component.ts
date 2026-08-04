@@ -51,7 +51,7 @@ export class ShortcutsHelpModalComponent {
     if (phase === 'results' && !isSetupComplete) {
       return [
         { key: '1 - 9', label: t.shortcutsItemSelectRankedVertex },
-        { key: 'Enter', label: t.shortcutsItemConfirmSettlement },
+        { key: 'Enter / Space', label: t.shortcutsItemConfirmSettlement },
         { key: '1, 2, 3', label: t.shortcutsItemSelectRoadDir },
         { key: 'Esc', label: t.shortcutsItemCancelPlacement },
       ];

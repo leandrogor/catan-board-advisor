@@ -50,7 +50,7 @@ export class KeyboardShortcutsService {
     const ctrlOrCmd = event.ctrlKey || event.metaKey;
     const shortcuts = this.i18n.t().shortcuts;
 
-    // ── 2. Zoomed Chart Modal Shortcuts (Escape, Tab, Enter) ─────────
+    // ── 2. Zoomed Chart Modal Shortcuts (Escape, Tab, Enter / Space) ─────────
     if (this.store.zoomedChart() !== null) {
       if (key === 'escape') {
         event.preventDefault();
@@ -62,7 +62,7 @@ export class KeyboardShortcutsService {
         this.store.zoomedChart.update(type => (type === 'vp' ? 'prod' : 'vp'));
         return;
       }
-      if (key === 'enter') {
+      if (key === 'enter' || key === ' ' || key === 'spacebar') {
         event.preventDefault();
         this.store.toggleChartZoomMode();
         return;
@@ -280,7 +280,7 @@ export class KeyboardShortcutsService {
 
     // ── 5. Phase 2 Setup Placement & Road Selection Shortcuts ─────────
     if (this.store.appPhase() === 'results' && !this.store.isSetupComplete()) {
-      // Road Selection Active: 1, 2, 3 choose road option, Enter selects option #1
+      // Road Selection Active: 1, 2, 3 choose road option, Enter / Space selects option #1
       if (this.store.isSelectingRoad()) {
         if (!ctrlOrCmd && ['1', '2', '3'].includes(key)) {
           const roadIdx = Number(key) - 1;
@@ -292,7 +292,7 @@ export class KeyboardShortcutsService {
           return;
         }
 
-        if (key === 'enter') {
+        if (key === 'enter' || key === ' ' || key === 'spacebar') {
           const options = this.store.currentRoadOptions();
           if (options[0]) {
             event.preventDefault();
@@ -325,8 +325,8 @@ export class KeyboardShortcutsService {
         }
       }
 
-      // Enter key in placement phase (when not selecting road yet)
-      if (key === 'enter') {
+      // Enter or Space key in placement phase (when not selecting road yet)
+      if (key === 'enter' || key === ' ' || key === 'spacebar') {
         if (!this.store.isSelectingRoad() && this.store.selectedVertexId()) {
           event.preventDefault();
           this.store.startSelectingRoad(this.store.selectedVertexId()!);
@@ -417,8 +417,12 @@ export class KeyboardShortcutsService {
       }
     }
 
-    // Final Classification Phase Enter -> Continue Game
-    if (key === 'enter' && this.store.appPhase() === 'results' && this.store.isSetupComplete()) {
+    // Final Classification Phase Enter / Space -> Continue Game
+    if (
+      (key === 'enter' || key === ' ' || key === 'spacebar') &&
+      this.store.appPhase() === 'results' &&
+      this.store.isSetupComplete()
+    ) {
       event.preventDefault();
       this.store.startGamePhase();
     }

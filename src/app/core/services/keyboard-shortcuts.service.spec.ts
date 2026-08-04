@@ -78,4 +78,41 @@ describe('KeyboardShortcutsService', () => {
     window.dispatchEvent(event);
     expect(store.selectVertex).toHaveBeenCalledWith(null);
   });
+
+  it('should handle both Enter and Space to toggle chart zoom mode when chart is zoomed', () => {
+    spyOn(store, 'toggleChartZoomMode');
+    store.zoomedChart.set('vp');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+    expect(store.toggleChartZoomMode).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true }));
+    expect(store.toggleChartZoomMode).toHaveBeenCalledTimes(2);
+  });
+
+  it('should handle both Enter and Space to start road selection in placement phase', () => {
+    spyOn(store, 'startSelectingRoad');
+    spyOn(store, 'isSetupComplete').and.returnValue(false);
+    store.appPhase.set('results');
+    store.selectedVertexId.set('vertex-5');
+    store.isSelectingRoad.set(false);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+    expect(store.startSelectingRoad).toHaveBeenCalledWith('vertex-5');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true }));
+    expect(store.startSelectingRoad).toHaveBeenCalledWith('vertex-5');
+  });
+
+  it('should handle both Enter and Space to start game phase when setup is complete', () => {
+    spyOn(store, 'startGamePhase');
+    spyOn(store, 'isSetupComplete').and.returnValue(true);
+    store.appPhase.set('results');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+    expect(store.startGamePhase).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true }));
+    expect(store.startGamePhase).toHaveBeenCalledTimes(2);
+  });
 });
