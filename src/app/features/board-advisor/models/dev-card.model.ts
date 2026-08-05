@@ -40,10 +40,10 @@ export const BASE_DECK: DevCardDeckConfig = {
 /** All dev card types in display order. */
 export const DEV_CARD_TYPES: DevCardType[] = [
   'knight',
-  'victoryPoint',
-  'monopoly',
   'roadBuilding',
   'yearOfPlenty',
+  'monopoly',
+  'victoryPoint',
 ];
 
 /** Record of a card that was played/revealed by a player. */

@@ -166,8 +166,14 @@ export const ES: Translations = {
   // Snapshot
   saveSnapshot: '💾 Guardar Snapshot',
   loadSnapshot: '📂 Cargar Snapshot',
-  // Development Cards
   devCardsTitle: 'Cartas de Desarrollo',
+  devCardsTabQuickActions: 'Acciones Rápidas',
+  devCardsTabDeckStats: 'Mazo y Probabilidades',
+  devCardsByPlayer: 'POR JUGADOR',
+  devCardsInHandBadge: (count: number): string => `${count} en mano`,
+  devCardsDeckLabel: 'Mazo',
+  toastDevCardBought: (name: string): string => `${name} compró carta de desarrollo`,
+  toastDevCardPlayed: (name: string, cardName: string): string => `${name} usó carta: ${cardName}`,
   devCardsPurchase: 'Comprar Carta',
   devCardsPlay: 'Jugar Carta:',
   devCardKnight: 'Caballero',

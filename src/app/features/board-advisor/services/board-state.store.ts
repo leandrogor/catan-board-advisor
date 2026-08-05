@@ -55,6 +55,9 @@ export interface ExpansionSuggestion {
 @Injectable({ providedIn: 'root' })
 export class BoardStateStore {
   private readonly translationService = inject(TranslationService);
+  private get i18n() {
+    return this.translationService;
+  }
 
   readonly gameHistory = signal<GameHistoryEntry[]>([]);
   readonly gameStatsPanelOpen = signal<boolean>(false);
@@ -144,6 +147,18 @@ export class BoardStateStore {
   readonly largestArmyOwnerId = signal<string | null>(null);
   /** Controls visibility of the dev cards info panel drawer. */
   readonly devCardsPanelOpen = signal<boolean>(false);
+  /** Active tab for the dev cards panel ('actions' or 'stats'). */
+  readonly devCardsPanelTab = signal<'actions' | 'stats'>('actions');
+  /** Active tab for the game stats panel ('progress' or 'projection'). */
+  readonly gameStatsPanelTab = signal<'progress' | 'projection'>('progress');
+  /** Global action toast notification (e.g. card purchases/plays). */
+  readonly actionToast = signal<{
+    id: number;
+    playerHex: string;
+    playerName: string;
+    message: string;
+  } | null>(null);
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // ── Road selection state ───────────────────────────────────────────────────
   readonly isSelectingRoad = signal<boolean>(false);
@@ -256,6 +271,12 @@ export class BoardStateStore {
   readonly remainingTotal = computed<number>(() => {
     const r = this.remainingByType();
     return DEV_CARD_TYPES.reduce((sum, t) => sum + r[t], 0);
+  });
+
+  /** Total cards remaining in the deck available to buy (remainingTotal - total in all hands). */
+  readonly cardsInPile = computed<number>(() => {
+    const inHand = Object.values(this.devCardsPurchased()).reduce((s, n) => s + n, 0);
+    return Math.max(0, this.remainingTotal() - inHand);
   });
 
   /**
@@ -2065,6 +2086,45 @@ export class BoardStateStore {
     this.isChartZoomMode.update(v => !v);
   }
 
+  toggleDevCardsPanel(): void {
+    this.devCardsPanelOpen.update(v => {
+      const next = !v;
+      if (next) {
+        this.devCardsPanelTab.set('actions');
+      }
+      return next;
+    });
+  }
+
+  toggleDevCardsTab(): void {
+    this.devCardsPanelTab.update(t => (t === 'actions' ? 'stats' : 'actions'));
+  }
+
+  toggleGameStatsTab(): void {
+    this.gameStatsPanelTab.update(t => (t === 'progress' ? 'projection' : 'progress'));
+  }
+
+  showActionToast(playerColorId: string, message: string): void {
+    const color = this.playerColors().find(c => c.id === playerColorId);
+    const hex = color ? color.hex : '#8b5cf6';
+    const name = this.getPlayerName(playerColorId);
+
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+
+    this.actionToast.set({
+      id: Date.now(),
+      playerHex: hex,
+      playerName: name,
+      message,
+    });
+
+    this.toastTimeout = setTimeout(() => {
+      this.actionToast.set(null);
+    }, 2500);
+  }
+
   /**
    * Records that a player purchased a development card (unspecified type).
    * Increments their in-hand counter.
@@ -2095,6 +2155,9 @@ export class BoardStateStore {
       [playerColorId]: (current[playerColorId] ?? 0) + 1,
     }));
     this.updateHistoryLog(playerColorId);
+
+    const playerName = this.getPlayerName(playerColorId);
+    this.showActionToast(playerColorId, this.i18n.t().toastDevCardBought(playerName));
   }
 
   /**
@@ -2139,6 +2202,18 @@ export class BoardStateStore {
       this.recalculateLargestArmyOwner();
     }
     this.updateHistoryLog(playerColorId);
+
+    const t = this.i18n.t();
+    const cardMap: Record<DevCardType, string> = {
+      knight: t.devCardKnight,
+      victoryPoint: t.devCardVictoryPoint,
+      monopoly: t.devCardMonopoly,
+      roadBuilding: t.devCardRoadBuilding,
+      yearOfPlenty: t.devCardYearOfPlenty,
+    };
+    const cardName = cardMap[type] ?? type;
+    const name = this.getPlayerName(playerColorId);
+    this.showActionToast(playerColorId, t.toastDevCardPlayed(name, cardName));
   }
 
   /**

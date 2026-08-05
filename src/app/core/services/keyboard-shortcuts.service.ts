@@ -142,11 +142,6 @@ export class KeyboardShortcutsService {
       }
     }
 
-    // Block all other shortcuts if a modal drawer is currently open
-    if (this.store.devCardsPanelOpen() || this.store.gameStatsPanelOpen()) {
-      return;
-    }
-
     // ── 3. Global Undo & Redo (Ctrl+Z / Ctrl+Y) ───────────────────────
     if (ctrlOrCmd && key === 'z') {
       event.preventDefault();
@@ -161,6 +156,25 @@ export class KeyboardShortcutsService {
     if (ctrlOrCmd && key === 'y') {
       event.preventDefault();
       this.store.redo();
+      return;
+    }
+
+    // ── Tab Key for Modal Tab Toggling ──────────────────────────────────
+    if (key === 'tab') {
+      if (this.store.devCardsPanelOpen()) {
+        event.preventDefault();
+        this.store.toggleDevCardsTab();
+        return;
+      }
+      if (this.store.gameStatsPanelOpen()) {
+        event.preventDefault();
+        this.store.toggleGameStatsTab();
+        return;
+      }
+    }
+
+    // Block all other shortcuts if a modal drawer is currently open
+    if (this.store.devCardsPanelOpen() || this.store.gameStatsPanelOpen()) {
       return;
     }
 
@@ -392,10 +406,10 @@ export class KeyboardShortcutsService {
           event.preventDefault();
           const cardTypeMap: Record<string, DevCardType> = {
             '1': 'knight',
-            '2': 'victoryPoint',
-            '3': 'monopoly',
-            '4': 'roadBuilding',
-            '5': 'yearOfPlenty',
+            '2': 'roadBuilding',
+            '3': 'yearOfPlenty',
+            '4': 'monopoly',
+            '5': 'victoryPoint',
           };
           const cardType = cardTypeMap[key];
           if (cardType) {

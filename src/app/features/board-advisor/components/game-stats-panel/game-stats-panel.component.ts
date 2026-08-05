@@ -60,7 +60,9 @@ export class GameStatsPanelComponent {
   protected readonly i18n = inject(TranslationService);
   private readonly injector = inject(Injector);
 
-  protected readonly activeTab = signal<'progress' | 'projection'>('progress');
+  protected get activeTab() {
+    return this.store.gameStatsPanelTab;
+  }
   protected get zoomedChart() {
     return this.store.zoomedChart;
   }

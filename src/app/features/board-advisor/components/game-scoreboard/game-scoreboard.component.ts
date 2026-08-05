@@ -42,10 +42,10 @@ export class GameScoreboardComponent {
     labelKey: keyof ReturnType<TranslationService['t']>;
   }[] = [
     { type: 'knight', emoji: '⚔️', labelKey: 'devCardKnight' },
-    { type: 'victoryPoint', emoji: '🏆', labelKey: 'devCardVictoryPoint' },
-    { type: 'monopoly', emoji: '🔄', labelKey: 'devCardMonopoly' },
     { type: 'roadBuilding', emoji: '🛤️', labelKey: 'devCardRoadBuilding' },
     { type: 'yearOfPlenty', emoji: '💡', labelKey: 'devCardYearOfPlenty' },
+    { type: 'monopoly', emoji: '🔄', labelKey: 'devCardMonopoly' },
+    { type: 'victoryPoint', emoji: '🏆', labelKey: 'devCardVictoryPoint' },
   ];
 
   protected readonly scoreboardRows = computed(() => {

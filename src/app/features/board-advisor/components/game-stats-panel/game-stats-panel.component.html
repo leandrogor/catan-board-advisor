@@ -40,7 +40,7 @@
           [class.text-slate-500]="activeTab() !== 'progress'"
           [class.dark:text-slate-400]="activeTab() !== 'progress'"
           [class.hover:text-slate-700]="activeTab() !== 'progress'"
-          (click)="activeTab.set('progress'); clearTooltip()"
+          (click)="store.gameStatsPanelTab.set('progress'); clearTooltip()"
         >
           📈 {{ i18n.t().statsTabProgress }}
         </button>
@@ -55,7 +55,7 @@
           [class.text-slate-500]="activeTab() !== 'projection'"
           [class.dark:text-slate-400]="activeTab() !== 'projection'"
           [class.hover:text-slate-700]="activeTab() !== 'projection'"
-          (click)="activeTab.set('projection'); clearTooltip()"
+          (click)="store.gameStatsPanelTab.set('projection'); clearTooltip()"
         >
           🔮 {{ i18n.t().statsTabProjection }}
         </button>

@@ -235,6 +235,13 @@ export interface Translations {
   devCardsTableTotal: string;
   devCardsTablePlayed: string;
   devCardsTableRemaining: string;
+  devCardsTabQuickActions: string;
+  devCardsTabDeckStats: string;
+  devCardsByPlayer: string;
+  devCardsInHandBadge: (count: number) => string;
+  devCardsDeckLabel: string;
+  toastDevCardBought: (name: string) => string;
+  toastDevCardPlayed: (name: string, cardName: string) => string;
   // Scoreboard titles & accessibility
   longestRoadTitle: string;
   largestArmyTitle: string;
@@ -422,6 +429,14 @@ export const EN: Translations = {
   loadSnapshot: '📂 Load Snapshot',
   // Development Cards
   devCardsTitle: 'Development Cards',
+  devCardsTabQuickActions: 'Quick Actions',
+  devCardsTabDeckStats: 'Deck & Probabilities',
+  devCardsByPlayer: 'BY PLAYER',
+  devCardsInHandBadge: (count: number): string => `${count} in hand`,
+  devCardsDeckLabel: 'Deck',
+  toastDevCardBought: (name: string): string => `${name} bought a development card`,
+  toastDevCardPlayed: (name: string, cardName: string): string =>
+    `${name} played card: ${cardName}`,
   devCardsPurchase: 'Buy Dev Card',
   devCardsPlay: 'Play Card:',
   devCardKnight: 'Knight',

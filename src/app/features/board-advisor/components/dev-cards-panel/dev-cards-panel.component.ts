@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, effect } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
@@ -12,6 +12,12 @@ interface CardTypeDisplay {
   hexColor: string; // actual hex for SVG
 }
 
+export interface QuickActionCardDef {
+  type: DevCardType;
+  emoji: string;
+  shortName: string;
+}
+
 @Component({
   selector: 'app-dev-cards-panel',
   templateUrl: './dev-cards-panel.component.html',
@@ -22,12 +28,35 @@ export class DevCardsPanelComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
 
+  constructor() {
+    effect(() => {
+      if (this.store.devCardsPanelOpen()) {
+        this.store.devCardsPanelTab.set('actions');
+      }
+    });
+  }
+
+  protected get activeTab() {
+    return this.store.devCardsPanelTab;
+  }
+
+  protected readonly ACTION_CARDS = computed(() => {
+    const t = this.i18n.t();
+    return [
+      { type: 'knight' as DevCardType, emoji: '⚔️', label: t.devCardKnight },
+      { type: 'roadBuilding' as DevCardType, emoji: '🛤️', label: t.devCardRoadBuilding },
+      { type: 'yearOfPlenty' as DevCardType, emoji: '💡', label: t.devCardYearOfPlenty },
+      { type: 'monopoly' as DevCardType, emoji: '🔄', label: t.devCardMonopoly },
+      { type: 'victoryPoint' as DevCardType, emoji: '🏆', label: t.devCardVictoryPoint },
+    ];
+  });
+
   protected readonly CARD_TYPES: CardTypeDisplay[] = [
     { type: 'knight', emoji: '⚔️', color: 'bg-rose-500', hexColor: '#ef4444' },
-    { type: 'victoryPoint', emoji: '🏆', color: 'bg-amber-500', hexColor: '#f59e0b' },
-    { type: 'monopoly', emoji: '🔄', color: 'bg-blue-500', hexColor: '#3b82f6' },
     { type: 'roadBuilding', emoji: '🛤️', color: 'bg-emerald-500', hexColor: '#10b981' },
     { type: 'yearOfPlenty', emoji: '💡', color: 'bg-violet-500', hexColor: '#8b5cf6' },
+    { type: 'monopoly', emoji: '🔄', color: 'bg-blue-500', hexColor: '#3b82f6' },
+    { type: 'victoryPoint', emoji: '🏆', color: 'bg-amber-500', hexColor: '#f59e0b' },
   ];
 
   protected readonly deckTotal = computed(() => this.store.activeDeckConfig().total);
@@ -105,6 +134,30 @@ export class DevCardsPanelComponent {
 
   protected close(): void {
     this.store.devCardsPanelOpen.set(false);
+  }
+
+  protected onPurchase(colorId: string): void {
+    this.store.purchaseDevCard(colorId);
+  }
+
+  protected onPlay(colorId: string, type: DevCardType): void {
+    this.store.playDevCard(colorId, type);
+  }
+
+  protected canPurchase(): boolean {
+    return this.cardsInPile() > 0;
+  }
+
+  protected canPlay(colorId: string, type: DevCardType): boolean {
+    const inHand = this.store.devCardsPurchased()[colorId] ?? 0;
+    if (inHand <= 0) return false;
+    const played = this.store.totalPlayedByType()[type] ?? 0;
+    const deckMax = this.store.activeDeckConfig()[type] ?? 0;
+    return played < deckMax;
+  }
+
+  protected getInHandCount(colorId: string): number {
+    return this.store.devCardsPurchased()[colorId] ?? 0;
   }
 
   /** Expose DEV_CARD_TYPES for template iteration. */
