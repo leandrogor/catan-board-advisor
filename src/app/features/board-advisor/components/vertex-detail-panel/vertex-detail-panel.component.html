@@ -22,7 +22,14 @@
               📍 {{ i18n.t().selectRoadDirection }}
             </span>
           } @else {
-            @if (vertex.rank) {
+            @if (vertex.isOccupied) {
+              <span
+                class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs shadow-xs border border-white/20 shrink-0 text-white"
+                [style.backgroundColor]="ownerColorHex()"
+              >
+                {{ settlementAtVertex()?.type === 'city' ? '🏰' : '🏠' }}
+              </span>
+            } @else if (vertex.rank) {
               <span
                 class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold"
                 [class]="
@@ -36,10 +43,10 @@
             }
             <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">
               {{
-                vertex.rank === 1
-                  ? i18n.t().bestPosition
-                  : vertex.isOccupied
-                    ? i18n.t().occupied
+                vertex.isOccupied
+                  ? i18n.t().occupied
+                  : vertex.rank === 1
+                    ? i18n.t().bestPosition
                     : vertex.isBlocked
                       ? i18n.t().blocked
                       : vertex.rank

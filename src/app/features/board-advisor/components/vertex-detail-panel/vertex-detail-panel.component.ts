@@ -1,6 +1,8 @@
 import { Component, inject, computed } from '@angular/core';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
+import { ThemeService } from '../../../../core/services/theme.service';
+import { getPlayerDisplayColor } from '../../models/player-color.model';
 import { HexDefinition } from '../../models/hex.model';
 
 @Component({
@@ -10,6 +12,7 @@ import { HexDefinition } from '../../models/hex.model';
 export class VertexDetailPanelComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
+  protected readonly theme = inject(ThemeService);
 
   protected readonly selectedVertex = computed(() => {
     const id = this.store.selectedVertexId() ?? this.store.pendingSettlementVertexId();
@@ -21,6 +24,12 @@ export class VertexDetailPanelComponent {
     const vertex = this.selectedVertex();
     if (!vertex) return null;
     return this.store.getSettlementAt(vertex.id) ?? null;
+  });
+
+  protected readonly ownerColorHex = computed(() => {
+    const settlement = this.settlementAtVertex();
+    if (!settlement) return '#6366f1';
+    return getPlayerDisplayColor(settlement.playerColorId, this.theme.isDark());
   });
 
   protected readonly playerPieceCounts = computed(() => {
