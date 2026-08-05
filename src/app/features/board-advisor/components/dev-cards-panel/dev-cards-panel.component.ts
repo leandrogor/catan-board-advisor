@@ -2,8 +2,9 @@ import { Component, inject, computed, effect } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
+import { ThemeService } from '../../../../core/services/theme.service';
 import { DevCardType, DEV_CARD_TYPES } from '../../models/dev-card.model';
-import { PlayerColor } from '../../models/player-color.model';
+import { PlayerColor, getPlayerDisplayColor } from '../../models/player-color.model';
 
 interface CardTypeDisplay {
   type: DevCardType;
@@ -27,6 +28,7 @@ export interface QuickActionCardDef {
 export class DevCardsPanelComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
+  protected readonly theme = inject(ThemeService);
 
   constructor() {
     effect(() => {
@@ -158,6 +160,14 @@ export class DevCardsPanelComponent {
 
   protected getInHandCount(colorId: string): number {
     return this.store.devCardsPurchased()[colorId] ?? 0;
+  }
+
+  protected getPlayerColorHex(colorId: string): string {
+    return getPlayerDisplayColor(colorId, this.theme.isDark());
+  }
+
+  protected isLightColor(colorId: string): boolean {
+    return colorId === 'cream' || (colorId === 'mustard' && this.theme.isDark());
   }
 
   /** Expose DEV_CARD_TYPES for template iteration. */

@@ -9,14 +9,14 @@
       <!-- Dev Cards Floating Quick Trigger Button (Bottom Right of Board Area) -->
       <button
         type="button"
-        class="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-30 flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20 select-none"
+        class="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#faf8f3]/95 dark:bg-slate-800/95 text-indigo-700 dark:text-indigo-300 font-bold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[#e4dccb] dark:border-slate-700 backdrop-blur-md select-none"
         (click)="store.toggleDevCardsPanel()"
         [attr.aria-label]="i18n.t().devCardsTitle"
         [title]="i18n.t().devCardsTitle"
       >
         <span class="text-base leading-none">🃏</span>
         <span
-          class="inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-extrabold rounded-full bg-white/25 text-white leading-none min-w-4"
+          class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-extrabold rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 leading-none min-w-4"
         >
           {{ store.cardsInPile() }}
         </span>

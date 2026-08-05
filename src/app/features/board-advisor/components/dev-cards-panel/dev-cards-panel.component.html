@@ -166,7 +166,7 @@
                   <div class="flex flex-col items-center justify-center min-w-0 px-0.5">
                     <span
                       class="w-3.5 h-3.5 rounded-full ring-1 ring-white dark:ring-slate-600 shadow-xs mb-0.5 shrink-0"
-                      [style.background-color]="color.hex"
+                      [style.background-color]="getPlayerColorHex(color.id)"
                     ></span>
                     <span
                       class="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate max-w-12 sm:max-w-16 text-center mb-1"
@@ -210,6 +210,7 @@
                 }
 
                 <!-- Row 1: Buy -->
+                @let purchasable = canPurchase();
                 <div
                   class="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center justify-end gap-1 pr-1 shrink-0"
                 >
@@ -220,11 +221,19 @@
                   <div class="flex items-center justify-center">
                     <button
                       type="button"
-                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base shadow-md transition-all duration-150 border border-white/30 text-white cursor-pointer hover:scale-110 active:scale-90 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      [style.background-color]="color.hex"
-                      [disabled]="!canPurchase()"
+                      [disabled]="!purchasable"
                       (click)="onPurchase(color.id)"
                       [title]="i18n.t().devCardsPurchase + ' — ' + colorName(color)"
+                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base transition-all duration-150 border"
+                      [class]="
+                        purchasable
+                          ? 'shadow-sm hover:shadow-md hover:scale-110 active:scale-90 border-white/30 cursor-pointer'
+                          : 'bg-slate-100 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 border-slate-200/60 dark:border-slate-700/40 cursor-not-allowed opacity-40 shadow-none'
+                      "
+                      [style.background-color]="purchasable ? getPlayerColorHex(color.id) : null"
+                      [style.color]="
+                        purchasable ? (isLightColor(color.id) ? '#0f172a' : '#ffffff') : null
+                      "
                     >
                       🛒
                     </button>
@@ -243,11 +252,19 @@
                   <div class="flex items-center justify-center">
                     <button
                       type="button"
-                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base shadow-md transition-all duration-150 border border-white/30 text-white cursor-pointer hover:scale-110 active:scale-90 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      [style.background-color]="color.hex"
                       [disabled]="!isPlayable"
                       (click)="onPlay(color.id, 'knight')"
                       [title]="i18n.t().devCardKnight + ' — ' + colorName(color)"
+                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base transition-all duration-150 border"
+                      [class]="
+                        isPlayable
+                          ? 'shadow-sm hover:shadow-md hover:scale-110 active:scale-90 border-white/30 cursor-pointer'
+                          : 'bg-slate-100 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 border-slate-200/60 dark:border-slate-700/40 cursor-not-allowed opacity-40 shadow-none'
+                      "
+                      [style.background-color]="isPlayable ? getPlayerColorHex(color.id) : null"
+                      [style.color]="
+                        isPlayable ? (isLightColor(color.id) ? '#0f172a' : '#ffffff') : null
+                      "
                     >
                       ⚔️
                     </button>
@@ -266,11 +283,19 @@
                   <div class="flex items-center justify-center">
                     <button
                       type="button"
-                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base shadow-md transition-all duration-150 border border-white/30 text-white cursor-pointer hover:scale-110 active:scale-90 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      [style.background-color]="color.hex"
                       [disabled]="!isPlayable"
                       (click)="onPlay(color.id, 'roadBuilding')"
                       [title]="i18n.t().devCardRoadBuilding + ' — ' + colorName(color)"
+                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base transition-all duration-150 border"
+                      [class]="
+                        isPlayable
+                          ? 'shadow-sm hover:shadow-md hover:scale-110 active:scale-90 border-white/30 cursor-pointer'
+                          : 'bg-slate-100 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 border-slate-200/60 dark:border-slate-700/40 cursor-not-allowed opacity-40 shadow-none'
+                      "
+                      [style.background-color]="isPlayable ? getPlayerColorHex(color.id) : null"
+                      [style.color]="
+                        isPlayable ? (isLightColor(color.id) ? '#0f172a' : '#ffffff') : null
+                      "
                     >
                       🛤️
                     </button>
@@ -289,11 +314,19 @@
                   <div class="flex items-center justify-center">
                     <button
                       type="button"
-                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base shadow-md transition-all duration-150 border border-white/30 text-white cursor-pointer hover:scale-110 active:scale-90 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      [style.background-color]="color.hex"
                       [disabled]="!isPlayable"
                       (click)="onPlay(color.id, 'yearOfPlenty')"
                       [title]="i18n.t().devCardYearOfPlenty + ' — ' + colorName(color)"
+                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base transition-all duration-150 border"
+                      [class]="
+                        isPlayable
+                          ? 'shadow-sm hover:shadow-md hover:scale-110 active:scale-90 border-white/30 cursor-pointer'
+                          : 'bg-slate-100 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 border-slate-200/60 dark:border-slate-700/40 cursor-not-allowed opacity-40 shadow-none'
+                      "
+                      [style.background-color]="isPlayable ? getPlayerColorHex(color.id) : null"
+                      [style.color]="
+                        isPlayable ? (isLightColor(color.id) ? '#0f172a' : '#ffffff') : null
+                      "
                     >
                       💡
                     </button>
@@ -312,11 +345,19 @@
                   <div class="flex items-center justify-center">
                     <button
                       type="button"
-                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base shadow-md transition-all duration-150 border border-white/30 text-white cursor-pointer hover:scale-110 active:scale-90 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      [style.background-color]="color.hex"
                       [disabled]="!isPlayable"
                       (click)="onPlay(color.id, 'monopoly')"
                       [title]="i18n.t().devCardMonopoly + ' — ' + colorName(color)"
+                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base transition-all duration-150 border"
+                      [class]="
+                        isPlayable
+                          ? 'shadow-sm hover:shadow-md hover:scale-110 active:scale-90 border-white/30 cursor-pointer'
+                          : 'bg-slate-100 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 border-slate-200/60 dark:border-slate-700/40 cursor-not-allowed opacity-40 shadow-none'
+                      "
+                      [style.background-color]="isPlayable ? getPlayerColorHex(color.id) : null"
+                      [style.color]="
+                        isPlayable ? (isLightColor(color.id) ? '#0f172a' : '#ffffff') : null
+                      "
                     >
                       🔄
                     </button>
@@ -335,11 +376,19 @@
                   <div class="flex items-center justify-center">
                     <button
                       type="button"
-                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base shadow-md transition-all duration-150 border border-white/30 text-white cursor-pointer hover:scale-110 active:scale-90 disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      [style.background-color]="color.hex"
                       [disabled]="!isPlayable"
                       (click)="onPlay(color.id, 'victoryPoint')"
                       [title]="i18n.t().devCardVictoryPoint + ' — ' + colorName(color)"
+                      class="w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm sm:text-base transition-all duration-150 border"
+                      [class]="
+                        isPlayable
+                          ? 'shadow-sm hover:shadow-md hover:scale-110 active:scale-90 border-white/30 cursor-pointer'
+                          : 'bg-slate-100 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 border-slate-200/60 dark:border-slate-700/40 cursor-not-allowed opacity-40 shadow-none'
+                      "
+                      [style.background-color]="isPlayable ? getPlayerColorHex(color.id) : null"
+                      [style.color]="
+                        isPlayable ? (isLightColor(color.id) ? '#0f172a' : '#ffffff') : null
+                      "
                     >
                       🏆
                     </button>
