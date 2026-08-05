@@ -162,21 +162,49 @@
                   class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right pr-1"
                 ></div>
                 @for (color of store.playerColors(); track color.id) {
-                  <div class="flex flex-col items-center justify-center min-w-0 px-1">
+                  @let count = getInHandCount(color.id);
+                  <div class="flex flex-col items-center justify-center min-w-0 px-0.5">
                     <span
-                      class="w-3.5 h-3.5 rounded-full ring-1 ring-white dark:ring-slate-600 shadow-xs mb-0.5"
+                      class="w-3.5 h-3.5 rounded-full ring-1 ring-white dark:ring-slate-600 shadow-xs mb-0.5 shrink-0"
                       [style.background-color]="color.hex"
                     ></span>
                     <span
-                      class="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate max-w-12 sm:max-w-16 text-center"
+                      class="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate max-w-12 sm:max-w-16 text-center mb-1"
                       [title]="colorName(color)"
                     >
                       {{ colorName(color) }}
                     </span>
                     <span
-                      class="text-[9px] font-extrabold px-1 rounded-full text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/50"
+                      class="inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] whitespace-nowrap transition-all duration-200"
+                      [class.bg-violet-100]="count > 0"
+                      [class.text-violet-700]="count > 0"
+                      [class.dark:bg-violet-900/60]="count > 0"
+                      [class.dark:text-violet-200]="count > 0"
+                      [class.ring-1]="count > 0"
+                      [class.ring-violet-400/40]="count > 0"
+                      [class.font-extrabold]="count > 0"
+                      [class.shadow-xs]="count > 0"
+                      [class.bg-slate-100/80]="count === 0"
+                      [class.text-slate-400]="count === 0"
+                      [class.dark:bg-slate-800/60]="count === 0"
+                      [class.dark:text-slate-500]="count === 0"
+                      [class.font-medium]="count === 0"
+                      [class.opacity-60]="count === 0"
+                      [title]="i18n.t().devCardsInHand + ': ' + count"
                     >
-                      🃏 {{ getInHandCount(color.id) }}
+                      <svg
+                        class="w-3 h-3 shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <rect x="3" y="5" width="13" height="16" rx="2" />
+                        <path d="M8 3h11a2 2 0 0 1 2 2v14" />
+                      </svg>
+                      <span>{{ count }}</span>
                     </span>
                   </div>
                 }
@@ -472,9 +500,21 @@
                         <div class="flex items-center gap-2 text-[11px]">
                           @if (summary.inHand > 0) {
                             <span
-                              class="bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded-full font-bold"
+                              class="inline-flex items-center gap-1.5 bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-200 px-2 py-0.5 rounded-full font-bold text-xs whitespace-nowrap ring-1 ring-violet-400/30 shadow-xs"
                             >
-                              🃏 {{ i18n.t().devCardsInHandBadge(summary.inHand) }}
+                              <svg
+                                class="w-3.5 h-3.5 shrink-0"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              >
+                                <rect x="3" y="5" width="13" height="16" rx="2" />
+                                <path d="M8 3h11a2 2 0 0 1 2 2v14" />
+                              </svg>
+                              <span>{{ i18n.t().devCardsInHandBadge(summary.inHand) }}</span>
                             </span>
                           }
                           @if (summary.totalPlayed === 0 && summary.inHand === 0) {
