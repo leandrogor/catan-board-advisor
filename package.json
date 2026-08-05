@@ -16,7 +16,7 @@
   },
   "engines": {
     "node": ">=22",
-    "pnpm": "11.18.0"
+    "pnpm": "11.20.0"
   },
   "private": true,
   "dependencies": {
@@ -50,12 +50,12 @@
     "karma-coverage": "~2.2.1",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.2.0",
-    "lint-staged": "^17.2.0",
+    "lint-staged": "^17.3.0",
     "postcss": "^8.5.25",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.66.0"
   },
-  "packageManager": "pnpm@11.18.0"
+  "packageManager": "pnpm@11.20.0"
 }
