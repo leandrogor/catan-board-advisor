@@ -242,6 +242,9 @@ export interface Translations {
   devCardsDeckLabel: string;
   toastDevCardBought: (name: string) => string;
   toastDevCardPlayed: (name: string, cardName: string) => string;
+  toastBuiltRoad: (name: string) => string;
+  toastBuiltSettlement: (name: string) => string;
+  toastBuiltCity: (name: string) => string;
   // Scoreboard titles & accessibility
   longestRoadTitle: string;
   largestArmyTitle: string;
@@ -434,9 +437,11 @@ export const EN: Translations = {
   devCardsByPlayer: 'BY PLAYER',
   devCardsInHandBadge: (count: number): string => `${count} in hand`,
   devCardsDeckLabel: 'Deck',
-  toastDevCardBought: (name: string): string => `${name} bought a development card`,
-  toastDevCardPlayed: (name: string, cardName: string): string =>
-    `${name} played card: ${cardName}`,
+  toastDevCardBought: (name: string): string => `${name} bought a dev card`,
+  toastDevCardPlayed: (name: string, cardName: string): string => `${name} played ${cardName}`,
+  toastBuiltRoad: (name: string): string => `${name} built a road`,
+  toastBuiltSettlement: (name: string): string => `${name} built a settlement`,
+  toastBuiltCity: (name: string): string => `${name} built a city`,
   devCardsPurchase: 'Buy Dev Card',
   devCardsPlay: 'Play Card:',
   devCardKnight: 'Knight',

@@ -1146,8 +1146,8 @@ export class BoardStateStore {
     const newSettlementsBuilt = currTotalBuildings - prevTotalBuildings;
     const cityDiff = currCities - prevCities;
     const roadDiff = currRoadsCount - prevRoadsCount;
-    const devCardDiff = currPurchasedCount - prevPurchasedCount;
     const devCardPlayedDiff = currPlayedCount - prevPlayedCount;
+    const devCardsBoughtInTurn = currPurchasedCount - prevPurchasedCount + devCardPlayedDiff;
 
     const parts: string[] = [];
     const t = this.translationService.t();
@@ -1161,8 +1161,8 @@ export class BoardStateStore {
     if (roadDiff > 0) {
       parts.push(t.statsLogRoadsAdded(roadDiff));
     }
-    if (devCardDiff > 0) {
-      parts.push(t.statsLogDevCardsBought(devCardDiff));
+    if (devCardsBoughtInTurn > 0) {
+      parts.push(t.statsLogDevCardsBought(devCardsBoughtInTurn));
     }
     if (devCardPlayedDiff > 0) {
       const prevMyPlayed = prev.devCardsPlayed.filter(c => c.playerColorId === colorId);
@@ -1442,6 +1442,10 @@ export class BoardStateStore {
     ]);
     this.recalculateLongestRoadOwner();
     this.selectedVertexId.set(null);
+    if (this.appPhase() === 'game' || this.appPhase() === 'results') {
+      const name = this.getPlayerName(colorId);
+      this.showActionToast(colorId, this.i18n.t().toastBuiltSettlement(name));
+    }
   }
 
   buildSettlement(vertexId: string, targetPlayerColorId?: string): void {
@@ -1471,6 +1475,10 @@ export class BoardStateStore {
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
     this.updateHistoryLog(colorId);
+    if (this.appPhase() === 'game' || this.appPhase() === 'results') {
+      const name = this.getPlayerName(colorId);
+      this.showActionToast(colorId, this.i18n.t().toastBuiltSettlement(name));
+    }
   }
 
   upgradeToCity(vertexId: string): void {
@@ -1498,6 +1506,10 @@ export class BoardStateStore {
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
     this.updateHistoryLog(colorId);
+    if (this.appPhase() === 'game' || this.appPhase() === 'results') {
+      const name = this.getPlayerName(colorId);
+      this.showActionToast(colorId, this.i18n.t().toastBuiltCity(name));
+    }
   }
 
   buildRoad(fromId: string, toId: string, targetPlayerColorId?: string): void {
@@ -1548,6 +1560,10 @@ export class BoardStateStore {
     this.activeBuildTool.set(null);
     this.selectedVertexId.set(null);
     this.updateHistoryLog(colorId);
+    if (this.appPhase() === 'game' || this.appPhase() === 'results') {
+      const name = this.getPlayerName(colorId);
+      this.showActionToast(colorId, this.i18n.t().toastBuiltRoad(name));
+    }
   }
 
   removeSettlement(vertexId: string): void {
