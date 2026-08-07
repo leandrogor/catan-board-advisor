@@ -1,5 +1,5 @@
 import { Component, inject, computed, signal, HostListener, NgZone } from '@angular/core';
-import { BoardStateStore } from '../../services/board-state.store';
+import { BoardStateStore, ActionDetail } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { hexPolygonPoints, interpolateHeatmapColor } from '../../../../shared/utils/hex-math.utils';
 import { Vertex } from '../../models/vertex.model';
@@ -32,6 +32,13 @@ export class BoardComponent {
   protected readonly i18n = inject(TranslationService);
   protected readonly themeService = inject(ThemeService);
   protected readonly ngZone = inject(NgZone);
+
+  protected readonly gestureToast = signal<{
+    action: 'undo' | 'redo';
+    count: number;
+    id: number;
+    actionDetail?: ActionDetail | null;
+  } | null>(null);
 
   protected readonly viewBox = computed(() => {
     const vb = this.store.viewBox();
@@ -255,11 +262,6 @@ export class BoardComponent {
     return this.store.redoStack().length > 0;
   });
 
-  protected readonly gestureToast = signal<{
-    action: 'undo' | 'redo';
-    count: number;
-    id: number;
-  } | null>(null);
   private gestureToastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private twoFingerState: {
@@ -1071,13 +1073,13 @@ export class BoardComponent {
     if (duration < 700 && Math.abs(state.lastDeltaX) >= minDistance) {
       if (state.lastDeltaX < 0) {
         if (this.canUndo()) {
-          this.store.undo();
-          this.showGestureToast('undo');
+          const detail = this.store.undo();
+          this.showGestureToast('undo', detail);
         }
       } else if (state.lastDeltaX > 0) {
         if (this.canRedo()) {
-          this.store.redo();
-          this.showGestureToast('redo');
+          const detail = this.store.redo();
+          this.showGestureToast('redo', detail);
         }
       }
     }
@@ -1087,7 +1089,7 @@ export class BoardComponent {
     this.twoFingerState = null;
   }
 
-  private showGestureToast(action: 'undo' | 'redo'): void {
+  private showGestureToast(action: 'undo' | 'redo', actionDetail?: ActionDetail | null): void {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try {
         navigator.vibrate(40);
@@ -1101,10 +1103,10 @@ export class BoardComponent {
     if (this.gestureToastTimeout) {
       clearTimeout(this.gestureToastTimeout);
     }
-    this.gestureToast.set({ action, count: newCount, id: Date.now() });
+    this.gestureToast.set({ action, count: newCount, id: Date.now(), actionDetail });
     this.gestureToastTimeout = setTimeout(() => {
       this.gestureToast.set(null);
-    }, 1500);
+    }, 1800);
   }
 
   protected onHexClick(hex: HexDefinition): void {

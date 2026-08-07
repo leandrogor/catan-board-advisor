@@ -20,21 +20,40 @@
   @if (gestureToast(); as toast) {
     <div
       [attr.data-id]="toast.id"
-      class="gesture-toast-container pointer-events-none absolute top-6 left-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-xl bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 border border-white/20 dark:border-slate-800/40 backdrop-blur-md text-sm font-semibold transition-all duration-150"
+      class="gesture-toast-container pointer-events-none absolute top-6 left-1/2 z-50 flex flex-col items-center gap-1.5 transition-all duration-150"
     >
-      @if (toast.action === 'undo') {
-        <span class="text-base">↺</span>
-        <span>{{ i18n.t().undo }}</span>
-      } @else {
-        <span class="text-base">↻</span>
-        <span>{{ i18n.t().redo }}</span>
-      }
-      @if (toast.count > 1) {
-        <span
-          class="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-500 text-slate-950 font-bold shadow-sm"
+      <div
+        class="flex items-center gap-2 px-4 py-2 rounded-full shadow-xl bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 border border-white/20 dark:border-slate-800/40 backdrop-blur-md text-sm font-semibold"
+      >
+        @if (toast.action === 'undo') {
+          <span class="text-base">↺</span>
+          <span>{{ i18n.t().undo }}</span>
+        } @else {
+          <span class="text-base">↻</span>
+          <span>{{ i18n.t().redo }}</span>
+        }
+        @if (toast.count > 1) {
+          <span
+            class="ml-1 px-2 py-0.5 text-xs rounded-full bg-amber-500 text-slate-950 font-bold shadow-sm"
+          >
+            x{{ toast.count }}
+          </span>
+        }
+      </div>
+
+      <!-- Mini floating action detail message without background (sin fondo) -->
+      @if (toast.actionDetail; as detail) {
+        <div
+          class="flex items-center gap-1.5 px-3 py-0.5 text-xs sm:text-sm font-bold text-white dark:text-slate-100 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] pointer-events-none select-none whitespace-nowrap"
         >
-          x{{ toast.count }}
-        </span>
+          @if (detail.playerHex) {
+            <span
+              class="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-white/80 shadow-sm"
+              [style.background-color]="detail.playerHex"
+            ></span>
+          }
+          <span>{{ detail.description }}</span>
+        </div>
       }
     </div>
   }

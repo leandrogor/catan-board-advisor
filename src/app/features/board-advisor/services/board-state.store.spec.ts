@@ -1114,4 +1114,32 @@ describe('BoardStateStore - Longest Road', () => {
       expect(store.playerColors()[0].id).toBe('blue');
     });
   });
+
+  describe('ActionDetail return on undo and redo', () => {
+    it('should return action details specifying player and description on undo and redo', () => {
+      store.appPhase.set('game');
+      store.playerColors.set([
+        { id: 'red', hex: '#ef4444' },
+        { id: 'blue', hex: '#3b82f6' },
+      ]);
+      store.setPlayerName('red', 'Lean');
+
+      // 1. Build road
+      store.buildRoad('v1', 'v2', 'red');
+
+      // 2. Undo road build
+      const undoDetail = store.undo();
+      expect(undoDetail).not.toBeNull();
+      expect(undoDetail?.playerColorId).toBe('red');
+      expect(undoDetail?.playerName).toBe('Lean');
+      expect(undoDetail?.description).toContain('Lean');
+
+      // 3. Redo road build
+      const redoDetail = store.redo();
+      expect(redoDetail).not.toBeNull();
+      expect(redoDetail?.playerColorId).toBe('red');
+      expect(redoDetail?.playerName).toBe('Lean');
+      expect(redoDetail?.description).toContain('Lean');
+    });
+  });
 });

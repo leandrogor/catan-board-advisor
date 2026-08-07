@@ -43,6 +43,13 @@ export type AppPhase = 'setup' | 'results' | 'game';
 export type PlayerCount = 3 | 4 | 5 | 6;
 export type BoardRotationDeg = 0 | 90 | 180 | 270;
 
+export interface ActionDetail {
+  playerColorId?: string;
+  playerName?: string;
+  playerHex?: string;
+  description: string;
+}
+
 export interface ExpansionSuggestion {
   settlementVertexId: string;
   targetVertexId: string;
@@ -1753,17 +1760,178 @@ export class BoardStateStore {
     }
   }
 
-  undo(): void {
+  getPlayerHex(playerColorId: string): string {
+    const color = this.playerColors().find(c => c.id === playerColorId);
+    return color ? color.hex : '#8b5cf6';
+  }
+
+  getDevCardTypeName(type: DevCardType): string {
+    const t = this.i18n.t();
+    const cardMap: Record<DevCardType, string> = {
+      knight: t.devCardKnight,
+      victoryPoint: t.devCardVictoryPoint,
+      monopoly: t.devCardMonopoly,
+      roadBuilding: t.devCardRoadBuilding,
+      yearOfPlenty: t.devCardYearOfPlenty,
+    };
+    return cardMap[type] ?? type;
+  }
+
+  getActionDiffInfo(
+    before: {
+      settled: PlacedSettlement[];
+      roads: PlacedRoad[];
+      devCardsPurchased?: Record<string, number>;
+      devCardsPlayed?: PlayedDevCard[];
+      playerColors?: PlayerColor[];
+    },
+    after: {
+      settled: PlacedSettlement[];
+      roads: PlacedRoad[];
+      devCardsPurchased?: Record<string, number>;
+      devCardsPlayed?: PlayedDevCard[];
+      playerColors?: PlayerColor[];
+    },
+  ): ActionDetail | null {
+    // 1. Check roads removed (in before, not in after)
+    const removedRoad = before.roads.find(
+      r =>
+        !after.roads.some(
+          ar =>
+            ar.playerColorId === r.playerColorId &&
+            ((ar.from === r.from && ar.to === r.to) || (ar.from === r.to && ar.to === r.from)),
+        ),
+    );
+    if (removedRoad) {
+      const colorId = removedRoad.playerColorId;
+      const name = this.getPlayerName(colorId);
+      const hex = this.getPlayerHex(colorId);
+      return {
+        playerColorId: colorId,
+        playerName: name,
+        playerHex: hex,
+        description: this.i18n.t().toastBuiltRoad(name),
+      };
+    }
+
+    // 2. Check settlements / cities removed
+    const removedSettlement = before.settled.find(
+      s => !after.settled.some(as => as.vertexId === s.vertexId),
+    );
+    if (removedSettlement) {
+      const colorId = removedSettlement.playerColorId;
+      const name = this.getPlayerName(colorId);
+      const hex = this.getPlayerHex(colorId);
+      const desc =
+        removedSettlement.type === 'city'
+          ? this.i18n.t().toastBuiltCity(name)
+          : this.i18n.t().toastBuiltSettlement(name);
+      return {
+        playerColorId: colorId,
+        playerName: name,
+        playerHex: hex,
+        description: desc,
+      };
+    }
+
+    // 3. Check city downgraded back to settlement
+    const downgradedCity = before.settled.find(
+      s =>
+        s.type === 'city' &&
+        after.settled.some(as => as.vertexId === s.vertexId && as.type !== 'city'),
+    );
+    if (downgradedCity) {
+      const colorId = downgradedCity.playerColorId;
+      const name = this.getPlayerName(colorId);
+      const hex = this.getPlayerHex(colorId);
+      return {
+        playerColorId: colorId,
+        playerName: name,
+        playerHex: hex,
+        description: this.i18n.t().toastBuiltCity(name),
+      };
+    }
+
+    // 4. Check dev cards purchased
+    if (before.devCardsPurchased && after.devCardsPurchased) {
+      for (const colorId of Object.keys(before.devCardsPurchased)) {
+        const beforeCount = before.devCardsPurchased[colorId] ?? 0;
+        const afterCount = after.devCardsPurchased[colorId] ?? 0;
+        if (beforeCount > afterCount) {
+          const name = this.getPlayerName(colorId);
+          const hex = this.getPlayerHex(colorId);
+          return {
+            playerColorId: colorId,
+            playerName: name,
+            playerHex: hex,
+            description: this.i18n.t().toastDevCardBought(name),
+          };
+        }
+      }
+    }
+
+    // 5. Check dev cards played
+    if (before.devCardsPlayed && after.devCardsPlayed) {
+      if (before.devCardsPlayed.length > after.devCardsPlayed.length) {
+        const lastPlayed = before.devCardsPlayed[before.devCardsPlayed.length - 1];
+        if (lastPlayed) {
+          const colorId = lastPlayed.playerColorId;
+          const name = this.getPlayerName(colorId);
+          const hex = this.getPlayerHex(colorId);
+          const cardName = this.getDevCardTypeName(lastPlayed.type);
+          return {
+            playerColorId: colorId,
+            playerName: name,
+            playerHex: hex,
+            description: this.i18n.t().toastDevCardPlayed(name, cardName),
+          };
+        }
+      }
+    }
+
+    // 6. Check player colors / turn order swapped
+    if (before.playerColors && after.playerColors) {
+      const beforeIds = before.playerColors.map(c => c.id).join(',');
+      const afterIds = after.playerColors.map(c => c.id).join(',');
+      if (beforeIds !== afterIds && before.playerColors.length === after.playerColors.length) {
+        const diffs = before.playerColors.filter((c, i) => c.id !== after.playerColors![i]?.id);
+        if (diffs.length >= 2) {
+          const nameA = this.getPlayerName(diffs[0].id);
+          const nameB = this.getPlayerName(diffs[1].id);
+          return {
+            playerColorId: diffs[0].id,
+            playerName: nameA,
+            playerHex: diffs[0].hex,
+            description: this.i18n.t().orderSwappedToast(nameA, nameB),
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  undo(): ActionDetail | null {
     if (this.appPhase() === 'setup') {
       const stack = this.desertUndoStack();
-      if (!stack.length) return;
+      if (!stack.length) return null;
       this.clearTransientSelectionState();
       this.desertRedoStack.update(r => [...r, { ...this.desertState() }]);
       this.desertState.set(stack.at(-1)!);
       this.desertUndoStack.update(s => s.slice(0, -1));
+      return { description: this.i18n.t().dragToMove };
     } else {
       const stack = this.undoStack();
-      if (!stack.length) return;
+      if (!stack.length) return null;
+
+      const beforeState = {
+        settled: [...this.placedSettlements()],
+        roads: [...this.placedRoads()],
+        devCardsPurchased: { ...this.devCardsPurchased() },
+        devCardsPlayed: [...this.devCardsPlayed()],
+        playerColors: [...this.playerColors()],
+      };
+
       this.clearTransientSelectionState();
       this.redoStack.update(r => [
         ...r,
@@ -1804,20 +1972,32 @@ export class BoardStateStore {
       }
       this.syncHistoryLogAfterUndoRedo(last.historyLength);
       this.undoStack.update(s => s.slice(0, -1));
+
+      return this.getActionDiffInfo(beforeState, last);
     }
   }
 
-  redo(): void {
+  redo(): ActionDetail | null {
     if (this.appPhase() === 'setup') {
       const stack = this.desertRedoStack();
-      if (!stack.length) return;
+      if (!stack.length) return null;
       this.clearTransientSelectionState();
       this.desertUndoStack.update(u => [...u, { ...this.desertState() }]);
       this.desertState.set(stack.at(-1)!);
       this.desertRedoStack.update(r => r.slice(0, -1));
+      return { description: this.i18n.t().dragToMove };
     } else {
       const stack = this.redoStack();
-      if (!stack.length) return;
+      if (!stack.length) return null;
+
+      const beforeState = {
+        settled: [...this.placedSettlements()],
+        roads: [...this.placedRoads()],
+        devCardsPurchased: { ...this.devCardsPurchased() },
+        devCardsPlayed: [...this.devCardsPlayed()],
+        playerColors: [...this.playerColors()],
+      };
+
       this.clearTransientSelectionState();
       this.undoStack.update(u => [
         ...u,
@@ -1858,6 +2038,8 @@ export class BoardStateStore {
       }
       this.syncHistoryLogAfterUndoRedo(last.historyLength);
       this.redoStack.update(r => r.slice(0, -1));
+
+      return this.getActionDiffInfo(last, beforeState);
     }
   }
 
