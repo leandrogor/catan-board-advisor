@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal, HostListener, effect } from '@angular/core';
 import { BoardStateStore } from '../../services/board-state.store';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { PlayerColor } from '../../models/player-color.model';
@@ -18,6 +18,67 @@ interface PlayerRankingRow {
 export class SetupRankingComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
+  protected readonly openSwapPickerSlot = signal<number | null>(null);
+  protected readonly isOrderPanelExpanded = signal<boolean>(false);
+
+  private prevColorsStr = '';
+
+  constructor() {
+    effect(() => {
+      const colorsStr = JSON.stringify(this.store.playerColors().map(c => c.id));
+      if (this.prevColorsStr && this.prevColorsStr !== colorsStr) {
+        // Auto-expand order panel when player order is swapped
+        this.isOrderPanelExpanded.set(true);
+      }
+      this.prevColorsStr = colorsStr;
+    });
+  }
+
+  @HostListener('document:pointerdown', ['$event'])
+  onDocumentPointerDown(event: PointerEvent): void {
+    if (this.openSwapPickerSlot() === null) return;
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    const insideMenu = target.closest('.swap-dropdown-menu');
+    const insideButton = target.closest('.swap-trigger-btn');
+    if (!insideMenu && !insideButton) {
+      this.openSwapPickerSlot.set(null);
+    }
+  }
+
+  protected toggleOrderPanelExpand(): void {
+    this.isOrderPanelExpanded.update(v => !v);
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscape(event: Event): void {
+    if (this.openSwapPickerSlot() !== null) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.openSwapPickerSlot.set(null);
+    }
+  }
+
+  protected readonly playerOrderList = computed(() => {
+    const playerColors = this.store.playerColors();
+    const currentTurnIdx = this.store.currentTurnIndex();
+    const isRound1 = this.store.isRound1Placement();
+
+    return playerColors.map((color, idx) => {
+      const isPlacedInRound1 = idx < currentTurnIdx;
+      const isActive = idx === currentTurnIdx;
+      const canSwap = isRound1 && idx >= currentTurnIdx;
+      return {
+        color,
+        slotIndex: idx,
+        turnOrder: idx + 1,
+        name: this.store.getPlayerName(color.id),
+        isPlacedInRound1,
+        isActive,
+        canSwap,
+      };
+    });
+  });
 
   protected readonly rankingRows = computed<PlayerRankingRow[]>(() => {
     const playerColors = this.store.playerColors();
@@ -66,6 +127,19 @@ export class SetupRankingComponent {
 
     return rows;
   });
+
+  protected toggleSwapPicker(slotIndex: number): void {
+    this.openSwapPickerSlot.update(current => (current === slotIndex ? null : slotIndex));
+  }
+
+  protected swapPlayers(slotA: number, slotB: number): void {
+    this.store.swapPlayerOrder(slotA, slotB);
+    this.openSwapPickerSlot.set(null);
+  }
+
+  protected getSwappableTargets(slotIndex: number) {
+    return this.playerOrderList().filter(p => p.canSwap && p.slotIndex !== slotIndex);
+  }
 
   protected colorName(color: PlayerColor): string {
     return this.store.getPlayerName(color.id);

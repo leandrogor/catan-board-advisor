@@ -93,6 +93,10 @@ export interface Translations {
   colorChocolate: string;
   // Turn indicator
   turnIndicator: (turn: number, total: number, colorName: string) => string;
+  swapTurnOrder: string;
+  swapWithPlayer: (colorName: string) => string;
+  orderSwappedToast: (name1: string, name2: string) => string;
+  orderLocked: string;
   // Ranking
   rankingTitle: string;
   rankingProdRank: string;
@@ -400,6 +404,11 @@ export const EN: Translations = {
   // Turn indicator
   turnIndicator: (turn: number, total: number, colorName: string): string =>
     `Turn ${turn}/${total} — ${colorName}`,
+  swapTurnOrder: 'Swap turn order',
+  swapWithPlayer: (colorName: string): string => `Swap turn with ${colorName}`,
+  orderSwappedToast: (name1: string, name2: string): string =>
+    `Turn order swapped: ${name1} ↔ ${name2}`,
+  orderLocked: 'Order locked',
   // Ranking
   rankingTitle: 'Final Rankings',
   rankingProdRank: 'Rank',

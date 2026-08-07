@@ -1023,4 +1023,95 @@ describe('BoardStateStore - Longest Road', () => {
       }
     });
   });
+
+  describe('Player Order Swapping during Initial Placement Phase', () => {
+    beforeEach(() => {
+      store.playerCount.set(3);
+      store.playerColors.set([
+        { id: 'red', hex: '#ef4444' },
+        { id: 'blue', hex: '#3b82f6' },
+        { id: 'mustard', hex: '#eab308' },
+      ]);
+    });
+
+    it('should allow swapping any valid slot in setup phase', () => {
+      store.appPhase.set('setup');
+      expect(store.canSwapPlayerOrder(0)).toBeTrue();
+      expect(store.canSwapPlayerOrder(1)).toBeTrue();
+      expect(store.canSwapPlayerOrder(2)).toBeTrue();
+      expect(store.canSwapPlayerOrder(3)).toBeFalse();
+
+      store.swapPlayerOrder(0, 2);
+      expect(store.playerColors().map(c => c.id)).toEqual(['mustard', 'blue', 'red']);
+    });
+
+    it('should allow swapping remaining unplaced players during Round 1 of initial placement', () => {
+      store.appPhase.set('results');
+      store.currentTurnIndex.set(0); // Turn 0: Red's turn for 1st settlement
+
+      expect(store.isRound1Placement()).toBeTrue();
+      expect(store.canSwapPlayerOrder(0)).toBeTrue();
+      expect(store.canSwapPlayerOrder(1)).toBeTrue();
+      expect(store.canSwapPlayerOrder(2)).toBeTrue();
+
+      // Swap Red (0) and Blue (1) before Red places settlement
+      store.swapPlayerOrder(0, 1);
+      expect(store.playerColors().map(c => c.id)).toEqual(['blue', 'red', 'mustard']);
+      expect(store.currentPlayerColor()?.id).toBe('blue');
+
+      // Now turn index becomes 1 (Blue placed 1st settlement)
+      store.currentTurnIndex.set(1);
+
+      // Slot 0 (Blue) is locked. Slots 1 (Red) and 2 (Mustard) can be swapped
+      expect(store.canSwapPlayerOrder(0)).toBeFalse();
+      expect(store.canSwapPlayerOrder(1)).toBeTrue();
+      expect(store.canSwapPlayerOrder(2)).toBeTrue();
+
+      // Try swapping locked slot 0 - should be ignored
+      store.swapPlayerOrder(0, 2);
+      expect(store.playerColors().map(c => c.id)).toEqual(['blue', 'red', 'mustard']);
+
+      // Swap Red (1) and Mustard (2)
+      store.swapPlayerOrder(1, 2);
+      expect(store.playerColors().map(c => c.id)).toEqual(['blue', 'mustard', 'red']);
+      expect(store.currentPlayerColor()?.id).toBe('mustard');
+    });
+
+    it('should lock all player swapping during Round 2 of initial placement', () => {
+      store.appPhase.set('results');
+      store.currentTurnIndex.set(3); // Turn 3: 2nd settlements start (Round 2)
+
+      expect(store.isRound1Placement()).toBeFalse();
+      expect(store.canSwapPlayerOrder(0)).toBeFalse();
+      expect(store.canSwapPlayerOrder(1)).toBeFalse();
+      expect(store.canSwapPlayerOrder(2)).toBeFalse();
+
+      store.swapPlayerOrder(0, 1);
+      expect(store.playerColors().map(c => c.id)).toEqual(['red', 'blue', 'mustard']);
+    });
+
+    it('should restore player order when undoing and redoing actions', () => {
+      store.appPhase.set('results');
+      store.currentTurnIndex.set(0);
+
+      // Swap Red and Blue
+      store.swapPlayerOrder(0, 1);
+      expect(store.playerColors()[0].id).toBe('blue');
+
+      // Simulate placing settlement 1 for Blue and advancing turn to 1
+      store.pendingSettlementVertexId.set('v1');
+      store.confirmRoadSelection('v2');
+      expect(store.currentTurnIndex()).toBe(1);
+
+      // Undo placement
+      store.undo();
+      expect(store.currentTurnIndex()).toBe(0);
+      expect(store.playerColors()[0].id).toBe('blue');
+
+      // Redo placement
+      store.redo();
+      expect(store.currentTurnIndex()).toBe(1);
+      expect(store.playerColors()[0].id).toBe('blue');
+    });
+  });
 });

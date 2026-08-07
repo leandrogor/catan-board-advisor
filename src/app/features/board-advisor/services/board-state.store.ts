@@ -195,6 +195,30 @@ export class BoardStateStore {
 
   readonly isSetupComplete = computed<boolean>(() => this.currentTurnIndex() >= this.totalTurns());
 
+  readonly isRound1Placement = computed<boolean>(() => {
+    return (
+      this.appPhase() === 'results' &&
+      !this.isSetupComplete() &&
+      this.currentTurnIndex() < this.playerCount()
+    );
+  });
+
+  readonly swappablePlayerSlots = computed<number[]>(() => {
+    const total = this.playerCount();
+    if (this.appPhase() === 'setup') {
+      return Array.from({ length: total }, (_, i) => i);
+    }
+    if (this.isRound1Placement()) {
+      const current = this.currentTurnIndex();
+      const slots: number[] = [];
+      for (let i = current; i < total; i++) {
+        slots.push(i);
+      }
+      return slots;
+    }
+    return [];
+  });
+
   // ── Simulation result (private writable, public readonly) ───────────────────
   private readonly _simulationResult = signal<SimulationResult | null>(null);
   readonly simulationResult = this._simulationResult.asReadonly();
@@ -1753,6 +1777,7 @@ export class BoardStateStore {
           largestArmyOwnerId: this.largestArmyOwnerId(),
           devCardsPurchased: { ...this.devCardsPurchased() },
           devCardsPlayed: [...this.devCardsPlayed()],
+          playerColors: [...this.playerColors()],
           historyLength: this.gameHistory().length,
         },
       ]);
@@ -1765,6 +1790,9 @@ export class BoardStateStore {
       }
       if (last.appPhase !== undefined) {
         this.appPhase.set(last.appPhase);
+      }
+      if (last.playerColors !== undefined) {
+        this.playerColors.set([...last.playerColors]);
       }
       this.longestRoadOwnerId.set(last.longestRoadOwnerId ?? null);
       this.largestArmyOwnerId.set(last.largestArmyOwnerId ?? null);
@@ -1803,6 +1831,7 @@ export class BoardStateStore {
           largestArmyOwnerId: this.largestArmyOwnerId(),
           devCardsPurchased: { ...this.devCardsPurchased() },
           devCardsPlayed: [...this.devCardsPlayed()],
+          playerColors: [...this.playerColors()],
           historyLength: this.gameHistory().length,
         },
       ]);
@@ -1815,6 +1844,9 @@ export class BoardStateStore {
       }
       if (last.appPhase !== undefined) {
         this.appPhase.set(last.appPhase);
+      }
+      if (last.playerColors !== undefined) {
+        this.playerColors.set([...last.playerColors]);
       }
       this.longestRoadOwnerId.set(last.longestRoadOwnerId ?? null);
       this.largestArmyOwnerId.set(last.largestArmyOwnerId ?? null);
@@ -1908,6 +1940,7 @@ export class BoardStateStore {
         gameActivePlayerId: this.gameActivePlayerId(),
         appPhase: this.appPhase(),
         historyLength: this.gameHistory().length,
+        playerColors: [...this.playerColors()],
       },
     ]);
     this.redoStack.set([]);
@@ -2311,6 +2344,41 @@ export class BoardStateStore {
     }
     updated[slot] = color;
     this.playerColors.set(updated);
+  }
+
+  /**
+   * Determines whether player position at `index` can be swapped in current game phase.
+   */
+  canSwapPlayerOrder(index: number): boolean {
+    if (index < 0 || index >= this.playerCount()) return false;
+    if (this.appPhase() === 'setup') return true;
+    if (this.isRound1Placement()) {
+      return index >= this.currentTurnIndex();
+    }
+    return false;
+  }
+
+  /**
+   * Swaps player order positions between indexA and indexB definitively.
+   */
+  swapPlayerOrder(indexA: number, indexB: number): void {
+    if (!this.canSwapPlayerOrder(indexA) || !this.canSwapPlayerOrder(indexB)) return;
+    if (indexA === indexB) return;
+
+    const current = [...this.playerColors()];
+    const colorA = current[indexA];
+    const colorB = current[indexB];
+    if (!colorA || !colorB) return;
+
+    current[indexA] = colorB;
+    current[indexB] = colorA;
+    this.playerColors.set(current);
+
+    if (this.appPhase() === 'results') {
+      const nameA = this.getPlayerName(colorA.id);
+      const nameB = this.getPlayerName(colorB.id);
+      this.showActionToast(colorA.id, this.i18n.t().orderSwappedToast(nameA, nameB));
+    }
   }
 
   /**

@@ -135,6 +135,11 @@ export const ES: Translations = {
   // Turn indicator
   turnIndicator: (turn: number, total: number, colorName: string): string =>
     `Turno ${turn}/${total} — ${colorName}`,
+  swapTurnOrder: 'Cambiar orden',
+  swapWithPlayer: (colorName: string): string => `Cambiar turno por ${colorName}`,
+  orderSwappedToast: (name1: string, name2: string): string =>
+    `Orden cambiado: ${name1} ↔ ${name2}`,
+  orderLocked: 'Orden fijado',
   // Ranking
   rankingTitle: 'Clasificación Final',
   rankingProdRank: 'Puesto',

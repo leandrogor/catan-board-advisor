@@ -31,5 +31,6 @@ export interface ActionSnapshot {
   largestArmyOwnerId?: string | null;
   devCardsPurchased?: Record<string, number>;
   devCardsPlayed?: import('./dev-card.model').PlayedDevCard[];
+  playerColors?: import('./player-color.model').PlayerColor[];
   historyLength?: number;
 }
