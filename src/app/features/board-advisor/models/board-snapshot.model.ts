@@ -4,6 +4,7 @@ import { PlayerColor } from './player-color.model';
 import { ActionSnapshot, PlacedRoad, PlacedSettlement } from './road-option.model';
 import { PlayedDevCard } from './dev-card.model';
 import { GameHistoryEntry } from './game-history.model';
+import { GameTimerState } from './game-timer.model';
 
 export interface RawSimulationResultSnapshot {
   totalMiniGames?: number;
@@ -38,4 +39,6 @@ export interface BoardSnapshot {
   devCardsPlayed?: PlayedDevCard[];
   gameHistory?: GameHistoryEntry[];
   simulationResult?: RawSimulationResultSnapshot | null;
+  /** Serialized timer state for cross-session continuity. */
+  timerState?: GameTimerState | null;
 }

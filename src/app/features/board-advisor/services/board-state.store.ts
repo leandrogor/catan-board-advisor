@@ -26,6 +26,7 @@ import {
 import { BASE_DEFAULT_DESERT_POSITION } from '../data/base-catan-board-layout.data';
 import { BoardLayoutService } from './board-layout.service';
 import { SimulationService } from './simulation.service';
+import { GameTimerService } from './game-timer.service';
 import { GameHistoryEntry } from '../models/game-history.model';
 import { BoardSnapshot } from '../models/board-snapshot.model';
 import { TranslationService } from '../../../core/services/translation.service';
@@ -62,6 +63,7 @@ export interface ExpansionSuggestion {
 @Injectable({ providedIn: 'root' })
 export class BoardStateStore {
   private readonly translationService = inject(TranslationService);
+  readonly timerService = inject(GameTimerService);
   private get i18n() {
     return this.translationService;
   }
@@ -1091,6 +1093,53 @@ export class BoardStateStore {
     effect(() => {
       localStorage.setItem('catan-show-2nd-proj', String(this.showSecondBestProjection()));
     });
+
+    // ── VP milestone tracking ────────────────────────────────────────────────
+    // Reactively watch the maximum score across all players and record/revoke
+    // timer milestones when any player crosses a VP threshold (2–9).
+    effect(() => {
+      if (this.appPhase() !== 'game') return;
+      const t = this.translationService.t();
+      const scores = this.playerScores();
+      const maxScore = scores.reduce((best, s) => Math.max(best, s.score), 0);
+
+      // Ensure initial VP 2 milestone exists (at game_start timestamp)
+      if (
+        this.timerService.isStarted() &&
+        !this.timerService.milestones().some(m => m.key === 'vp_2')
+      ) {
+        const gameStartMs = this.timerService
+          .milestones()
+          .find(m => m.key === 'game_start')?.timestamp;
+        if (gameStartMs) {
+          this.timerService.recordVP(2, t.timerVPMilestone(2), gameStartMs);
+        }
+      }
+
+      // Record new VP milestones (3–9)
+      for (let vp = 3; vp <= 9; vp++) {
+        if (maxScore >= vp) {
+          this.timerService.recordVP(vp, t.timerVPMilestone(vp));
+        }
+      }
+
+      // Revoke milestones if score dropped (undo scenario)
+      if (maxScore < this.timerService.maxVpMilestone()) {
+        this.timerService.revokeVPMilestonesAbove(maxScore);
+      }
+    });
+
+    // ── Game winner → end timer ──────────────────────────────────────────────
+    effect(() => {
+      const winner = this.gameWinner();
+      if (winner) {
+        const t = this.translationService.t();
+        this.timerService.endGame(t.timerGameEnd);
+      }
+    });
+
+    // ── Autosave every 30 seconds ────────────────────────────────────────────
+    this.startAutosave();
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────
@@ -1110,6 +1159,11 @@ export class BoardStateStore {
    */
   startSimulation(): void {
     if (this.isSimulating()) return;
+    // Auto-start timer if not already started (user forgot to press start)
+    const t = this.translationService.t();
+    if (!this.timerService.isStarted()) {
+      this.timerService.startSetup(t.timerSetupStart);
+    }
     this.selectedHexId.set(null);
     this.selectedVertexId.set(null);
     this.isSimulating.set(true);
@@ -1123,6 +1177,8 @@ export class BoardStateStore {
       this._simulationResult.set(result);
       this.isSimulating.set(false);
       this.appPhase.set('results');
+      // Record placement phase start
+      this.timerService.startPlacement(t.timerPlacementStart);
     }, 100);
   }
 
@@ -1368,6 +1424,8 @@ export class BoardStateStore {
     this.projectionTargetPlayerId.set(this.myPlayerColorId() ? 'me' : 'none');
     this.showPlayCardMenu.set(false);
     this.closeBuilderPicker();
+    this.timerService.reset();
+    this.clearAutosave();
     this.appPhase.set('setup');
   }
 
@@ -1398,6 +1456,10 @@ export class BoardStateStore {
     this.gameActivePlayerId.set(firstColor);
     this.activeBuildTool.set(null);
     this.appPhase.set('game');
+
+    // Record game phase start in timer (including initial 2 VP milestone)
+    const t = this.translationService.t();
+    this.timerService.startGame(t.timerGameStart, t.timerVPMilestone(2));
 
     const scoresMap: Record<string, number> = {};
     const prodMap: Record<string, number> = {};
@@ -1873,7 +1935,7 @@ export class BoardStateStore {
     // 5. Check dev cards played
     if (before.devCardsPlayed && after.devCardsPlayed) {
       if (before.devCardsPlayed.length > after.devCardsPlayed.length) {
-        const lastPlayed = before.devCardsPlayed[before.devCardsPlayed.length - 1];
+        const lastPlayed = before.devCardsPlayed.at(-1);
         if (lastPlayed) {
           const colorId = lastPlayed.playerColorId;
           const name = this.getPlayerName(colorId);
@@ -2648,6 +2710,7 @@ export class BoardStateStore {
             rankedVertexIds: result.rankedVertexIds,
           }
         : null,
+      timerState: this.timerService.state(),
     };
 
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
@@ -2657,6 +2720,109 @@ export class BoardStateStore {
     a.download = `catan-snapshot-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Auto-save (localStorage) ──────────────────────────────────────────────
+
+  private static readonly AUTOSAVE_KEY = 'catan-autosave';
+  private autosaveInterval: ReturnType<typeof setInterval> | null = null;
+
+  /** Serializes current state silently to localStorage. */
+  private saveToLocalStorage(): void {
+    try {
+      const result = this.simulationResult();
+      const snapshot = {
+        version: 2,
+        playerCount: this.playerCount(),
+        playerColors: this.playerColors(),
+        myPlayerColorId: this.myPlayerColorId(),
+        projectionTargetPlayerId: this.projectionTargetPlayerId(),
+        playerNames: this.playerNames(),
+        desertState: this.desertState(),
+        placedSettlements: this.placedSettlements(),
+        placedRoads: this.placedRoads(),
+        undoStack: this.undoStack(),
+        redoStack: this.redoStack(),
+        desertUndoStack: this.desertUndoStack(),
+        desertRedoStack: this.desertRedoStack(),
+        currentTurnIndex: this.currentTurnIndex(),
+        boardRotationDeg: this.boardRotationDeg(),
+        appPhase: this.appPhase(),
+        gameActivePlayerId: this.gameActivePlayerId(),
+        longestRoadOwnerId: this.longestRoadOwnerId(),
+        largestArmyOwnerId: this.largestArmyOwnerId(),
+        useReducedDeck: this.useReducedDeck(),
+        devCardsPurchased: this.devCardsPurchased(),
+        devCardsPlayed: this.devCardsPlayed(),
+        gameHistory: this.gameHistory(),
+        simulationResult: result
+          ? {
+              totalMiniGames: result.totalMiniGames,
+              rollCountMap: Array.from(result.rollCountMap.entries()),
+              resourceMap: Array.from(result.resourceMap.entries()),
+              maxRawScore: result.maxRawScore,
+              rankedVertexIds: result.rankedVertexIds,
+            }
+          : null,
+        timerState: this.timerService.state(),
+      };
+      localStorage.setItem(BoardStateStore.AUTOSAVE_KEY, JSON.stringify(snapshot));
+    } catch {
+      // Silently ignore (e.g. storage quota exceeded)
+    }
+  }
+
+  /** Starts the 30-second autosave interval. */
+  startAutosave(): void {
+    this.stopAutosave();
+    this.autosaveInterval = setInterval(() => {
+      if (this.appPhase() !== 'setup' || this.timerService.isStarted()) {
+        this.saveToLocalStorage();
+      }
+    }, 30_000);
+  }
+
+  /** Stops the autosave interval. */
+  stopAutosave(): void {
+    if (this.autosaveInterval !== null) {
+      clearInterval(this.autosaveInterval);
+      this.autosaveInterval = null;
+    }
+  }
+
+  /** Returns true if there is a non-trivial autosave to resume. */
+  hasResumableSession(): boolean {
+    try {
+      const raw = localStorage.getItem(BoardStateStore.AUTOSAVE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      // Only offer resume if the game was past setup
+      return (
+        parsed?.version === 2 &&
+        (parsed?.appPhase === 'results' ||
+          parsed?.appPhase === 'game' ||
+          parsed?.timerState?.isRunning === true)
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /** Restores autosaved session. Returns true on success. */
+  restoreAutosavedSession(): boolean {
+    try {
+      const raw = localStorage.getItem(BoardStateStore.AUTOSAVE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return this.importSnapshot(parsed);
+    } catch {
+      return false;
+    }
+  }
+
+  /** Clears the autosave. Called when user explicitly resets the board. */
+  clearAutosave(): void {
+    localStorage.removeItem(BoardStateStore.AUTOSAVE_KEY);
   }
 
   /**
@@ -2799,6 +2965,15 @@ export class BoardStateStore {
       const phase = s.appPhase;
       if (phase === 'results' || phase === 'game' || phase === 'setup') {
         this.appPhase.set(phase);
+      }
+
+      // ── 10. Timer state ────────────────────────────────────────────────
+      if (
+        s.timerState &&
+        typeof s.timerState === 'object' &&
+        Array.isArray(s.timerState.milestones)
+      ) {
+        this.timerService.restoreState(s.timerState);
       }
 
       return true;

@@ -267,6 +267,27 @@ export interface Translations {
   playerChipAriaLabel: (name: string, num: number) => string;
   pickColorForPlayer: (num: number) => string;
   maxLabel: string;
+  // Game Timer
+  timerTitle: string;
+  timerSetupStart: string;
+  timerPlacementStart: string;
+  timerGameStart: string;
+  timerVPMilestone: (vp: number) => string;
+  timerGameEnd: string;
+  timerPhaseLabel: string;
+  timerTimestampLabel: string;
+  timerDurationLabel: string;
+  timerStartNow: string;
+  timerRunning: string;
+  timerNotStarted: string;
+  timerReset: string;
+  timerTotal: string;
+  timerSinceStart: string;
+  timerOpenPanel: string;
+  /** Session recovery */
+  resumeSessionPrompt: string;
+  resumeSession: string;
+  discardSession: string;
 }
 
 export const EN: Translations = {
@@ -549,4 +570,24 @@ export const EN: Translations = {
   playerChipAriaLabel: (name: string, num: number): string => `${name} player ${num}`,
   pickColorForPlayer: (num: number): string => `Pick color for player ${num}`,
   maxLabel: '(Max)',
+  // Game Timer
+  timerTitle: 'Match Timer',
+  timerSetupStart: 'Assembly Start',
+  timerPlacementStart: 'Initial Placement Phase',
+  timerGameStart: 'Game Phase',
+  timerVPMilestone: (vp: number): string => `${vp} Victory Points`,
+  timerGameEnd: 'Game End',
+  timerPhaseLabel: 'Phase',
+  timerTimestampLabel: 'Time',
+  timerDurationLabel: 'Duration',
+  timerStartNow: 'Start',
+  timerRunning: 'Running',
+  timerNotStarted: 'Not started',
+  timerReset: 'Reset Timer',
+  timerTotal: 'Total',
+  timerSinceStart: 'since start',
+  timerOpenPanel: 'Open match timer',
+  resumeSessionPrompt: 'A previous game session was found. Would you like to resume it?',
+  resumeSession: 'Resume',
+  discardSession: 'Start fresh',
 };

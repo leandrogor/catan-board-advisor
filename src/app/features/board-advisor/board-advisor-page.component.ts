@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, ViewChild, ElementRef, computed, signal } from '@angular/core';
 import { BoardComponent } from './components/board/board.component';
 import { BoardControlsComponent } from './components/board-controls/board-controls.component';
 import { VertexDetailPanelComponent } from './components/vertex-detail-panel/vertex-detail-panel.component';
@@ -9,6 +9,8 @@ import { SetupRankingComponent } from './components/setup-ranking/setup-ranking.
 import { GameScoreboardComponent } from './components/game-scoreboard/game-scoreboard.component';
 import { DevCardsPanelComponent } from './components/dev-cards-panel/dev-cards-panel.component';
 import { GameStatsPanelComponent } from './components/game-stats-panel/game-stats-panel.component';
+import { GameTimerPanelComponent } from './components/game-timer-panel/game-timer-panel.component';
+import { SessionResumeDialogComponent } from './components/session-resume-dialog/session-resume-dialog.component';
 import { BoardStateStore } from './services/board-state.store';
 import { TranslationService } from '../../core/services/translation.service';
 
@@ -28,6 +30,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     GameScoreboardComponent,
     DevCardsPanelComponent,
     GameStatsPanelComponent,
+    GameTimerPanelComponent,
+    SessionResumeDialogComponent,
   ],
   templateUrl: './board-advisor-page.component.html',
   styleUrl: './board-advisor-page.component.scss',
@@ -36,6 +40,10 @@ export class BoardAdvisorPageComponent {
   protected readonly store = inject(BoardStateStore);
   protected readonly i18n = inject(TranslationService);
   protected readonly shortcuts = inject(KeyboardShortcutsService);
+  protected readonly timer = this.store.timerService;
+
+  /** Whether to show the resume session dialog (checked once on startup). */
+  protected readonly showResumeDialog = signal<boolean>(this.store.hasResumableSession());
 
   @ViewChild('snapshotFileInput') private readonly snapshotFileInput!: ElementRef<HTMLInputElement>;
 
@@ -43,6 +51,34 @@ export class BoardAdvisorPageComponent {
     this.shortcuts.loadSnapshotRequested$
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.triggerSnapshotImport());
+  }
+
+  /** Handles the resume session choice. */
+  protected resumeSession(): void {
+    this.store.restoreAutosavedSession();
+    this.showResumeDialog.set(false);
+  }
+
+  /** Discards saved session and starts fresh. */
+  protected discardSession(): void {
+    this.store.clearAutosave();
+    this.showResumeDialog.set(false);
+  }
+
+  /** Formatted elapsed timer for the floating button badge. */
+  protected readonly timerBadge = computed<string>(() => {
+    if (!this.timer.isStarted()) return this.i18n.t().timerStartNow;
+    if (this.timer.isFinished()) return '🏆 ' + this.timer.elapsedFormatted();
+    return this.timer.elapsedFormatted();
+  });
+
+  /** Starts the timer setup phase if not yet started (manual trigger). */
+  protected startTimerSetup(): void {
+    if (!this.timer.isStarted()) {
+      this.timer.startSetup(this.i18n.t().timerSetupStart);
+    } else {
+      this.timer.togglePanel();
+    }
   }
 
   protected readonly settlementText = () =>
