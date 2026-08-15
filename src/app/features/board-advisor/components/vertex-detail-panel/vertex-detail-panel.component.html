@@ -31,7 +31,7 @@
               </span>
             } @else if (vertex.rank) {
               <span
-                class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold"
+                class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shrink-0"
                 [class]="
                   vertex.rank === 1
                     ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
@@ -41,19 +41,33 @@
                 #{{ vertex.rank }}
               </span>
             }
-            <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {{
-                vertex.isOccupied
-                  ? i18n.t().occupied
-                  : vertex.rank === 1
-                    ? i18n.t().bestPosition
-                    : vertex.isBlocked
-                      ? i18n.t().blocked
-                      : vertex.rank
-                        ? '#' + vertex.rank
-                        : ''
-              }}
-            </span>
+            <div class="flex items-center gap-2 flex-wrap min-w-0">
+              <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {{
+                  vertex.isOccupied
+                    ? i18n.t().occupied
+                    : vertex.rank === 1
+                      ? i18n.t().bestPosition
+                      : vertex.isBlocked
+                        ? i18n.t().blocked
+                        : vertex.rank
+                          ? i18n.t().positionNumber(vertex.rank)
+                          : ''
+                }}
+              </span>
+              @if (
+                !vertex.isOccupied &&
+                !vertex.isBlocked &&
+                vertex.rank &&
+                store.getRankTieCount(vertex.rank) > 1
+              ) {
+                <span
+                  class="text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 px-2 py-0.5 rounded-full"
+                >
+                  {{ i18n.t().tiedSpotsCount(store.getRankTieCount(vertex.rank)) }}
+                </span>
+              }
+            </div>
           }
         </div>
         <div class="flex items-center gap-2">

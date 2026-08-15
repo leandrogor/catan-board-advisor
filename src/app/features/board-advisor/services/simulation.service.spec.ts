@@ -86,6 +86,28 @@ describe('SimulationService', () => {
       expect(v.rawScore).toBeCloseTo(5 / 36, 6);
     });
 
+    it('should assign sequential dense ranks when multiple vertices tie for rank 1', () => {
+      const hexes: HexDefinition[] = [
+        createMockHex('h4', 4),
+        createMockHex('h5', 5),
+        createMockHex('h6', 6),
+        createMockHex('h8', 8),
+        createMockHex('h9', 9),
+        createMockHex('h10', 10),
+        createMockHex('h2', 2),
+      ];
+
+      const v1 = createMockVertex('v-456', ['h4', 'h5', 'h6']); // 12 pips -> Rank 1
+      const v2 = createMockVertex('v-8910', ['h8', 'h9', 'h10']); // 12 pips -> Rank 1
+      const v3 = createMockVertex('v-2', ['h2']); // 1 pip -> Rank 2 (dense, not Rank 3)
+
+      service.runTheoretical(hexes, [v1, v2, v3], 100);
+
+      expect(v1.rank).toBe(1);
+      expect(v2.rank).toBe(1);
+      expect(v3.rank).toBe(2);
+    });
+
     it('should correctly populate theoretical rollCountMap across all games', () => {
       const hexes: HexDefinition[] = [createMockHex('h6', 6)];
       const v = createMockVertex('v1', ['h6']);

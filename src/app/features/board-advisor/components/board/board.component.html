@@ -478,8 +478,22 @@
               [attr.cy]="vertex.position.y"
               [attr.r]="getVertexRadius(vertex) + 3"
               fill="none"
-              stroke="white"
+              stroke="var(--selected-vertex-ring, #0f172a)"
+              stroke-width="2.5"
+            />
+          }
+
+          <!-- Peer tied rank highlight ring when a peer vertex with same rank is selected -->
+          @if (isTiedWithSelected(vertex)) {
+            <circle
+              [attr.cx]="vertex.position.x"
+              [attr.cy]="vertex.position.y"
+              [attr.r]="getVertexRadius(vertex) + 3.5"
+              fill="none"
+              stroke="var(--tied-vertex-ring, #d97706)"
               stroke-width="2"
+              stroke-dasharray="3 2"
+              class="pointer-events-none tied-peer-ring"
             />
           }
 
@@ -529,13 +543,13 @@
           ) {
             <text
               [attr.x]="vertex.position.x"
-              [attr.y]="vertex.position.y + 3"
+              [attr.y]="vertex.position.y + 3.2"
               [attr.transform]="getTextCounterRotation(vertex.position.x, vertex.position.y)"
               text-anchor="middle"
               dominant-baseline="middle"
-              font-size="8"
-              font-weight="bold"
-              fill="white"
+              font-size="8.5"
+              font-weight="800"
+              fill="var(--rank-vertex-text, #0f172a)"
               class="pointer-events-none"
             >
               {{ vertex.rank }}

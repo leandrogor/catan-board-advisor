@@ -63,7 +63,7 @@ export class SimulationService {
       rollCountMap.set(dice, expectedRollsPerGame * SimulationService.TOTAL_MINI_GAMES);
     }
 
-    // Rank eligible vertices
+    // Rank eligible vertices using sequential dense ranking
     const eligible = vertices
       .filter(
         v =>
@@ -77,11 +77,20 @@ export class SimulationService {
       )
       .sort((a, b) => (b.rawScore ?? 0) - (a.rawScore ?? 0));
 
-    eligible.forEach((v, i) => {
-      v.rank = i + 1;
-    });
+    let currentRank = 1;
+    let prevScore: number | null = null;
+    for (const v of eligible) {
+      const score = v.rawScore ?? 0;
+      if (prevScore !== null && Math.abs(score - prevScore) < 1e-6) {
+        // Tied with previous score -> same rank
+      } else {
+        if (prevScore !== null) currentRank++;
+        prevScore = score;
+      }
+      v.rank = currentRank;
+    }
 
-    const lastProductionRank = eligible.length + 1;
+    const lastProductionRank = prevScore !== null ? currentRank + 1 : 1;
     for (const v of vertices) {
       if (!eligible.includes(v)) {
         v.rank = lastProductionRank;
@@ -194,7 +203,7 @@ export class SimulationService {
       hexMap.set(h.id, h);
     }
 
-    // Rank eligible vertices
+    // Rank eligible vertices using sequential dense ranking
     const eligible = vertices
       .filter(
         v =>
@@ -208,12 +217,21 @@ export class SimulationService {
       )
       .sort((a, b) => (b.rawScore ?? 0) - (a.rawScore ?? 0));
 
-    eligible.forEach((v, i) => {
-      v.rank = i + 1;
-    });
+    let currentRank = 1;
+    let prevScore: number | null = null;
+    for (const v of eligible) {
+      const score = v.rawScore ?? 0;
+      if (prevScore !== null && Math.abs(score - prevScore) < 1e-6) {
+        // Tied with previous score -> same rank
+      } else {
+        if (prevScore !== null) currentRank++;
+        prevScore = score;
+      }
+      v.rank = currentRank;
+    }
 
     // Set rank for non-eligible to last position in production ranking
-    const lastProductionRank = eligible.length + 1;
+    const lastProductionRank = prevScore !== null ? currentRank + 1 : 1;
     for (const v of vertices) {
       if (!eligible.includes(v)) {
         v.rank = lastProductionRank;

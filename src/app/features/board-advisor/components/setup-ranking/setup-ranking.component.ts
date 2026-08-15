@@ -108,21 +108,20 @@ export class SetupRankingComponent {
     // Sort descending by totalScore
     playerData.sort((a, b) => b.totalScore - a.totalScore);
 
-    // Apply 1224 tie-ranking rule: group by exact totalScore equality
+    // Apply dense tie-ranking rule: group by exact totalScore equality
     const rows: PlayerRankingRow[] = [];
-    let runningCount = 0;
+    let currentRank = 1;
     let i = 0;
     while (i < playerData.length) {
       const groupScore = playerData[i].totalScore;
       const groupStart = i;
-      while (i < playerData.length && playerData[i].totalScore === groupScore) {
+      while (i < playerData.length && Math.abs(playerData[i].totalScore - groupScore) < 1e-6) {
         i++;
       }
-      const groupRank = 1 + runningCount;
       for (let j = groupStart; j < i; j++) {
-        rows.push({ ...playerData[j], productionRank: groupRank });
+        rows.push({ ...playerData[j], productionRank: currentRank });
       }
-      runningCount += i - groupStart;
+      currentRank++;
     }
 
     return rows;

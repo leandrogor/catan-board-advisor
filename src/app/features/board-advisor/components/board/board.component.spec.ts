@@ -162,4 +162,47 @@ describe('BoardComponent - 2-Finger Touch Gestures', () => {
       expect(filteredDisplayed.some(v => v.id === 'v-2')).toBeFalse();
     });
   });
+
+  describe('isTiedWithSelected', () => {
+    it('should return true for peer vertices sharing the same rank when a vertex is selected', () => {
+      store.appPhase.set('results');
+      store.setEvaluationMode('theoretical');
+
+      const ranked = store.rankedVertices();
+      const eligible = ranked.filter(v => (v.rawScore ?? 0) > 0 && !v.isBlocked && !v.isOccupied);
+
+      // Group by rank
+      const rankGroups = new Map<number, typeof eligible>();
+      for (const v of eligible) {
+        if (v.rank) {
+          const list = rankGroups.get(v.rank) ?? [];
+          list.push(v);
+          rankGroups.set(v.rank, list);
+        }
+      }
+
+      // Find a rank with at least 2 vertices
+      const tiedGroup = Array.from(rankGroups.values()).find(g => g.length > 1);
+      expect(tiedGroup).toBeDefined();
+
+      if (tiedGroup && tiedGroup.length >= 2) {
+        const v1 = tiedGroup[0];
+        const v2 = tiedGroup[1];
+
+        // Select v1
+        store.selectedVertexId.set(v1.id);
+
+        // v1 itself should NOT be considered tied-peer of itself (it is selected)
+        expect(component['isTiedWithSelected'](v1)).toBeFalse();
+        // v2 shares the rank with selected v1 -> should return true
+        expect(component['isTiedWithSelected'](v2)).toBeTrue();
+
+        // Any vertex with a different rank should return false
+        const otherRankVertex = eligible.find(v => v.rank !== v1.rank);
+        if (otherRankVertex) {
+          expect(component['isTiedWithSelected'](otherRankVertex)).toBeFalse();
+        }
+      }
+    });
+  });
 });

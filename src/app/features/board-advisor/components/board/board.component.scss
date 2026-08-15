@@ -105,6 +105,9 @@ line {
 .top-vertex-ring {
   animation: pulse-ring 2s ease-in-out infinite;
 }
+.tied-peer-ring {
+  animation: pulse-ring 1.8s ease-in-out infinite;
+}
 .ghost-desert {
   pointer-events: none;
   opacity: 0.75;

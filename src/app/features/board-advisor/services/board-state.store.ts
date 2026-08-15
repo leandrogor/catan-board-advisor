@@ -642,31 +642,47 @@ export class BoardStateStore {
     });
     groupList.sort((a, b) => b.meanScore - a.meanScore);
 
-    // Assign rank with 1224 rule: rank of a group = 1 + total number of vertices in all higher-ranked groups
-    let runningCount = 0;
-    let prevMeanScore: number | null = null;
+    // Assign rank with sequential dense ranking (1, 2, 3, 4, 5...)
     let currentRank = 1;
+    let prevMeanScore: number | null = null;
     for (const group of groupList) {
       if (prevMeanScore !== null && Math.abs(group.meanScore - prevMeanScore) < 1e-6) {
         // Tied with previous group: maintain currentRank
       } else {
-        currentRank = 1 + runningCount;
+        if (prevMeanScore !== null) {
+          currentRank++;
+        }
         prevMeanScore = group.meanScore;
       }
       for (const v of group.vertices) {
         v.rank = currentRank;
       }
-      runningCount += group.vertices.length;
     }
 
     // Vertices that produce 0 or are non-eligible get the rank corresponding to the last position in production ranking
-    const lastProductionRank = 1 + runningCount;
+    const lastProductionRank = prevMeanScore !== null ? currentRank + 1 : 1;
     for (const v of vertices) {
       v.rank ??= lastProductionRank;
     }
 
     return vertices;
   });
+
+  readonly rankCountMap = computed<Map<number, number>>(() => {
+    const map = new Map<number, number>();
+    const ranked = this.rankedVertices();
+    for (const v of ranked) {
+      if (v.rank !== null && !v.isBlocked && !v.isOccupied && (v.rawScore ?? 0) > 0) {
+        map.set(v.rank, (map.get(v.rank) ?? 0) + 1);
+      }
+    }
+    return map;
+  });
+
+  getRankTieCount(rank: number | null): number {
+    if (!rank) return 1;
+    return this.rankCountMap().get(rank) ?? 1;
+  }
 
   readonly topVertex = computed<Vertex | null>(
     () => this.rankedVertices().find(v => v.rank === 1) ?? null,

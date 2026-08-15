@@ -18,6 +18,9 @@
   --color-blocked: #94a3b8;
   --color-occupied: #6366f1;
   --color-top-vertex: #f59e0b;
+  --selected-vertex-ring: #0f172a;
+  --tied-vertex-ring: #d97706;
+  --rank-vertex-text: #0f172a;
 }
 
 .dark {
@@ -26,6 +29,9 @@
   --hex-text: #f1f5f9;
   --hex-number-default: #e2e8f0;
   --hex-desert-fill: #92400e;
+  --selected-vertex-ring: #ffffff;
+  --tied-vertex-ring: #fbbf24;
+  --rank-vertex-text: #0f172a;
 }
 
 html,

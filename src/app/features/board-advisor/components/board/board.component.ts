@@ -1238,6 +1238,15 @@ export class BoardComponent {
     return this.store.selectedVertexId() === v.id;
   }
 
+  protected isTiedWithSelected(v: Vertex): boolean {
+    const selId = this.store.selectedVertexId();
+    if (!selId || v.id === selId) return false;
+    const ranked = this.store.rankedVertices();
+    const selVertex = ranked.find(item => item.id === selId);
+    if (!selVertex?.rank || !v.rank) return false;
+    return v.rank === selVertex.rank && !v.isOccupied && !v.isBlocked && (v.rawScore ?? 0) > 0;
+  }
+
   protected isTopVertex(v: Vertex): boolean {
     return v.rank === 1;
   }

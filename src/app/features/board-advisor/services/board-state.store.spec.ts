@@ -1160,8 +1160,8 @@ describe('BoardStateStore - Longest Road', () => {
     });
 
     it('should give identical rank to vertices with identical theoretical score', () => {
-      store.setEvaluationMode('theoretical');
       store.appPhase.set('results');
+      store.setEvaluationMode('theoretical');
 
       const ranked = store.rankedVertices();
       expect(ranked.length).toBeGreaterThan(0);
@@ -1185,6 +1185,36 @@ describe('BoardStateStore - Longest Road', () => {
           }
         }
       }
+    });
+
+    it('should assign strictly sequential ranks (1, 2, 3, ...) without skipping ranks (Dense Ranking)', () => {
+      store.appPhase.set('results');
+      store.setEvaluationMode('theoretical');
+
+      const ranked = store.rankedVertices();
+      const eligibleRanks = ranked
+        .filter(v => (v.rawScore ?? 0) > 0 && !v.isBlocked && !v.isOccupied)
+        .map(v => v.rank)
+        .filter((r): r is number => r !== null);
+
+      const distinctRanks = Array.from(new Set(eligibleRanks)).sort((a, b) => a - b);
+      expect(distinctRanks.length).toBeGreaterThan(0);
+      for (let i = 0; i < distinctRanks.length; i++) {
+        expect(distinctRanks[i]).toBe(i + 1);
+      }
+    });
+
+    it('should correctly count tied spots via getRankTieCount', () => {
+      store.appPhase.set('results');
+      store.setEvaluationMode('theoretical');
+
+      const ranked = store.rankedVertices();
+      const actualRank1Count = ranked.filter(
+        v => v.rank === 1 && !v.isBlocked && !v.isOccupied && (v.rawScore ?? 0) > 0,
+      ).length;
+
+      expect(actualRank1Count).toBeGreaterThanOrEqual(1);
+      expect(store.getRankTieCount(1)).toBe(actualRank1Count);
     });
   });
 });

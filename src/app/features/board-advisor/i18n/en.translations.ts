@@ -74,6 +74,8 @@ export interface Translations {
   rank1Best: string;
   rank2: string;
   rank3: string;
+  positionNumber: (rank: number) => string;
+  tiedSpotsCount: (count: number) => string;
   direct: string;
   projected: string;
   cancel: string;
@@ -407,6 +409,8 @@ export const EN: Translations = {
   rank1Best: 'Rank 1 (Best)',
   rank2: 'Rank 2',
   rank3: 'Rank 3',
+  positionNumber: (rank: number): string => `Position #${rank}`,
+  tiedSpotsCount: (count: number): string => `${count} tied spots`,
   direct: 'Direct',
   projected: 'Projected',
   cancel: 'Cancel',

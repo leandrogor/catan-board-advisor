@@ -114,6 +114,8 @@ export const ES: Translations = {
   rank1Best: 'Posición 1 (Mejor)',
   rank2: 'Posición 2',
   rank3: 'Posición 3',
+  positionNumber: (rank: number): string => `Posición #${rank}`,
+  tiedSpotsCount: (count: number): string => `${count} lugares empatados`,
   direct: 'Directo',
   projected: 'Proyectado',
   cancel: 'Cancelar',
