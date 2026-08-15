@@ -80,10 +80,15 @@ export interface Translations {
   projected: string;
   cancel: string;
   selectRoadDirection: string;
+  updateAvailableTitle: string;
   updateAvailable: string;
+  updateNow: string;
+  updateLater: string;
   showPanel: string;
   hidePanel: string;
+  resetConfirmTitle: string;
   resetConfirmMessage: string;
+  resetConfirmAction: string;
   // Player setup
   playerCount: string;
   boardGroupBase: string;
@@ -290,6 +295,7 @@ export interface Translations {
   timerSinceStart: string;
   timerOpenPanel: string;
   /** Session recovery */
+  resumeSessionTitle: string;
   resumeSessionPrompt: string;
   resumeSession: string;
   discardSession: string;
@@ -415,11 +421,16 @@ export const EN: Translations = {
   projected: 'Projected',
   cancel: 'Cancel',
   selectRoadDirection: 'Select Road Direction',
+  updateAvailableTitle: 'Update Available',
   updateAvailable: 'A new version of the app is available. Do you want to update now?',
+  updateNow: 'Update',
+  updateLater: 'Later',
   showPanel: 'Show Panel',
   hidePanel: 'Hide Panel',
+  resetConfirmTitle: 'Reset Board',
   resetConfirmMessage:
     'Are you sure you want to reset the board? All simulation results will be lost.',
+  resetConfirmAction: 'Reset',
   // Player setup
   playerCount: 'Players',
   boardGroupBase: 'Base',
@@ -597,6 +608,7 @@ export const EN: Translations = {
   timerTotal: 'Total',
   timerSinceStart: 'since start',
   timerOpenPanel: 'Open match timer',
+  resumeSessionTitle: 'Previous Session',
   resumeSessionPrompt: 'A previous game session was found. Would you like to resume it?',
   resumeSession: 'Resume',
   discardSession: 'Start fresh',

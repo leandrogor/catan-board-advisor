@@ -1,8 +1,7 @@
-import { ApplicationRef, inject, Injectable } from '@angular/core';
+import { ApplicationRef, inject, Injectable, signal } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { concat, interval } from 'rxjs';
 import { filter, first } from 'rxjs/operators';
-import { TranslationService } from './translation.service';
 
 @Injectable({
   providedIn: 'root',
@@ -10,7 +9,8 @@ import { TranslationService } from './translation.service';
 export class UpdateService {
   private readonly swUpdate = inject(SwUpdate);
   private readonly appRef = inject(ApplicationRef);
-  private readonly i18n = inject(TranslationService);
+
+  readonly updateAvailable = signal(false);
 
   constructor() {
     if (this.swUpdate.isEnabled) {
@@ -18,9 +18,7 @@ export class UpdateService {
       this.swUpdate.versionUpdates
         .pipe(filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'))
         .subscribe(() => {
-          if (confirm(this.i18n.t().updateAvailable)) {
-            globalThis.location.reload();
-          }
+          this.updateAvailable.set(true);
         });
 
       // Periodically check for updates
@@ -33,5 +31,24 @@ export class UpdateService {
         await this.swUpdate.checkForUpdate();
       });
     }
+  }
+
+  applyUpdate(): void {
+    if (this.swUpdate.isEnabled) {
+      this.swUpdate
+        .activateUpdate()
+        .then(() => {
+          globalThis.location.reload();
+        })
+        .catch(() => {
+          globalThis.location.reload();
+        });
+    } else {
+      globalThis.location.reload();
+    }
+  }
+
+  dismissUpdate(): void {
+    this.updateAvailable.set(false);
   }
 }

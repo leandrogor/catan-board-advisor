@@ -10,7 +10,7 @@ import { GameScoreboardComponent } from './components/game-scoreboard/game-score
 import { DevCardsPanelComponent } from './components/dev-cards-panel/dev-cards-panel.component';
 import { GameStatsPanelComponent } from './components/game-stats-panel/game-stats-panel.component';
 import { GameTimerPanelComponent } from './components/game-timer-panel/game-timer-panel.component';
-import { SessionResumeDialogComponent } from './components/session-resume-dialog/session-resume-dialog.component';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { BoardStateStore } from './services/board-state.store';
 import { TranslationService } from '../../core/services/translation.service';
 
@@ -31,7 +31,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     DevCardsPanelComponent,
     GameStatsPanelComponent,
     GameTimerPanelComponent,
-    SessionResumeDialogComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: './board-advisor-page.component.html',
   styleUrl: './board-advisor-page.component.scss',
@@ -44,6 +44,9 @@ export class BoardAdvisorPageComponent {
 
   /** Whether to show the resume session dialog (checked once on startup). */
   protected readonly showResumeDialog = signal<boolean>(this.store.hasResumableSession());
+
+  /** Whether to show the reset board confirmation dialog. */
+  protected readonly showResetConfirmDialog = signal<boolean>(false);
 
   @ViewChild('snapshotFileInput') private readonly snapshotFileInput!: ElementRef<HTMLInputElement>;
 
@@ -90,9 +93,16 @@ export class BoardAdvisorPageComponent {
   };
 
   protected confirmResetToSetup(): void {
-    if (globalThis.confirm(this.i18n.t().resetConfirmMessage)) {
-      this.store.resetToSetup();
-    }
+    this.showResetConfirmDialog.set(true);
+  }
+
+  protected handleResetConfirmed(): void {
+    this.showResetConfirmDialog.set(false);
+    this.store.resetToSetup();
+  }
+
+  protected handleResetCanceled(): void {
+    this.showResetConfirmDialog.set(false);
   }
 
   /** Opens the hidden file input so the user can pick a snapshot JSON. */

@@ -7,10 +7,12 @@ import { PLAYER_COLORS } from '../features/board-advisor/models/player-color.mod
 
 import { KeyboardShortcutsService } from '../core/services/keyboard-shortcuts.service';
 import { ShortcutsHelpModalComponent } from '../features/board-advisor/components/shortcuts-help-modal/shortcuts-help-modal.component';
+import { UpdateService } from '../core/services/update.service';
+import { ConfirmDialogComponent } from '../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, ShortcutsHelpModalComponent],
+  imports: [RouterOutlet, ShortcutsHelpModalComponent, ConfirmDialogComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
@@ -19,6 +21,7 @@ export class ShellComponent {
   protected readonly theme = inject(ThemeService);
   protected readonly store = inject(BoardStateStore);
   protected readonly shortcuts = inject(KeyboardShortcutsService);
+  protected readonly updateService = inject(UpdateService);
 
   protected readonly targetDropdownOpen = signal<boolean>(false);
 

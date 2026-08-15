@@ -1,7 +1,30 @@
 @if (showResumeDialog()) {
-  <app-session-resume-dialog
-    (resumeSession)="resumeSession()"
-    (discardSession)="discardSession()"
+  <app-confirm-dialog
+    icon="⏱"
+    [title]="i18n.t().resumeSessionTitle"
+    [message]="i18n.t().resumeSessionPrompt"
+    [confirmText]="i18n.t().resumeSession"
+    [cancelText]="i18n.t().discardSession"
+    variant="primary"
+    confirmBtnId="session-resume-btn"
+    cancelBtnId="session-discard-btn"
+    (confirmed)="resumeSession()"
+    (cancelled)="discardSession()"
+  />
+}
+
+@if (showResetConfirmDialog()) {
+  <app-confirm-dialog
+    icon="🔄"
+    [title]="i18n.t().resetConfirmTitle"
+    [message]="i18n.t().resetConfirmMessage"
+    [confirmText]="i18n.t().resetConfirmAction"
+    [cancelText]="i18n.t().cancel"
+    variant="danger"
+    confirmBtnId="reset-board-confirm-btn"
+    cancelBtnId="reset-board-cancel-btn"
+    (confirmed)="handleResetConfirmed()"
+    (cancelled)="handleResetCanceled()"
   />
 }
 

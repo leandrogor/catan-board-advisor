@@ -64,6 +64,8 @@ It supports both the **Base Board (3-4 Players)** and the **5-6 Player Extension
   - Expanded chart zoom modal featuring translated titles, theme support, keyboard navigation, and backdrop dismiss.
 - **Warm Parchment Theme & Visual Polish**:
   - Warm parchment light mode theme (`#faf8f3`), subtle neon piece glows in Dark Mode, glassmorphism overlays, and transparent backdrop controls.
+- **Unified Modal Dialog Architecture**:
+  - Consistent accessible in-app dialogs (`ConfirmDialogComponent`) for previous session recovery, board reset confirmation, and PWA updates with keyboard (<kbd>Escape</kbd>) and backdrop dismiss support.
 - **Strict TypeScript Architecture**: 100% strictly typed codebase with zero `unknown` types, dedicated snapshot models (`BoardSnapshot`), and comprehensive type guards for all state and configuration handlers.
 - **Dark Mode & Multilingual**: Sleek dark/light modes and fully signal-based Spanish/English i18n support.
 - **Progressive Web App (PWA)**: Works offline, can be installed on home screens, and launches instantly.

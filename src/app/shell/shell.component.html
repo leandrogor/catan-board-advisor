@@ -382,3 +382,18 @@
 </main>
 
 <app-shortcuts-help-modal />
+
+@if (updateService.updateAvailable()) {
+  <app-confirm-dialog
+    icon="🚀"
+    [title]="i18n.t().updateAvailableTitle"
+    [message]="i18n.t().updateAvailable"
+    [confirmText]="i18n.t().updateNow"
+    [cancelText]="i18n.t().updateLater"
+    variant="primary"
+    confirmBtnId="update-app-confirm-btn"
+    cancelBtnId="update-app-dismiss-btn"
+    (confirmed)="updateService.applyUpdate()"
+    (cancelled)="updateService.dismissUpdate()"
+  />
+}

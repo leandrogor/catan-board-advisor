@@ -1,7 +1,7 @@
 # PROJECT_SKILL.md — Catan Board Advisor
 
 > **Purpose**: Onboarding document for AI assistants working on this codebase.
-> **Last updated**: 2026-08-03 (Complete TypeScript strict typing overhaul with board-snapshot.model.ts & strict type guards, last production rank assignment for non-producing vertices, phase-conditioned settings drawer, click-outside transparent backdrops for hex/vertex detail panels, consecutive gesture counter badge & toast timeout extension, mobile road selection UX & modal z-index layering optimizations, config file cleanup)
+> **Last updated**: 2026-08-15 (Unified modal dialog system with reusable ConfirmDialogComponent across Session Resume, Reset Board, and App Update prompts; updated architectural guidelines)
 
 ---
 
@@ -44,6 +44,7 @@ It operates across three distinct phases:
 4. **pnpm only** — never npm. `angular.json` has `"packageManager": "pnpm"`.
 5. **Modular Component Structure** — Component templates and stylesheets are split into dedicated `.component.html` and `.component.scss` files (except for extremely minimal templates like `AppComponent`'s router outlet) to maintain clean TypeScript files focused strictly on logic.
 6. **Strict Typing & Zero Unknowns** — 100% strict typing across models, services, and components with zero `unknown` types or unsafe `as` type assertions. Uses type guards (`isPlayerCount`, `isBoardRotationDeg`, `isLanguage`, `isThemeMode`, etc.) and defined interfaces (`BoardSnapshot`).
+7. **Unified Modal Dialog Architecture** — All application-level confirmation, alert, and prompt dialogs (e.g. Session Resume, Reset Board confirmation, App Update available, etc.) MUST use the reusable `ConfirmDialogComponent` (`src/app/shared/components/confirm-dialog/confirm-dialog.component.ts`). Avoid using browser-native `window.confirm()` or `window.alert()` or ad-hoc custom modal HTML.
 
 ---
 
@@ -88,8 +89,13 @@ catan-board-advisor/
 │       │   ├── theme.service.ts          # Dark/light theme, prefers-color-scheme, localStorage
 │       │   └── keyboard-shortcuts.service.ts # Global keydown handler, modal & shortcut dispatching
 │       │
-│       ├── shared/utils/
-│       │   └── hex-math.utils.ts         # ALL hex grid geometry & spiral layout (see §3)
+│       ├── shared/
+│       │   ├── components/
+│       │   │   └── confirm-dialog/
+│       │   │       ├── confirm-dialog.component.ts       # Reusable confirm & alert dialog modal component
+│       │   │       └── confirm-dialog.component.spec.ts  # ConfirmDialogComponent unit tests
+│       │   └── utils/
+│       │       └── hex-math.utils.ts                     # ALL hex grid geometry & spiral layout (see §3)
 │       │
 │       ├── shell/
 │       │   ├── shell.component.ts        # App shell component
@@ -176,6 +182,7 @@ catan-board-advisor/
 | `board.component.*`                | SVG rendering: hexes, vertices, Pointer Events drag-and-drop, label upright rotation, scale                   |
 | `vertex-detail-panel.component.*`  | Detail drawer showing vertex score, ranking, adjacent tiles, and settlement toggle                            |
 | `shortcuts-help-modal.component.*` | Cheat sheet modal displaying available keyboard shortcuts grouped by category                                 |
+| `confirm-dialog.component.*`       | Reusable standalone modal dialog component for prompts, alerts, and confirmations                             |
 | `dev-cards-panel.component.*`      | Detail drawer showing dev card probabilities, legend, and per-player hand estimated potential                 |
 | `dev-card.model.ts`                | Types and configurations for full (34) and reduced (25) dev card decks                                        |
 | `shell.component.*`                | App chrome: header (lang/theme/settings toggles) + settings drawer & shortcuts help trigger                   |
