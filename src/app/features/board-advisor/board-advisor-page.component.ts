@@ -68,8 +68,8 @@ export class BoardAdvisorPageComponent {
   /** Formatted elapsed timer for the floating button badge. */
   protected readonly timerBadge = computed<string>(() => {
     if (!this.timer.isStarted()) return this.i18n.t().timerStartNow;
-    if (this.timer.isFinished()) return '🏆 ' + this.timer.elapsedFormatted();
-    return this.timer.elapsedFormatted();
+    if (this.timer.isFinished()) return '🏆 ' + this.timer.compactElapsedFormatted();
+    return this.timer.compactElapsedFormatted();
   });
 
   /** Starts the timer setup phase if not yet started (manual trigger). */

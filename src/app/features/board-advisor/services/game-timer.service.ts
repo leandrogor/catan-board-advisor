@@ -38,6 +38,11 @@ export class GameTimerService {
     return formatDuration(ms);
   });
 
+  readonly compactElapsedFormatted = computed<string>(() => {
+    const ms = this.elapsedMs();
+    return formatCompactDuration(ms);
+  });
+
   // ── Actions ───────────────────────────────────────────────────────────────
 
   /** Starts the setup phase timer. Idempotent if already started. */
@@ -229,4 +234,31 @@ export function formatDuration(ms: number): string {
 /** Formats an absolute timestamp as HH:MM:SS relative to a start time. */
 export function formatRelativeTime(timestampMs: number, startMs: number): string {
   return formatDuration(timestampMs - startMs);
+}
+
+/**
+ * Formats a duration in ms compactly for the floating button badge.
+ * - Under 1 minute: seconds only (e.g. "10s", "30s", "59s")
+ * - 1 minute up to 59 minutes: minutes only (e.g. "1m", "3m", "59m")
+ * - 1 hour or more: hours and optionally minutes (e.g. "1h", "1h 1m", "1h 59m", "2h", "2h 3m")
+ */
+export function formatCompactDuration(ms: number): string {
+  if (ms <= 0) return '0s';
+  const totalSec = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSec / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+
+  if (hours > 0) {
+    if (minutes > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${hours}h`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m`;
+  }
+
+  return `${seconds}s`;
 }
