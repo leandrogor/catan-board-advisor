@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HexDefinition } from '../models/hex.model';
 import { Vertex } from '../models/vertex.model';
-import { SimulationResult } from '../models/simulation-result.model';
+import { EvaluationMode, SimulationResult } from '../models/simulation-result.model';
 
 @Injectable({ providedIn: 'root' })
 export class SimulationService {
@@ -9,6 +9,95 @@ export class SimulationService {
   static readonly ROLLS_PER_GAME = 150;
 
   run(
+    hexes: HexDefinition[],
+    vertices: Vertex[],
+    rollsPerGame: number = SimulationService.ROLLS_PER_GAME,
+    mode: EvaluationMode = 'theoretical',
+  ): SimulationResult {
+    if (mode === 'theoretical') {
+      return this.runTheoretical(hexes, vertices, rollsPerGame);
+    }
+    return this.runSimulation(hexes, vertices, rollsPerGame);
+  }
+
+  runTheoretical(
+    hexes: HexDefinition[],
+    vertices: Vertex[],
+    rollsPerGame: number = SimulationService.ROLLS_PER_GAME,
+  ): SimulationResult {
+    const hexMap = new Map<string, HexDefinition>();
+    for (const h of hexes) {
+      hexMap.set(h.id, h);
+    }
+
+    const resourceMap = new Map<string, number>();
+    let maxRaw = 0;
+
+    for (const v of vertices) {
+      let rawScore = 0;
+      for (const hexId of v.adjacentHexIds) {
+        const hex = hexMap.get(hexId);
+        if (hex && !hex.isDesert && hex.diceNumber !== null && hex.diceNumber !== 7) {
+          const ways = 6 - Math.abs(7 - hex.diceNumber);
+          rawScore += ways / 36;
+        }
+      }
+      v.rawScore = rawScore;
+      v.totalResources = rawScore * rollsPerGame;
+      resourceMap.set(v.id, rawScore);
+      if (rawScore > maxRaw) {
+        maxRaw = rawScore;
+      }
+    }
+
+    for (const v of vertices) {
+      v.normalizedScore = maxRaw > 0 ? (v.rawScore ?? 0) / maxRaw : 0;
+    }
+
+    // Theoretical roll count map across TOTAL_MINI_GAMES
+    const rollCountMap = new Map<number, number>();
+    for (let dice = 2; dice <= 12; dice++) {
+      if (dice === 7) continue;
+      const ways = 6 - Math.abs(7 - dice);
+      const expectedRollsPerGame = (ways / 36) * rollsPerGame;
+      rollCountMap.set(dice, expectedRollsPerGame * SimulationService.TOTAL_MINI_GAMES);
+    }
+
+    // Rank eligible vertices
+    const eligible = vertices
+      .filter(
+        v =>
+          !v.isBlocked &&
+          !v.isOccupied &&
+          (v.rawScore ?? 0) > 0 &&
+          v.adjacentHexIds.some(id => {
+            const hex = hexMap.get(id);
+            return hex ? !hex.isDesert : false;
+          }),
+      )
+      .sort((a, b) => (b.rawScore ?? 0) - (a.rawScore ?? 0));
+
+    eligible.forEach((v, i) => {
+      v.rank = i + 1;
+    });
+
+    const lastProductionRank = eligible.length + 1;
+    for (const v of vertices) {
+      if (!eligible.includes(v)) {
+        v.rank = lastProductionRank;
+      }
+    }
+
+    return {
+      totalMiniGames: SimulationService.TOTAL_MINI_GAMES,
+      rollCountMap,
+      resourceMap,
+      maxRawScore: maxRaw,
+      rankedVertexIds: eligible.map(v => v.id),
+    };
+  }
+
+  runSimulation(
     hexes: HexDefinition[],
     vertices: Vertex[],
     rollsPerGame: number = SimulationService.ROLLS_PER_GAME,
@@ -96,7 +185,7 @@ export class SimulationService {
     }
 
     for (const v of vertices) {
-      v.normalizedScore = maxRaw > 0 ? v.rawScore / maxRaw : 0;
+      v.normalizedScore = maxRaw > 0 ? (v.rawScore ?? 0) / maxRaw : 0;
     }
 
     // Build hex lookup for desert check
@@ -117,7 +206,7 @@ export class SimulationService {
             return hex ? !hex.isDesert : false;
           }),
       )
-      .sort((a, b) => b.rawScore - a.rawScore);
+      .sort((a, b) => (b.rawScore ?? 0) - (a.rawScore ?? 0));
 
     eligible.forEach((v, i) => {
       v.rank = i + 1;

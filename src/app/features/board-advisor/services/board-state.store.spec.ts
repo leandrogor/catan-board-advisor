@@ -1142,4 +1142,49 @@ describe('BoardStateStore - Longest Road', () => {
       expect(redoDetail?.description).toContain('Lean');
     });
   });
+
+  describe('Evaluation Mode & Theoretical Ranking', () => {
+    it('should default evaluationMode to theoretical or stored preference', () => {
+      expect(['theoretical', 'simulation']).toContain(store.evaluationMode());
+    });
+
+    it('should update evaluationMode and re-evaluate when in results phase', () => {
+      store.appPhase.set('results');
+      store.setEvaluationMode('theoretical');
+      expect(store.evaluationMode()).toBe('theoretical');
+      expect(store.simulationResult()).not.toBeNull();
+
+      store.setEvaluationMode('simulation');
+      expect(store.evaluationMode()).toBe('simulation');
+      expect(store.simulationResult()).not.toBeNull();
+    });
+
+    it('should give identical rank to vertices with identical theoretical score', () => {
+      store.setEvaluationMode('theoretical');
+      store.appPhase.set('results');
+
+      const ranked = store.rankedVertices();
+      expect(ranked.length).toBeGreaterThan(0);
+
+      // Find any vertices with identical rawScore (> 0)
+      const eligible = ranked.filter(v => (v.rawScore ?? 0) > 0 && !v.isBlocked && !v.isOccupied);
+      const scoreMap = new Map<number, typeof eligible>();
+      for (const v of eligible) {
+        const rounded = Math.round((v.rawScore ?? 0) * 1000000) / 1000000;
+        const list = scoreMap.get(rounded) ?? [];
+        list.push(v);
+        scoreMap.set(rounded, list);
+      }
+
+      // Check that all vertices in any tied group have the exact same rank
+      for (const [, tiedGroup] of scoreMap) {
+        if (tiedGroup.length > 1) {
+          const firstRank = tiedGroup[0].rank;
+          for (const v of tiedGroup) {
+            expect(v.rank).toBe(firstRank);
+          }
+        }
+      }
+    });
+  });
 });

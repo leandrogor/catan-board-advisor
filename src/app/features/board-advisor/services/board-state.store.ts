@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { HexDefinition } from '../models/hex.model';
 import { Vertex } from '../models/vertex.model';
-import { SimulationResult } from '../models/simulation-result.model';
+import { EvaluationMode, SimulationResult } from '../models/simulation-result.model';
 import {
   RoadOption,
   ActionSnapshot,
@@ -76,6 +76,9 @@ export class BoardStateStore {
   // ── Settings ────────────────────────────────────────────────────────────────
   readonly scoreFormat = signal<'decimal' | 'percentage'>(
     localStorage.getItem('catan-score-fmt') === 'percentage' ? 'percentage' : 'decimal',
+  );
+  readonly evaluationMode = signal<EvaluationMode>(
+    localStorage.getItem('catan-eval-mode') === 'simulation' ? 'simulation' : 'theoretical',
   );
   readonly showZeroScores = signal<boolean>(localStorage.getItem('catan-show-zeros') !== 'false');
   readonly enableAutoZoom = signal<boolean>(localStorage.getItem('catan-auto-zoom') !== 'false');
@@ -641,10 +644,17 @@ export class BoardStateStore {
 
     // Assign rank with 1224 rule: rank of a group = 1 + total number of vertices in all higher-ranked groups
     let runningCount = 0;
+    let prevMeanScore: number | null = null;
+    let currentRank = 1;
     for (const group of groupList) {
-      const groupRank = 1 + runningCount;
+      if (prevMeanScore !== null && Math.abs(group.meanScore - prevMeanScore) < 1e-6) {
+        // Tied with previous group: maintain currentRank
+      } else {
+        currentRank = 1 + runningCount;
+        prevMeanScore = group.meanScore;
+      }
       for (const v of group.vertices) {
-        v.rank = groupRank;
+        v.rank = currentRank;
       }
       runningCount += group.vertices.length;
     }
@@ -1082,6 +1092,9 @@ export class BoardStateStore {
       localStorage.setItem('catan-score-fmt', this.scoreFormat());
     });
     effect(() => {
+      localStorage.setItem('catan-eval-mode', this.evaluationMode());
+    });
+    effect(() => {
       localStorage.setItem('catan-show-zeros', String(this.showZeroScores()));
     });
     effect(() => {
@@ -1152,10 +1165,21 @@ export class BoardStateStore {
     this.showSecondBestProjection.update(v => !v);
   }
 
+  setEvaluationMode(mode: EvaluationMode): void {
+    this.evaluationMode.set(mode);
+    if (this.appPhase() !== 'setup') {
+      const hexes = this.hexes();
+      const vertices = this.allVertices();
+      const rolls = this.rollsPerGame();
+      const result = this.simService.run(hexes, [...vertices.map(v => ({ ...v }))], rolls, mode);
+      this._simulationResult.set(result);
+    }
+  }
+
   /**
-   * Starts the Monte Carlo simulation asynchronously.
+   * Starts the evaluation (theoretical calculation or Monte Carlo simulation) asynchronously.
    * Sets isSimulating=true, defers to next tick so the overlay renders,
-   * then runs the simulation and transitions to Phase 2.
+   * then runs the evaluation and transitions to Phase 2.
    */
   startSimulation(): void {
     if (this.isSimulating()) return;
@@ -1170,10 +1194,11 @@ export class BoardStateStore {
     const hexes = this.hexes();
     const vertices = this.allVertices();
     const rolls = this.rollsPerGame();
+    const mode = this.evaluationMode();
     // Yield execution to the browser for 100ms to guarantee style recalc & paint
     // of the simulation overlay before blocking the main thread with CPU-bound work.
     setTimeout(() => {
-      const result = this.simService.run(hexes, [...vertices.map(v => ({ ...v }))], rolls);
+      const result = this.simService.run(hexes, [...vertices.map(v => ({ ...v }))], rolls, mode);
       this._simulationResult.set(result);
       this.isSimulating.set(false);
       this.appPhase.set('results');

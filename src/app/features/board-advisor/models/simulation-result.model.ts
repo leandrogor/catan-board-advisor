@@ -1,3 +1,5 @@
+export type EvaluationMode = 'theoretical' | 'simulation';
+
 export interface SimulationResult {
   totalMiniGames: number; // always 10000
   rollCountMap: Map<number, number>; // diceNumber → total times rolled across all mini-games

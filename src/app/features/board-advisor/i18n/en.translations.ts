@@ -48,6 +48,9 @@ export interface Translations {
   scoreFormat: string;
   decimal: string;
   percentage: string;
+  evaluationMode: string;
+  theoretical: string;
+  simulation: string;
   showZeroScores: string;
   autoZoom: string;
   projectionTarget: string;
@@ -378,6 +381,9 @@ export const EN: Translations = {
   scoreFormat: 'Score format',
   decimal: 'Decimal',
   percentage: 'Percentage',
+  evaluationMode: 'Calculation mode',
+  theoretical: 'Theoretical',
+  simulation: 'Simulation',
   showZeroScores: 'Show zero-score vertices',
   autoZoom: 'Auto-zoom on selection',
   projectionTarget: 'Suggest projections for',

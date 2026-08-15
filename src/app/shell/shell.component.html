@@ -92,6 +92,38 @@
           </div>
         </div>
 
+        @if (store.appPhase() === 'setup') {
+          <div>
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block">{{
+              i18n.t().evaluationMode
+            }}</span>
+            <div class="mt-2 flex gap-2">
+              <button
+                class="flex-1 text-sm py-1.5 rounded-md transition-colors"
+                [class]="
+                  store.evaluationMode() === 'theoretical'
+                    ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                "
+                (click)="store.setEvaluationMode('theoretical')"
+              >
+                {{ i18n.t().theoretical }}
+              </button>
+              <button
+                class="flex-1 text-sm py-1.5 rounded-md transition-colors"
+                [class]="
+                  store.evaluationMode() === 'simulation'
+                    ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                "
+                (click)="store.setEvaluationMode('simulation')"
+              >
+                {{ i18n.t().simulation }}
+              </button>
+            </div>
+          </div>
+        }
+
         @if (store.appPhase() !== 'setup') {
           <div class="flex items-center justify-between">
             <span
