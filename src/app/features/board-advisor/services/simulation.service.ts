@@ -63,7 +63,7 @@ export class SimulationService {
       rollCountMap.set(dice, expectedRollsPerGame * SimulationService.TOTAL_MINI_GAMES);
     }
 
-    // Rank eligible vertices using sequential dense ranking
+    // Rank eligible vertices using sequential dense ranking with multi-hex & robber dispersion tie-breaking
     const eligible = vertices
       .filter(
         v =>
@@ -75,22 +75,38 @@ export class SimulationService {
             return hex ? !hex.isDesert : false;
           }),
       )
-      .sort((a, b) => (b.rawScore ?? 0) - (a.rawScore ?? 0));
+      .sort((a, b) => {
+        const scoreDiff = (b.rawScore ?? 0) - (a.rawScore ?? 0);
+        if (Math.abs(scoreDiff) > 1e-6) return scoreDiff;
+        const ma = this.getVertexMetrics(a, hexMap);
+        const mb = this.getVertexMetrics(b, hexMap);
+        if (mb.hexCount !== ma.hexCount) return mb.hexCount - ma.hexCount;
+        if (Math.abs(ma.robberConcentration - mb.robberConcentration) > 1e-6) {
+          return ma.robberConcentration - mb.robberConcentration;
+        }
+        return ma.key.localeCompare(mb.key);
+      });
 
     let currentRank = 1;
-    let prevScore: number | null = null;
+    let prevItem: { score: number; hexCount: number; robberConcentration: number } | null = null;
     for (const v of eligible) {
       const score = v.rawScore ?? 0;
-      if (prevScore !== null && Math.abs(score - prevScore) < 1e-6) {
-        // Tied with previous score -> same rank
+      const m = this.getVertexMetrics(v, hexMap);
+      if (
+        prevItem !== null &&
+        Math.abs(score - prevItem.score) < 1e-6 &&
+        m.hexCount === prevItem.hexCount &&
+        Math.abs(m.robberConcentration - prevItem.robberConcentration) < 1e-6
+      ) {
+        // Structurally and mathematically tied -> same rank
       } else {
-        if (prevScore !== null) currentRank++;
-        prevScore = score;
+        if (prevItem !== null) currentRank++;
+        prevItem = { score, hexCount: m.hexCount, robberConcentration: m.robberConcentration };
       }
       v.rank = currentRank;
     }
 
-    const lastProductionRank = prevScore !== null ? currentRank + 1 : 1;
+    const lastProductionRank = prevItem !== null ? currentRank + 1 : 1;
     for (const v of vertices) {
       if (!eligible.includes(v)) {
         v.rank = lastProductionRank;
@@ -203,7 +219,7 @@ export class SimulationService {
       hexMap.set(h.id, h);
     }
 
-    // Rank eligible vertices using sequential dense ranking
+    // Rank eligible vertices using sequential dense ranking with multi-hex & robber dispersion tie-breaking
     const eligible = vertices
       .filter(
         v =>
@@ -215,23 +231,39 @@ export class SimulationService {
             return hex ? !hex.isDesert : false;
           }),
       )
-      .sort((a, b) => (b.rawScore ?? 0) - (a.rawScore ?? 0));
+      .sort((a, b) => {
+        const scoreDiff = (b.rawScore ?? 0) - (a.rawScore ?? 0);
+        if (Math.abs(scoreDiff) > 1e-6) return scoreDiff;
+        const ma = this.getVertexMetrics(a, hexMap);
+        const mb = this.getVertexMetrics(b, hexMap);
+        if (mb.hexCount !== ma.hexCount) return mb.hexCount - ma.hexCount;
+        if (Math.abs(ma.robberConcentration - mb.robberConcentration) > 1e-6) {
+          return ma.robberConcentration - mb.robberConcentration;
+        }
+        return ma.key.localeCompare(mb.key);
+      });
 
     let currentRank = 1;
-    let prevScore: number | null = null;
+    let prevItem: { score: number; hexCount: number; robberConcentration: number } | null = null;
     for (const v of eligible) {
       const score = v.rawScore ?? 0;
-      if (prevScore !== null && Math.abs(score - prevScore) < 1e-6) {
-        // Tied with previous score -> same rank
+      const m = this.getVertexMetrics(v, hexMap);
+      if (
+        prevItem !== null &&
+        Math.abs(score - prevItem.score) < 1e-6 &&
+        m.hexCount === prevItem.hexCount &&
+        Math.abs(m.robberConcentration - prevItem.robberConcentration) < 1e-6
+      ) {
+        // Tied with previous score and structure -> same rank
       } else {
-        if (prevScore !== null) currentRank++;
-        prevScore = score;
+        if (prevItem !== null) currentRank++;
+        prevItem = { score, hexCount: m.hexCount, robberConcentration: m.robberConcentration };
       }
       v.rank = currentRank;
     }
 
     // Set rank for non-eligible to last position in production ranking
-    const lastProductionRank = prevScore !== null ? currentRank + 1 : 1;
+    const lastProductionRank = prevItem !== null ? currentRank + 1 : 1;
     for (const v of vertices) {
       if (!eligible.includes(v)) {
         v.rank = lastProductionRank;
@@ -244,6 +276,29 @@ export class SimulationService {
       resourceMap,
       maxRawScore: maxRaw,
       rankedVertexIds: eligible.map(v => v.id),
+    };
+  }
+
+  private getVertexMetrics(
+    v: Vertex,
+    hexMap: Map<string, HexDefinition>,
+  ): { hexCount: number; robberConcentration: number; key: string } {
+    const diceNumbers: number[] = [];
+    for (const id of v.adjacentHexIds) {
+      const hex = hexMap.get(id);
+      if (hex && !hex.isDesert && hex.diceNumber !== null && hex.diceNumber !== 7) {
+        diceNumbers.push(hex.diceNumber);
+      }
+    }
+    diceNumbers.sort((a, b) => a - b);
+    const hexCount = diceNumbers.length;
+    const totalPips = diceNumbers.reduce((sum, d) => sum + (6 - Math.abs(7 - d)), 0);
+    const maxPips = diceNumbers.reduce((max, d) => Math.max(max, 6 - Math.abs(7 - d)), 0);
+    const robberConcentration = totalPips > 0 ? maxPips / totalPips : 1;
+    return {
+      hexCount,
+      robberConcentration,
+      key: diceNumbers.join('-'),
     };
   }
 }

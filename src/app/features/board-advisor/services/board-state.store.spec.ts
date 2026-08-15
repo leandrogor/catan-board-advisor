@@ -1159,25 +1159,35 @@ describe('BoardStateStore - Longest Road', () => {
       expect(store.simulationResult()).not.toBeNull();
     });
 
-    it('should give identical rank to vertices with identical theoretical score', () => {
+    it('should give identical rank to vertices with identical structural key and theoretical score', () => {
       store.appPhase.set('results');
       store.setEvaluationMode('theoretical');
 
       const ranked = store.rankedVertices();
       expect(ranked.length).toBeGreaterThan(0);
 
-      // Find any vertices with identical rawScore (> 0)
+      // Find any vertices with identical structural key (> 0)
       const eligible = ranked.filter(v => (v.rawScore ?? 0) > 0 && !v.isBlocked && !v.isOccupied);
-      const scoreMap = new Map<number, typeof eligible>();
+      const hexMap = new Map(store.hexes().map(h => [h.id, h]));
+      const structuralMap = new Map<string, typeof eligible>();
+
       for (const v of eligible) {
-        const rounded = Math.round((v.rawScore ?? 0) * 1000000) / 1000000;
-        const list = scoreMap.get(rounded) ?? [];
+        const diceNumbers: number[] = [];
+        for (const id of v.adjacentHexIds) {
+          const hex = hexMap.get(id);
+          if (hex && !hex.isDesert && hex.diceNumber !== null && hex.diceNumber !== 7) {
+            diceNumbers.push(hex.diceNumber);
+          }
+        }
+        diceNumbers.sort((a, b) => a - b);
+        const key = `${v.rawScore?.toFixed(4)}_${diceNumbers.join('-')}`;
+        const list = structuralMap.get(key) ?? [];
         list.push(v);
-        scoreMap.set(rounded, list);
+        structuralMap.set(key, list);
       }
 
-      // Check that all vertices in any tied group have the exact same rank
-      for (const [, tiedGroup] of scoreMap) {
+      // Check that all vertices with the same structure have the exact same rank
+      for (const [, tiedGroup] of structuralMap) {
         if (tiedGroup.length > 1) {
           const firstRank = tiedGroup[0].rank;
           for (const v of tiedGroup) {

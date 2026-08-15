@@ -630,29 +630,57 @@ export class BoardStateStore {
       groupsMap.get(structuralKey)!.push(v);
     }
 
-    // Sort groups by their mean rawScore descending
+    // Sort groups by their mean rawScore descending, breaking ties with hexCount and lower robber concentration
     const groupList = Array.from(groupsMap.entries()).map(([key, groupVertices]) => {
       const totalScore = groupVertices.reduce((sum, v) => sum + (v.rawScore ?? 0), 0);
       const meanScore = totalScore / groupVertices.length;
+      const diceNumbers = key ? key.split('-').map(Number) : [];
+      const hexCount = diceNumbers.length;
+      const maxPips = diceNumbers.reduce((max, d) => Math.max(max, 6 - Math.abs(7 - d)), 0);
+      const totalPips = diceNumbers.reduce((sum, d) => sum + (6 - Math.abs(7 - d)), 0);
+      const robberConcentration = totalPips > 0 ? maxPips / totalPips : 1;
+
       return {
         key,
         vertices: groupVertices,
         meanScore,
+        hexCount,
+        robberConcentration,
       };
     });
-    groupList.sort((a, b) => b.meanScore - a.meanScore);
+
+    groupList.sort((a, b) => {
+      // 1. Primary: meanScore descending
+      if (Math.abs(b.meanScore - a.meanScore) > 1e-6) {
+        return b.meanScore - a.meanScore;
+      }
+      // 2. Secondary tie-breaker: hexCount descending (3 hexes > 2 hexes)
+      if (b.hexCount !== a.hexCount) {
+        return b.hexCount - a.hexCount;
+      }
+      // 3. Tertiary tie-breaker: robber concentration ascending (lower max hex risk is better)
+      if (Math.abs(a.robberConcentration - b.robberConcentration) > 1e-6) {
+        return a.robberConcentration - b.robberConcentration;
+      }
+      return a.key.localeCompare(b.key);
+    });
 
     // Assign rank with sequential dense ranking (1, 2, 3, 4, 5...)
     let currentRank = 1;
-    let prevMeanScore: number | null = null;
+    let prevGroup: (typeof groupList)[0] | null = null;
     for (const group of groupList) {
-      if (prevMeanScore !== null && Math.abs(group.meanScore - prevMeanScore) < 1e-6) {
-        // Tied with previous group: maintain currentRank
+      if (
+        prevGroup !== null &&
+        Math.abs(group.meanScore - prevGroup.meanScore) < 1e-6 &&
+        group.hexCount === prevGroup.hexCount &&
+        Math.abs(group.robberConcentration - prevGroup.robberConcentration) < 1e-6
+      ) {
+        // Structurally and mathematically tied: maintain currentRank
       } else {
-        if (prevMeanScore !== null) {
+        if (prevGroup !== null) {
           currentRank++;
         }
-        prevMeanScore = group.meanScore;
+        prevGroup = group;
       }
       for (const v of group.vertices) {
         v.rank = currentRank;
@@ -660,7 +688,7 @@ export class BoardStateStore {
     }
 
     // Vertices that produce 0 or are non-eligible get the rank corresponding to the last position in production ranking
-    const lastProductionRank = prevMeanScore !== null ? currentRank + 1 : 1;
+    const lastProductionRank = prevGroup !== null ? currentRank + 1 : 1;
     for (const v of vertices) {
       v.rank ??= lastProductionRank;
     }

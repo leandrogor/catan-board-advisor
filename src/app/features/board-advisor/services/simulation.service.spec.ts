@@ -108,6 +108,29 @@ describe('SimulationService', () => {
       expect(v3.rank).toBe(2);
     });
 
+    it('should rank 3-hex vertex higher than 2-hex vertex when they have the exact same total pips', () => {
+      const hexes: HexDefinition[] = [
+        createMockHex('h2', 2),
+        createMockHex('h4', 4),
+        createMockHex('h9', 9),
+        createMockHex('h8', 8),
+      ];
+
+      const v3hex = createMockVertex('v-249', ['h2', 'h4', 'h9']); // 1 + 3 + 4 = 8 pips, 3 hexes
+      const v2hex = createMockVertex('v-48', ['h4', 'h8']); // 3 + 5 = 8 pips, 2 hexes
+
+      service.runTheoretical(hexes, [v3hex, v2hex], 100);
+
+      // Both have identical rawScore of 8/36
+      expect(v3hex.rawScore).toBeCloseTo(8 / 36, 6);
+      expect(v2hex.rawScore).toBeCloseTo(8 / 36, 6);
+
+      // 3-hex vertex should rank #1 (better robber dispersion and expansion)
+      expect(v3hex.rank).toBe(1);
+      // 2-hex vertex should rank #2
+      expect(v2hex.rank).toBe(2);
+    });
+
     it('should correctly populate theoretical rollCountMap across all games', () => {
       const hexes: HexDefinition[] = [createMockHex('h6', 6)];
       const v = createMockVertex('v1', ['h6']);
